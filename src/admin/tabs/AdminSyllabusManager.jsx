@@ -49,6 +49,11 @@ export default function AdminSyllabusManager() {
         setLocalSubjects([]);
       }
       setInitialLoad(false);
+    }, (err) => {
+      console.error("Error fetching admin syllabus manager:", err);
+      setSyllabusDoc(null);
+      setLocalSubjects([]);
+      setInitialLoad(false);
     });
 
     return () => unsub();

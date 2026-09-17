@@ -41,6 +41,10 @@ export default function Syllabus() {
         setSyllabusDoc(null);
       }
       setLoading(false);
+    }, (err) => {
+      console.error("Error fetching syllabus:", err);
+      setSyllabusDoc(null);
+      setLoading(false);
     });
     return () => unsubSyllabus();
   }, [streamId]);
