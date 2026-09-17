@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { BookOpen, Mail, Lock, AlertCircle, ArrowRight } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
+import LoadingSpinner from '../components/LoadingSpinner';
 
 export default function Login() {
   const [email, setEmail] = useState('');
@@ -10,8 +11,20 @@ export default function Login() {
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
-  const { login, register } = useAuth();
+  const { currentUser, isAdmin, loading, login, register } = useAuth();
   const navigate = useNavigate();
+
+  // If user is already authenticated with a valid session, redirect directly to Dashboard/Admin
+  useEffect(() => {
+    if (!loading && currentUser) {
+      const redirectPath = isAdmin ? '/admin' : '/dashboard';
+      navigate(redirectPath, { replace: true });
+    }
+  }, [currentUser, isAdmin, loading, navigate]);
+
+  if (loading || currentUser) {
+    return <LoadingSpinner fullScreen text="Redirecting to Dashboard..." />;
+  }
 
   const handleSubmit = async (e) => {
     e.preventDefault();

@@ -1,15 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
-import { BookOpen, User, Mail, Phone, Lock, GraduationCap, Calendar, CheckCircle, AlertCircle, ArrowRight } from 'lucide-react';
-import { doc, getDoc } from 'firebase/firestore';
-import { db } from '../config/firebase';
+import { BookOpen, User, Mail, Phone, Lock, GraduationCap, Calendar, CheckCircle, AlertCircle, ArrowRight, RotateCcw } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
+import LoadingSpinner from '../components/LoadingSpinner';
 
 export default function Register() {
   const [searchParams] = useSearchParams();
-  const initialCourse = searchParams.get('course') || 'CA Foundation';
-
-  const [cmaOptions, setCmaOptions] = useState(['June 2027', 'December 2027']);
+  const initialParam = searchParams.get('course') || '';
+  
+  const initialCourse = initialParam.includes('CMA') ? 'CMA' : (initialParam.includes('CA') ? 'CA' : '');
 
   const [formData, setFormData] = useState({
     name: '',
@@ -17,45 +16,56 @@ export default function Register() {
     phone: '',
     password: '',
     confirmPassword: '',
-    course: initialCourse,
-    attempt: initialCourse === 'CA Foundation' ? 'January 2027' : 'June 2027',
     terms: false
   });
+
+  // Selected Course progressive state
+  const [selectedCourse, setSelectedCourse] = useState(initialCourse); // 'CA' | 'CMA' | ''
+  const [selectedLevel, setSelectedLevel] = useState('');   // 'Foundation' | 'Intermediate' | ''
+  const [selectedAttempt, setSelectedAttempt] = useState(''); // 'Jan 27' | 'May 27' | 'Sep 27' | 'June 27' | 'Dec 27' | ''
 
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
-  const { register } = useAuth();
+  const { currentUser, isAdmin, loading, register } = useAuth();
   const navigate = useNavigate();
 
+  // Redirect already authenticated users to Dashboard/Admin
   useEffect(() => {
-    async function loadCourseSettings() {
-      try {
-        const snap = await getDoc(doc(db, 'settings', 'courses'));
-        if (snap.exists()) {
-          const data = snap.data();
-          if (data.cmaAttempts && Array.isArray(data.cmaAttempts) && data.cmaAttempts.length > 0) {
-            setCmaOptions(data.cmaAttempts);
-            if (formData.course === 'CMA' && !data.cmaAttempts.includes(formData.attempt)) {
-              setFormData(prev => ({ ...prev, attempt: data.cmaAttempts[0] }));
-            }
-          }
-        }
-      } catch (err) {
-        console.error("Error fetching course settings:", err);
-      }
+    if (!loading && currentUser) {
+      const redirectPath = isAdmin ? '/admin' : '/dashboard';
+      navigate(redirectPath, { replace: true });
     }
-    loadCourseSettings();
-  }, []);
+  }, [currentUser, isAdmin, loading, navigate]);
 
-  // Update attempt when course changes
-  const handleCourseChange = (selectedCourse) => {
-    setFormData(prev => ({
-      ...prev,
-      course: selectedCourse,
-      attempt: selectedCourse === 'CA Foundation' ? 'January 2027' : (cmaOptions[0] || 'June 2027')
-    }));
+  if (loading || currentUser) {
+    return <LoadingSpinner fullScreen text="Redirecting to Dashboard..." />;
+  }
+
+  // Handlers for progressive course selection
+  const handleCourseSelect = (course) => {
+    setSelectedCourse(course);
+    setSelectedLevel('');
+    setSelectedAttempt('');
   };
+
+  const handleLevelSelect = (level) => {
+    setSelectedLevel(level);
+    setSelectedAttempt('');
+  };
+
+  const handleResetCourseSelection = () => {
+    setSelectedCourse('');
+    setSelectedLevel('');
+    setSelectedAttempt('');
+  };
+
+  // Available attempt options based on course selection
+  const attemptOptions = selectedCourse === 'CA'
+    ? ['Jan 27', 'May 27', 'Sep 27']
+    : selectedCourse === 'CMA'
+      ? ['June 27', 'Dec 27']
+      : [];
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -77,11 +87,14 @@ export default function Register() {
     if (formData.password !== formData.confirmPassword) {
       return setError('Passwords do not match.');
     }
-    if (!formData.course) {
-      return setError('Please select your course.');
+    if (!selectedCourse) {
+      return setError('Please select your course (CA or CMA).');
     }
-    if (formData.course === 'CA Foundation' && !formData.attempt) {
-      return setError('Please select your CA Foundation exam attempt.');
+    if (!selectedLevel) {
+      return setError('Please select your level (Foundation or Intermediate).');
+    }
+    if (!selectedAttempt) {
+      return setError('Please select your exam attempt.');
     }
     if (!formData.terms) {
       return setError('You must agree to the terms and conditions to proceed.');
@@ -94,8 +107,9 @@ export default function Register() {
         email: formData.email.trim(),
         phone: formData.phone.trim(),
         password: formData.password,
-        course: formData.course,
-        attempt: formData.attempt
+        course: selectedCourse,
+        level: selectedLevel,
+        attempt: selectedAttempt
       });
       navigate('/dashboard');
     } catch (err) {
@@ -233,115 +247,127 @@ export default function Register() {
               </div>
             </div>
 
-            {/* COURSE SELECTION */}
-            <div className="pt-2 border-t border-white/10">
-              <label className="block text-xs font-bold text-gold-400 uppercase tracking-wider mb-3">
-                Select Your Course
-              </label>
-              <div className="grid grid-cols-2 gap-3">
-                <button
-                  type="button"
-                  onClick={() => handleCourseChange('CA Foundation')}
-                  className={`p-3.5 rounded-2xl border text-left transition-all flex items-center justify-between ${
-                    formData.course === 'CA Foundation'
-                      ? 'bg-royal-600/30 border-royal-500 text-white shadow-glow-blue'
-                      : 'bg-navy-900/50 border-white/10 text-slate-400 hover:border-white/20'
-                  }`}
-                >
-                  <div className="flex items-center gap-2.5">
-                    <BookOpen className="w-4 h-4 text-royal-400" />
-                    <span className="font-bold text-sm">CA Foundation</span>
-                  </div>
-                  {formData.course === 'CA Foundation' && <CheckCircle className="w-4 h-4 text-royal-400" />}
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => handleCourseChange('CMA')}
-                  className={`p-3.5 rounded-2xl border text-left transition-all flex items-center justify-between ${
-                    formData.course === 'CMA'
-                      ? 'bg-gold-500/20 border-gold-500 text-white shadow-glow-gold'
-                      : 'bg-navy-900/50 border-white/10 text-slate-400 hover:border-white/20'
-                  }`}
-                >
-                  <div className="flex items-center gap-2.5">
-                    <GraduationCap className="w-4 h-4 text-gold-400" />
-                    <span className="font-bold text-sm">CMA</span>
-                  </div>
-                  {formData.course === 'CMA' && <CheckCircle className="w-4 h-4 text-gold-400" />}
-                </button>
-              </div>
-            </div>
-
-            {/* ATTEMPT SELECTION (Dynamic based on course) */}
-            {formData.course === 'CA Foundation' && (
-              <div className="animate-in fade-in duration-200">
-                <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-2">
-                  Select Your Attempt
+            {/* SELECTED COURSE SECTION (PROGRESSIVE SELECTION) */}
+            <div className="pt-4 border-t border-white/10 space-y-4">
+              <div className="flex items-center justify-between">
+                <label className="block text-xs font-bold text-gold-400 uppercase tracking-wider">
+                  Selected Course
                 </label>
+                {(selectedCourse || selectedLevel || selectedAttempt) && (
+                  <button
+                    type="button"
+                    onClick={handleResetCourseSelection}
+                    className="inline-flex items-center gap-1 text-[11px] font-semibold text-slate-400 hover:text-white underline transition-colors"
+                  >
+                    <RotateCcw className="w-3 h-3" />
+                    <span>Change</span>
+                  </button>
+                )}
+              </div>
+
+              {/* STEP 1 — COURSE (CA / CMA) */}
+              <div>
+                <div className="text-[11px] font-semibold text-slate-400 mb-2">Select Course:</div>
                 <div className="grid grid-cols-2 gap-3">
                   <button
                     type="button"
-                    onClick={() => setFormData({ ...formData, attempt: 'January 2027' })}
-                    className={`p-3 rounded-xl border text-sm font-semibold transition-all flex items-center justify-between ${
-                      formData.attempt === 'January 2027'
-                        ? 'bg-royal-500/20 border-royal-500 text-white'
-                        : 'bg-navy-900/50 border-white/10 text-slate-400'
+                    onClick={() => handleCourseSelect('CA')}
+                    className={`p-3.5 rounded-2xl border text-left transition-all flex items-center justify-between ${
+                      selectedCourse === 'CA'
+                        ? 'bg-royal-600/30 border-royal-500 text-white shadow-glow-blue'
+                        : 'bg-navy-900/50 border-white/10 text-slate-400 hover:border-white/20'
                     }`}
                   >
-                    <span className="flex items-center gap-2">
-                      <Calendar className="w-4 h-4 text-gold-400" />
-                      January 2027
-                    </span>
-                    {formData.attempt === 'January 2027' && <CheckCircle className="w-4 h-4 text-royal-400" />}
+                    <div className="flex items-center gap-2.5">
+                      <BookOpen className="w-4 h-4 text-royal-400" />
+                      <span className="font-bold text-sm">CA</span>
+                    </div>
+                    {selectedCourse === 'CA' && <CheckCircle className="w-4 h-4 text-royal-400" />}
                   </button>
 
                   <button
                     type="button"
-                    onClick={() => setFormData({ ...formData, attempt: 'September 2027' })}
-                    className={`p-3 rounded-xl border text-sm font-semibold transition-all flex items-center justify-between ${
-                      formData.attempt === 'September 2027'
-                        ? 'bg-royal-500/20 border-royal-500 text-white'
-                        : 'bg-navy-900/50 border-white/10 text-slate-400'
+                    onClick={() => handleCourseSelect('CMA')}
+                    className={`p-3.5 rounded-2xl border text-left transition-all flex items-center justify-between ${
+                      selectedCourse === 'CMA'
+                        ? 'bg-gold-500/20 border-gold-500 text-white shadow-glow-gold'
+                        : 'bg-navy-900/50 border-white/10 text-slate-400 hover:border-white/20'
                     }`}
                   >
-                    <span className="flex items-center gap-2">
-                      <Calendar className="w-4 h-4 text-gold-400" />
-                      September 2027
-                    </span>
-                    {formData.attempt === 'September 2027' && <CheckCircle className="w-4 h-4 text-royal-400" />}
+                    <div className="flex items-center gap-2.5">
+                      <GraduationCap className="w-4 h-4 text-gold-400" />
+                      <span className="font-bold text-sm">CMA</span>
+                    </div>
+                    {selectedCourse === 'CMA' && <CheckCircle className="w-4 h-4 text-gold-400" />}
                   </button>
                 </div>
               </div>
-            )}
 
-            {formData.course === 'CMA' && (
-              <div className="animate-in fade-in duration-200">
-                <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-2">
-                  Select Your CMA Exam Attempt
-                </label>
-                <div className="grid grid-cols-2 gap-3">
-                  {cmaOptions.map((att) => (
+              {/* STEP 2 — LEVEL (Foundation / Intermediate) - Visible after Course select */}
+              {selectedCourse && (
+                <div className="animate-in fade-in duration-200 pt-1">
+                  <div className="text-[11px] font-semibold text-slate-400 mb-2">Select Level:</div>
+                  <div className="grid grid-cols-2 gap-3">
                     <button
-                      key={att}
                       type="button"
-                      onClick={() => setFormData({ ...formData, attempt: att })}
-                      className={`p-3 rounded-xl border text-sm font-semibold transition-all flex items-center justify-between ${
-                        formData.attempt === att
-                          ? 'bg-gold-500/20 border-gold-500 text-white shadow-glow-gold'
+                      onClick={() => handleLevelSelect('Foundation')}
+                      className={`p-3 rounded-xl border text-left transition-all flex items-center justify-between ${
+                        selectedLevel === 'Foundation'
+                          ? selectedCourse === 'CA'
+                            ? 'bg-royal-600/30 border-royal-500 text-white shadow-glow-blue'
+                            : 'bg-gold-500/20 border-gold-500 text-white shadow-glow-gold'
                           : 'bg-navy-900/50 border-white/10 text-slate-400 hover:border-white/20'
                       }`}
                     >
-                      <span className="flex items-center gap-2">
-                        <Calendar className="w-4 h-4 text-gold-400" />
-                        {att}
-                      </span>
-                      {formData.attempt === att && <CheckCircle className="w-4 h-4 text-gold-400" />}
+                      <span className="font-bold text-xs sm:text-sm">Foundation</span>
+                      {selectedLevel === 'Foundation' && <CheckCircle className="w-4 h-4 text-emerald-400" />}
                     </button>
-                  ))}
+
+                    <button
+                      type="button"
+                      onClick={() => handleLevelSelect('Intermediate')}
+                      className={`p-3 rounded-xl border text-left transition-all flex items-center justify-between ${
+                        selectedLevel === 'Intermediate'
+                          ? selectedCourse === 'CA'
+                            ? 'bg-royal-600/30 border-royal-500 text-white shadow-glow-blue'
+                            : 'bg-gold-500/20 border-gold-500 text-white shadow-glow-gold'
+                          : 'bg-navy-900/50 border-white/10 text-slate-400 hover:border-white/20'
+                      }`}
+                    >
+                      <span className="font-bold text-xs sm:text-sm">Intermediate</span>
+                      {selectedLevel === 'Intermediate' && <CheckCircle className="w-4 h-4 text-emerald-400" />}
+                    </button>
+                  </div>
                 </div>
-              </div>
-            )}
+              )}
+
+              {/* STEP 3 — ATTEMPT (Jan 27 / May 27 / Sep 27 or June 27 / Dec 27) - Visible after Level select */}
+              {selectedCourse && selectedLevel && (
+                <div className="animate-in fade-in duration-200 pt-1">
+                  <div className="text-[11px] font-semibold text-slate-400 mb-2">Select Attempt:</div>
+                  <div className={`grid gap-2.5 ${selectedCourse === 'CA' ? 'grid-cols-3' : 'grid-cols-2'}`}>
+                    {attemptOptions.map((att) => (
+                      <button
+                        key={att}
+                        type="button"
+                        onClick={() => setSelectedAttempt(att)}
+                        className={`p-3 rounded-xl border text-xs sm:text-sm font-semibold transition-all flex items-center justify-center gap-1.5 ${
+                          selectedAttempt === att
+                            ? selectedCourse === 'CA'
+                              ? 'bg-royal-500/20 border-royal-500 text-white shadow-glow-blue'
+                              : 'bg-gold-500/20 border-gold-500 text-white shadow-glow-gold'
+                            : 'bg-navy-900/50 border-white/10 text-slate-400 hover:border-white/20'
+                        }`}
+                      >
+                        <Calendar className="w-3.5 h-3.5 text-gold-400 shrink-0" />
+                        <span>{att}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+            </div>
 
             {/* Terms Checkbox */}
             <div className="flex items-center pt-2">
