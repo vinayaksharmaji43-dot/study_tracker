@@ -16,6 +16,7 @@ import AdminDoubts from './tabs/AdminDoubts';
 import AdminAnnouncements from './tabs/AdminAnnouncements';
 import AdminCourses from './tabs/AdminCourses';
 import AdminSettings from './tabs/AdminSettings';
+import AdminWritingPractice from './tabs/AdminWritingPractice';
 
 import { 
   LayoutDashboard, 
@@ -33,7 +34,8 @@ import {
   Settings, 
   LogOut,
   ChevronRight,
-  ShieldCheck
+  ShieldCheck,
+  PenLine
 } from 'lucide-react';
 
 export default function AdminDashboard() {
@@ -48,6 +50,7 @@ export default function AdminDashboard() {
     { id: 'analytics', label: 'Analytics', icon: TrendingUp },
     { id: 'leaderboard', label: 'Leaderboard', icon: Trophy },
     { id: 'targets', label: 'Targets', icon: Target },
+    { id: 'writing_practice', label: 'Writing Practice', icon: PenLine },
     { id: 'sessions', label: 'Study Sessions', icon: Clock },
     { id: 'notes', label: 'Notes', icon: FileText },
     { id: 'doubts', label: 'Doubts', icon: HelpCircle },
@@ -155,6 +158,7 @@ export default function AdminDashboard() {
             {activeTab === 'analytics' && <AdminAnalytics />}
             {activeTab === 'leaderboard' && <AdminLeaderboard />}
             {activeTab === 'targets' && <AdminTargets />}
+            {activeTab === 'writing_practice' && <AdminWritingPractice />}
             {activeTab === 'sessions' && <AdminSessions />}
             {activeTab === 'notes' && <AdminNotes />}
             {activeTab === 'doubts' && <AdminDoubts />}

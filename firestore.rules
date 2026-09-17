@@ -99,5 +99,11 @@ service cloud.firestore {
       allow read: if request.auth != null && (resource.data.uid == request.auth.uid || isAdmin());
       allow create, update, delete: if isAdmin();
     }
+
+    // Syllabi Collection
+    match /syllabi/{syllabusId} {
+      allow read: if request.auth != null;
+      allow write: if isAdmin();
+    }
   }
 }
