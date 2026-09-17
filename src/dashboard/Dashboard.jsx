@@ -3,6 +3,7 @@ import { useAuth } from '../contexts/AuthContext';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import Overview from '../dashboard/Overview';
+import Syllabus from '../dashboard/Syllabus';
 import Leaderboard from '../dashboard/Leaderboard';
 import StudyTimer from '../dashboard/StudyTimer';
 import Targets from '../dashboard/Targets';
@@ -12,6 +13,7 @@ import Profile from '../dashboard/Profile';
 
 import { 
   LayoutDashboard, 
+  BookOpenCheck,
   Trophy, 
   Clock, 
   Target, 
@@ -29,6 +31,7 @@ export default function Dashboard() {
 
   const navItems = [
     { id: 'overview', label: 'Overview', icon: LayoutDashboard },
+    { id: 'syllabus', label: 'Syllabus & Progress', icon: BookOpenCheck },
     { id: 'leaderboard', label: 'Live Leaderboard', icon: Trophy },
     { id: 'timer', label: 'Study Timer', icon: Clock },
     { id: 'targets', label: 'Self-Managed Hub', icon: Target },
@@ -128,6 +131,7 @@ export default function Dashboard() {
           {/* Main Dashboard Workspace View */}
           <main className="col-span-1 lg:col-span-9 space-y-6">
             {activeTab === 'overview' && <Overview setActiveTab={setActiveTab} />}
+            {activeTab === 'syllabus' && <Syllabus />}
             {activeTab === 'leaderboard' && <Leaderboard />}
             {activeTab === 'timer' && <StudyTimer />}
             {activeTab === 'targets' && <Targets />}

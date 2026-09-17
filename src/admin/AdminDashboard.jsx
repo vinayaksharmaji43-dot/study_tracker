@@ -5,6 +5,7 @@ import Footer from '../components/Footer';
 
 import AdminOverview from './tabs/AdminOverview';
 import AdminStudents from './tabs/AdminStudents';
+import AdminSyllabus from './tabs/AdminSyllabus';
 import AdminAnalytics from './tabs/AdminAnalytics';
 import AdminLeaderboard from './tabs/AdminLeaderboard';
 import AdminTargets from './tabs/AdminTargets';
@@ -18,6 +19,7 @@ import AdminSettings from './tabs/AdminSettings';
 import { 
   LayoutDashboard, 
   Users, 
+  BookOpenCheck,
   TrendingUp, 
   Trophy, 
   Target, 
@@ -39,6 +41,7 @@ export default function AdminDashboard() {
   const navItems = [
     { id: 'overview', label: 'Dashboard', icon: LayoutDashboard },
     { id: 'students', label: 'Students', icon: Users },
+    { id: 'syllabus', label: 'Syllabus Progress', icon: BookOpenCheck },
     { id: 'analytics', label: 'Analytics', icon: TrendingUp },
     { id: 'leaderboard', label: 'Leaderboard', icon: Trophy },
     { id: 'targets', label: 'Targets', icon: Target },
@@ -144,6 +147,7 @@ export default function AdminDashboard() {
           <main className="col-span-1 lg:col-span-9 space-y-6">
             {activeTab === 'overview' && <AdminOverview setActiveTab={setActiveTab} />}
             {activeTab === 'students' && <AdminStudents />}
+            {activeTab === 'syllabus' && <AdminSyllabus />}
             {activeTab === 'analytics' && <AdminAnalytics />}
             {activeTab === 'leaderboard' && <AdminLeaderboard />}
             {activeTab === 'targets' && <AdminTargets />}
