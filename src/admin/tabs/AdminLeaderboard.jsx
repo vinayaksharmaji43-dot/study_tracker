@@ -2,12 +2,18 @@ import React, { useState, useEffect } from 'react';
 import { collection, onSnapshot, query, orderBy, doc, updateDoc, addDoc, increment, serverTimestamp } from 'firebase/firestore';
 import { db } from '../../config/firebase';
 import { formatHours } from '../../utils/helpers';
+import { getStudentSyllabus } from '../../data/syllabusData';
 import EmptyState from '../../components/EmptyState';
-import { Trophy, Award, Sliders, AlertCircle, Sparkles } from 'lucide-react';
+import { Trophy, Award, Sliders, AlertCircle, Sparkles, Filter, Calendar } from 'lucide-react';
 
 export default function AdminLeaderboard() {
   const [leaderboard, setLeaderboard] = useState([]);
   const [loading, setLoading] = useState(true);
+
+  // Admin stream filters
+  const [courseFilter, setCourseFilter] = useState('all'); // 'all', 'CA', 'CMA'
+  const [levelFilter, setLevelFilter] = useState('all');   // 'all', 'Foundation', 'Intermediate'
+  const [attemptFilter, setAttemptFilter] = useState('all'); // 'all', 'Jan 27', 'May 27', 'Sep 27', 'June 27', 'Dec 27'
 
   // Controlled point adjustment modal
   const [adjustingStudent, setAdjustingStudent] = useState(null);
@@ -20,23 +26,51 @@ export default function AdminLeaderboard() {
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const users = snapshot.docs
-        .map(doc => ({ id: doc.id, ...doc.data() }))
+        .map(doc => {
+          const data = doc.data();
+          const courseKey = data.course === 'CMA' || data.course?.includes('CMA') ? 'CMA' : 'CA';
+          const levelKey = data.level === 'Intermediate' || data.course?.includes('Intermediate') ? 'Intermediate' : 'Foundation';
+          const syllabusInfo = getStudentSyllabus(data.course, data.level);
+          const completedCount = data.syllabusCompletedCount || (data.syllabusCompleted ? Object.keys(data.syllabusCompleted).length : 0);
+          const progressPct = syllabusInfo.totalChaptersCount > 0 ? Math.round((completedCount / syllabusInfo.totalChaptersCount) * 100) : 0;
+
+          return {
+            id: doc.id,
+            ...data,
+            courseKey,
+            levelKey,
+            completedCount,
+            totalChapters: syllabusInfo.totalChaptersCount,
+            progressPct
+          };
+        })
         .filter(u => 
           u.role !== 'admin' && 
           u.email?.toLowerCase() !== 'vaultstore27@gmail.com' &&
           u.email?.toLowerCase() !== 'thunderworld766@gmail.com'
-        )
-        .map((u, idx) => ({
-          ...u,
-          name: u.name || u.email?.split('@')[0] || 'Student',
-          rank: idx + 1
-        }));
+        );
+
       setLeaderboard(users);
       setLoading(false);
     });
 
     return () => unsubscribe();
   }, []);
+
+  // Filter leaderboard strictly by Admin selection
+  const filteredLeaderboard = leaderboard
+    .filter(student => {
+      const matchesCourse = courseFilter === 'all' || student.courseKey === courseFilter;
+      const matchesLevel = levelFilter === 'all' || student.levelKey === levelFilter;
+      const matchesAttempt = attemptFilter === 'all' || student.attempt === attemptFilter;
+
+      return matchesCourse && matchesLevel && matchesAttempt;
+    })
+    .map((student, idx) => ({
+      ...student,
+      name: student.name || 'Student',
+      rank: idx + 1
+    }));
 
   const handleAdjustPoints = async (e) => {
     e.preventDefault();
@@ -76,27 +110,71 @@ export default function AdminLeaderboard() {
     <div className="space-y-6">
       
       {/* Header Banner */}
-      <div className="p-6 sm:p-8 rounded-3xl glass-card border border-gold-500/30 relative overflow-hidden">
+      <div className="p-6 sm:p-8 rounded-3xl glass-card border border-gold-500/30 relative overflow-hidden shadow-2xl">
         <div className="absolute top-0 right-0 w-80 h-80 bg-gold-500/10 rounded-full blur-3xl pointer-events-none" />
         <div className="relative z-10 space-y-2">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-gold-500/20 text-gold-400 text-xs font-bold border border-gold-500/30">
             <Trophy className="w-3.5 h-3.5" />
-            <span>Leaderboard Oversight & Point Audit</span>
+            <span>Stream Leaderboard Oversight & Audit</span>
           </div>
           <h1 className="text-2xl sm:text-3xl font-extrabold text-white">
-            Live Platform <span className="gold-gradient-text">Leaderboard</span>
+            Stream-Isolated <span className="gold-gradient-text">Live Leaderboard</span>
           </h1>
           <p className="text-slate-300 text-sm max-w-xl">
-            Calculated in real-time from verified student study sessions and targets.
+            Filter and inspect student rankings for CA / CMA Foundation & Intermediate streams and attempt groups.
           </p>
         </div>
       </div>
 
-      {leaderboard.length === 0 ? (
+      {/* Admin Stream Filters */}
+      <div className="flex flex-wrap items-center gap-3 p-4 glass-card rounded-2xl border border-white/10">
+        <div className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1">
+          <Filter className="w-3.5 h-3.5 text-gold-400" />
+          <span>Stream Filters:</span>
+        </div>
+
+        {/* Course Filter */}
+        <select
+          value={courseFilter}
+          onChange={(e) => setCourseFilter(e.target.value)}
+          className="px-3.5 py-2 rounded-xl bg-navy-900 border border-white/10 text-white font-bold text-xs focus:outline-none focus:border-gold-500"
+        >
+          <option value="all">All Courses (CA & CMA)</option>
+          <option value="CA">CA Only</option>
+          <option value="CMA">CMA Only</option>
+        </select>
+
+        {/* Level Filter */}
+        <select
+          value={levelFilter}
+          onChange={(e) => setLevelFilter(e.target.value)}
+          className="px-3.5 py-2 rounded-xl bg-navy-900 border border-white/10 text-white font-bold text-xs focus:outline-none focus:border-gold-500"
+        >
+          <option value="all">All Levels (Foundation & Inter)</option>
+          <option value="Foundation">Foundation Only</option>
+          <option value="Intermediate">Intermediate Only</option>
+        </select>
+
+        {/* Attempt Filter */}
+        <select
+          value={attemptFilter}
+          onChange={(e) => setAttemptFilter(e.target.value)}
+          className="px-3.5 py-2 rounded-xl bg-navy-900 border border-white/10 text-white font-bold text-xs focus:outline-none focus:border-gold-500"
+        >
+          <option value="all">All Attempts</option>
+          <option value="Jan 27">Jan 27</option>
+          <option value="May 27">May 27</option>
+          <option value="Sep 27">Sep 27</option>
+          <option value="June 27">June 27</option>
+          <option value="Dec 27">Dec 27</option>
+        </select>
+      </div>
+
+      {filteredLeaderboard.length === 0 ? (
         <EmptyState
           icon={Trophy}
-          title="No leaderboard entries yet"
-          description="Leaderboard will populate automatically as registered students log study hours."
+          title="No leaderboard entries match this filter"
+          description="Try changing the course, level, or attempt dropdown filters."
         />
       ) : (
         <div className="glass-card rounded-3xl border border-white/10 overflow-hidden shadow-xl">
@@ -106,14 +184,15 @@ export default function AdminLeaderboard() {
                 <tr className="bg-navy-900/80 border-b border-white/10 text-xs font-bold text-slate-400 uppercase tracking-wider">
                   <th className="px-6 py-4 text-center">Rank</th>
                   <th className="px-6 py-4">Student</th>
-                  <th className="px-6 py-4">Course & Attempt</th>
+                  <th className="px-6 py-4">Course, Level & Attempt</th>
+                  <th className="px-6 py-4 text-center">Syllabus Progress</th>
                   <th className="px-6 py-4 text-center">Study Hours</th>
                   <th className="px-6 py-4 text-right">Points</th>
                   <th className="px-6 py-4 text-right">Audit Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-white/5 text-sm">
-                {leaderboard.map((student) => (
+                {filteredLeaderboard.map((student) => (
                   <tr key={student.id} className="hover:bg-white/5 transition-colors">
                     
                     {/* Rank */}
@@ -130,8 +209,14 @@ export default function AdminLeaderboard() {
                     {/* Course & Attempt */}
                     <td className="px-6 py-4 text-xs text-slate-300">
                       <span className="px-2.5 py-1 rounded-lg bg-navy-900 border border-white/10 font-semibold text-emerald-400">
-                        {student.course} {student.attempt ? `(${student.attempt})` : ''}
+                        {student.courseKey} {student.levelKey} {student.attempt ? `(${student.attempt})` : ''}
                       </span>
+                    </td>
+
+                    {/* Syllabus Progress % */}
+                    <td className="px-6 py-4 text-center">
+                      <div className="font-bold text-emerald-400 font-mono text-sm">{student.progressPct}%</div>
+                      <div className="text-[11px] text-slate-400">{student.completedCount}/{student.totalChapters} chs</div>
                     </td>
 
                     {/* Study Hours */}

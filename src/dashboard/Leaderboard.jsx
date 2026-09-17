@@ -9,10 +9,23 @@ import LoadingSpinner from '../components/LoadingSpinner';
 import { Trophy, Award, Flame, UserCheck, ShieldCheck, Sparkles, Calendar, BookOpenCheck, Filter, Star } from 'lucide-react';
 
 export default function Leaderboard() {
-  const { currentUser } = useAuth();
+  const { currentUser, userProfile } = useAuth();
   const [leaderboardData, setLeaderboardData] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [categoryFilter, setCategoryFilter] = useState('all'); // 'all', 'CA Foundation', 'CA Intermediate', 'CMA Foundation', 'CMA Intermediate'
+
+  // Student's stream parameters
+  const userCourseKey = userProfile?.course === 'CMA' || userProfile?.course?.includes('CMA') ? 'CMA' : 'CA';
+  const userLevelKey = userProfile?.level === 'Intermediate' || userProfile?.course?.includes('Intermediate') ? 'Intermediate' : 'Foundation';
+  const defaultAttempt = userProfile?.attempt || (userCourseKey === 'CA' ? 'Jan 27' : 'June 27');
+
+  const [activeAttempt, setActiveAttempt] = useState(defaultAttempt);
+
+  // Update activeAttempt if userProfile attempt finishes loading
+  useEffect(() => {
+    if (userProfile?.attempt) {
+      setActiveAttempt(userProfile.attempt);
+    }
+  }, [userProfile]);
 
   useEffect(() => {
     // Real-time listener for users collection sorted by points descending
@@ -29,9 +42,14 @@ export default function Leaderboard() {
         const totalChapters = syllabusInfo.totalChaptersCount || 1;
         const progressPct = Math.min(100, Math.round((completedCount / totalChapters) * 100));
 
+        const courseKey = data.course === 'CMA' || data.course?.includes('CMA') ? 'CMA' : 'CA';
+        const levelKey = data.level === 'Intermediate' || data.course?.includes('Intermediate') ? 'Intermediate' : 'Foundation';
+
         return {
           uid: doc.id,
           ...data,
+          courseKey,
+          levelKey,
           completedCount,
           totalChapters,
           progressPct
@@ -48,132 +66,84 @@ export default function Leaderboard() {
   }, []);
 
   if (loading) {
-    return <LoadingSpinner text="Fetching live leaderboard..." />;
+    return <LoadingSpinner text="Fetching live stream leaderboard..." />;
   }
 
-  // Filter out admin accounts while keeping all real registered students
-  const activeStudents = leaderboardData
+  // Strictly filter out admins and filter ONLY matching student Course + Level + Attempt
+  const activeStreamStudents = leaderboardData
     .filter(u => 
       u.role !== 'admin' && 
       u.email?.toLowerCase() !== 'vaultstore27@gmail.com' &&
-      u.email?.toLowerCase() !== 'thunderworld766@gmail.com'
+      u.email?.toLowerCase() !== 'thunderworld766@gmail.com' &&
+      u.courseKey === userCourseKey &&
+      u.levelKey === userLevelKey &&
+      (u.attempt === activeAttempt || (activeAttempt === 'Jan 27' && u.attempt === 'January 2027') || (activeAttempt === 'Sep 27' && u.attempt === 'September 2027'))
     )
-    .map((u) => {
-      const courseKey = u.course === 'CMA' || u.course?.includes('CMA') ? 'CMA' : 'CA';
-      const levelKey = u.level === 'Intermediate' || u.course?.includes('Intermediate') ? 'Intermediate' : 'Foundation';
-      const fullCategory = `${courseKey} ${levelKey}`;
-
-      return {
-        ...u,
-        name: u.name || 'Student',
-        courseKey,
-        levelKey,
-        fullCategory
-      };
-    });
-
-  // Category Filtering
-  const filteredStudents = activeStudents
-    .filter(student => {
-      if (categoryFilter === 'all') return true;
-      return student.fullCategory === categoryFilter;
-    })
-    .map((student, index) => ({
-      ...student,
+    .map((u, index) => ({
+      ...u,
+      name: u.name || 'Student',
       rank: index + 1
     }));
 
-  const userRankEntry = filteredStudents.find(s => s.uid === currentUser?.uid);
-  const topThree = filteredStudents.slice(0, 3);
-
-  // Check if today is Sunday (0)
+  const userRankEntry = activeStreamStudents.find(s => s.uid === currentUser?.uid);
   const isSunday = new Date().getDay() === 0;
+
+  // Available attempts for switching within student's stream
+  const availableAttempts = userCourseKey === 'CA' 
+    ? ['Jan 27', 'May 27', 'Sep 27']
+    : ['June 27', 'Dec 27'];
 
   return (
     <div className="space-y-6">
       
-      {/* Header Banner */}
+      {/* Stream-Specific Header Banner */}
       <div className="p-6 sm:p-8 rounded-3xl glass-card border border-gold-500/30 relative overflow-hidden">
         <div className="absolute top-0 right-0 w-80 h-80 bg-gold-500/10 rounded-full blur-3xl pointer-events-none" />
         <div className="relative z-10 space-y-2">
           <div className="flex flex-wrap items-center gap-2">
             <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-gold-500/20 text-gold-400 text-xs font-bold border border-gold-500/40">
               <Sparkles className="w-3.5 h-3.5" />
-              <span>Verified Real-Time Leaderboard</span>
+              <span>Stream-Isolated Leaderboard</span>
             </div>
+            <span className="px-3 py-1 rounded-full bg-royal-500/20 text-royal-300 text-xs font-bold border border-royal-500/30">
+              {userCourseKey} {userLevelKey} Stream
+            </span>
             {isSunday && (
               <span className="px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-300 text-xs font-black border border-emerald-500/40 flex items-center gap-1 animate-pulse">
                 <Star className="w-3.5 h-3.5 text-emerald-400 fill-emerald-400" />
-                <span>Sunday Weekly Leaderboard Live</span>
+                <span>Sunday Live Ranking</span>
               </span>
             )}
           </div>
 
           <h1 className="text-2xl sm:text-3xl font-extrabold text-white">
-            CA/CMA <span className="gold-gradient-text">Weekly Live Leaderboard</span>
+            🏆 {userCourseKey} {userLevelKey} — <span className="gold-gradient-text">{activeAttempt} Live Leaderboard</span>
           </h1>
           <p className="text-slate-300 text-sm max-w-2xl">
-            Rankings are calculated automatically from real database progress. Tick syllabus chapters and log study sessions to earn points and claim top positions!
+            You are competing exclusively with registered students in the <strong>{userCourseKey} {userLevelKey} ({activeAttempt})</strong> stream. No cross-stream mixing.
           </p>
         </div>
       </div>
 
-      {/* Category Selection Filter Tabs */}
-      <div className="flex overflow-x-auto gap-2 p-1.5 glass-card rounded-2xl border border-white/10 scrollbar-none">
-        <button
-          onClick={() => setCategoryFilter('all')}
-          className={`px-4 py-2.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all ${
-            categoryFilter === 'all'
-              ? 'bg-gold-500 text-navy-950 font-black shadow-glow-gold'
-              : 'text-slate-400 hover:text-white hover:bg-white/5'
-          }`}
-        >
-          All Students ({activeStudents.length})
-        </button>
-
-        <button
-          onClick={() => setCategoryFilter('CA Foundation')}
-          className={`px-4 py-2.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all ${
-            categoryFilter === 'CA Foundation'
-              ? 'bg-royal-600 text-white font-black shadow-glow-blue'
-              : 'text-slate-400 hover:text-white hover:bg-white/5'
-          }`}
-        >
-          CA Foundation
-        </button>
-
-        <button
-          onClick={() => setCategoryFilter('CA Intermediate')}
-          className={`px-4 py-2.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all ${
-            categoryFilter === 'CA Intermediate'
-              ? 'bg-royal-600 text-white font-black shadow-glow-blue'
-              : 'text-slate-400 hover:text-white hover:bg-white/5'
-          }`}
-        >
-          CA Intermediate
-        </button>
-
-        <button
-          onClick={() => setCategoryFilter('CMA Foundation')}
-          className={`px-4 py-2.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all ${
-            categoryFilter === 'CMA Foundation'
-              ? 'bg-amber-500 text-navy-950 font-black shadow-glow-gold'
-              : 'text-slate-400 hover:text-white hover:bg-white/5'
-          }`}
-        >
-          CMA Foundation
-        </button>
-
-        <button
-          onClick={() => setCategoryFilter('CMA Intermediate')}
-          className={`px-4 py-2.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all ${
-            categoryFilter === 'CMA Intermediate'
-              ? 'bg-amber-500 text-navy-950 font-black shadow-glow-gold'
-              : 'text-slate-400 hover:text-white hover:bg-white/5'
-          }`}
-        >
-          CMA Intermediate
-        </button>
+      {/* Attempt Filter Tabs */}
+      <div className="flex items-center space-x-2 p-1.5 glass-card rounded-2xl border border-white/10 overflow-x-auto scrollbar-none">
+        <span className="text-xs font-bold text-slate-400 px-3 uppercase tracking-wider flex items-center gap-1 shrink-0">
+          <Calendar className="w-3.5 h-3.5 text-gold-400" />
+          <span>Attempt:</span>
+        </span>
+        {availableAttempts.map((att) => (
+          <button
+            key={att}
+            onClick={() => setActiveAttempt(att)}
+            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all shrink-0 ${
+              activeAttempt === att
+                ? 'bg-gold-500 text-navy-950 shadow-glow-gold'
+                : 'text-slate-400 hover:text-white hover:bg-white/5'
+            }`}
+          >
+            {att} {att === defaultAttempt ? '(Your Attempt)' : ''}
+          </button>
+        ))}
       </div>
 
       {/* Logged-In User Live Rank Summary Card */}
@@ -184,11 +154,11 @@ export default function Leaderboard() {
               #{userRankEntry.rank}
             </div>
             <div>
-              <div className="text-xs font-bold text-slate-400 uppercase tracking-wider">Your Live Rank</div>
+              <div className="text-xs font-bold text-slate-400 uppercase tracking-wider">Your Live Rank ({userCourseKey} {userLevelKey})</div>
               <div className="text-lg font-black text-white flex items-center gap-2">
                 <span>{userRankEntry.name}</span>
                 <span className="px-2.5 py-0.5 rounded-full bg-royal-500/30 border border-royal-400/40 text-royal-300 text-xs font-bold">
-                  Rank #{userRankEntry.rank} of {filteredStudents.length}
+                  Rank #{userRankEntry.rank} of {activeStreamStudents.length}
                 </span>
               </div>
               <div className="text-xs text-gold-400 font-semibold mt-0.5">
@@ -210,12 +180,12 @@ export default function Leaderboard() {
         </div>
       )}
 
-      {/* Main Leaderboard Table */}
-      {filteredStudents.length === 0 ? (
+      {/* Main Stream-Specific Leaderboard Table */}
+      {activeStreamStudents.length === 0 ? (
         <EmptyState 
           icon={Trophy}
-          title="No student rankings in this category yet"
-          description="Register and complete syllabus chapters or timer sessions to build your leaderboard rank."
+          title={`No student rankings in ${userCourseKey} ${userLevelKey} (${activeAttempt}) yet`}
+          description="Complete syllabus chapters to claim top ranking on your stream leaderboard."
         />
       ) : (
         <div className="glass-card rounded-3xl border border-white/10 overflow-hidden shadow-xl">
@@ -224,14 +194,14 @@ export default function Leaderboard() {
           <div className="grid grid-cols-12 px-6 py-4 bg-navy-900/80 border-b border-white/10 text-xs font-bold text-slate-400 uppercase tracking-wider">
             <div className="col-span-2 sm:col-span-1 text-center">Rank</div>
             <div className="col-span-6 sm:col-span-4">Student</div>
-            <div className="hidden sm:block col-span-3">Course & Attempt</div>
+            <div className="hidden sm:block col-span-3">Completed Chapters</div>
             <div className="hidden sm:block col-span-2 text-center">Syllabus Progress</div>
             <div className="col-span-4 sm:col-span-2 text-right">Points</div>
           </div>
 
           {/* Leaderboard List */}
           <div className="divide-y divide-white/5">
-            {filteredStudents.map((student) => {
+            {activeStreamStudents.map((student) => {
               const isCurrentUser = student.uid === currentUser?.uid;
 
               return (
@@ -279,25 +249,25 @@ export default function Leaderboard() {
                         )}
                       </div>
                       <div className="text-xs text-slate-400 sm:hidden">
-                        {student.fullCategory} • {student.progressPct}% ({student.completedCount} chs)
+                        {student.progressPct}% ({student.completedCount} chs)
                       </div>
                     </div>
                   </div>
 
-                  {/* Course & Attempt (Desktop) */}
+                  {/* Completed Chapters (Desktop) */}
                   <div className="hidden sm:block col-span-3 text-xs text-slate-300">
                     <span className="px-2.5 py-1 rounded-lg bg-navy-900 border border-white/10 font-semibold text-emerald-400">
-                      {student.fullCategory} {student.attempt ? `(${student.attempt})` : ''}
+                      {student.completedCount} / {student.totalChapters} Chapters
                     </span>
                   </div>
 
                   {/* Syllabus Progress % (Desktop) */}
                   <div className="hidden sm:block col-span-2 text-center">
                     <div className="text-sm font-bold text-emerald-400 font-mono">{student.progressPct}%</div>
-                    <div className="text-[11px] text-slate-400">{student.completedCount} chapters</div>
+                    <div className="text-[11px] text-slate-400">Completion</div>
                   </div>
 
-                  {/* Points & Hours */}
+                  {/* Points */}
                   <div className="col-span-4 sm:col-span-2 text-right">
                     <div className="text-sm font-black text-gold-400 font-mono">
                       {student.points || 0} <span className="text-xs font-normal text-slate-400">PTS</span>

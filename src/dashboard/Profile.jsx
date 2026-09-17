@@ -3,29 +3,34 @@ import { doc, updateDoc } from 'firebase/firestore';
 import { db } from '../config/firebase';
 import { useAuth } from '../contexts/AuthContext';
 import { formatDate, formatHours } from '../utils/helpers';
-import { User, Mail, GraduationCap, Calendar, Award, BookOpen, LogOut, CheckCircle, ShieldCheck, Edit3 } from 'lucide-react';
+import { User, Mail, GraduationCap, Calendar, Award, BookOpen, LogOut, CheckCircle, ShieldCheck, Edit3, BookOpenCheck } from 'lucide-react';
 
 export default function Profile() {
   const { userProfile, currentUser, logout } = useAuth();
 
   const [name, setName] = useState('');
-  const [course, setCourse] = useState('CA Foundation');
-  const [attempt, setAttempt] = useState('January 2027');
+  const [course, setCourse] = useState('CA');
+  const [level, setLevel] = useState('Foundation');
+  const [attempt, setAttempt] = useState('Jan 27');
   const [updating, setUpdating] = useState(false);
   const [successMsg, setSuccessMsg] = useState('');
 
   useEffect(() => {
     if (userProfile) {
       setName(userProfile.name || '');
-      setCourse(userProfile.course || 'CA Foundation');
-      setAttempt(userProfile.attempt || 'January 2027');
+      const rawCourse = userProfile.course || 'CA';
+      setCourse(rawCourse === 'CMA' || rawCourse?.includes('CMA') ? 'CMA' : 'CA');
+      setLevel(userProfile.level || (rawCourse?.includes('Intermediate') ? 'Intermediate' : 'Foundation'));
+      setAttempt(userProfile.attempt || 'Jan 27');
     }
   }, [userProfile]);
 
   const handleCourseChange = (newCourse) => {
     setCourse(newCourse);
-    if (newCourse === 'CA Foundation' && !attempt) {
-      setAttempt('January 2027');
+    if (newCourse === 'CA') {
+      if (!['Jan 27', 'May 27', 'Sep 27'].includes(attempt)) setAttempt('Jan 27');
+    } else {
+      if (!['June 27', 'Dec 27'].includes(attempt)) setAttempt('June 27');
     }
   };
 
@@ -41,10 +46,11 @@ export default function Profile() {
       await updateDoc(userRef, {
         name: name.trim(),
         course,
-        attempt: course === 'CA Foundation' ? attempt : ''
+        level,
+        attempt
       });
 
-      setSuccessMsg('Profile updated successfully!');
+      setSuccessMsg('Academic stream & profile updated successfully!');
       setTimeout(() => setSuccessMsg(''), 3000);
     } catch (err) {
       console.error("Profile update error:", err);
@@ -54,11 +60,13 @@ export default function Profile() {
     }
   };
 
+  const fullStreamTitle = `${course} ${level}`;
+
   return (
     <div className="space-y-8">
       
       {/* Header Banner */}
-      <div className="p-6 sm:p-8 rounded-3xl glass-card border border-royal-500/30 relative overflow-hidden">
+      <div className="p-6 sm:p-8 rounded-3xl glass-card border border-royal-500/30 relative overflow-hidden shadow-2xl">
         <div className="absolute top-0 right-0 w-80 h-80 bg-royal-600/10 rounded-full blur-3xl pointer-events-none" />
         <div className="relative z-10 flex flex-col sm:flex-row items-center gap-6">
           <div className="w-20 h-20 rounded-3xl bg-gradient-to-tr from-royal-600 to-gold-500 p-1 shadow-glow-blue">
@@ -76,8 +84,8 @@ export default function Profile() {
               )}
             </div>
             <p className="text-sm text-slate-300">{userProfile?.email}</p>
-            <p className="text-xs text-gold-400 font-semibold pt-1">
-              {userProfile?.course} {userProfile?.attempt ? `• ${userProfile.attempt}` : ''}
+            <p className="text-xs font-semibold pt-1 text-emerald-400">
+              🎓 {fullStreamTitle} • {attempt} Attempt
             </p>
           </div>
         </div>
@@ -91,7 +99,7 @@ export default function Profile() {
           <div className="p-6 sm:p-8 rounded-3xl glass-card border border-white/10 space-y-6 shadow-xl">
             <h3 className="text-xl font-bold text-white flex items-center gap-2">
               <Edit3 className="w-5 h-5 text-royal-400" />
-              <span>Academic Profile Settings</span>
+              <span>Academic Stream & Profile Settings</span>
             </h3>
 
             {successMsg && (
@@ -102,6 +110,8 @@ export default function Profile() {
             )}
 
             <form onSubmit={handleUpdateProfile} className="space-y-5">
+              
+              {/* Full Name */}
               <div>
                 <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-2">
                   Full Name
@@ -118,6 +128,7 @@ export default function Profile() {
                 </div>
               </div>
 
+              {/* Email Address */}
               <div>
                 <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-2">
                   Email Address (Read-only)
@@ -133,51 +144,92 @@ export default function Profile() {
                 </div>
               </div>
 
+              {/* Course Selection (CA / CMA) */}
               <div>
                 <label className="block text-xs font-bold text-gold-400 uppercase tracking-wider mb-2">
-                  Course Stream
+                  Select Course
                 </label>
                 <div className="grid grid-cols-2 gap-3">
                   <button
                     type="button"
-                    onClick={() => handleCourseChange('CA Foundation')}
-                    className={`p-3 rounded-xl border text-sm font-bold transition-all ${
-                      course === 'CA Foundation'
+                    onClick={() => handleCourseChange('CA')}
+                    className={`p-3.5 rounded-xl border text-sm font-bold transition-all ${
+                      course === 'CA'
                         ? 'bg-royal-600/30 border-royal-500 text-white shadow-glow-blue'
-                        : 'bg-navy-900 border-white/10 text-slate-400'
+                        : 'bg-navy-900 border-white/10 text-slate-400 hover:border-white/20'
                     }`}
                   >
-                    CA Foundation
+                    CA (ICAI)
                   </button>
                   <button
                     type="button"
                     onClick={() => handleCourseChange('CMA')}
-                    className={`p-3 rounded-xl border text-sm font-bold transition-all ${
+                    className={`p-3.5 rounded-xl border text-sm font-bold transition-all ${
                       course === 'CMA'
                         ? 'bg-gold-500/20 border-gold-500 text-white shadow-glow-gold'
-                        : 'bg-navy-900 border-white/10 text-slate-400'
+                        : 'bg-navy-900 border-white/10 text-slate-400 hover:border-white/20'
                     }`}
                   >
-                    CMA
+                    CMA (ICMAI)
                   </button>
                 </div>
               </div>
 
-              {course === 'CA Foundation' && (
-                <div>
-                  <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-2">
-                    Exam Attempt
-                  </label>
-                  <select
-                    value={attempt}
-                    onChange={(e) => setAttempt(e.target.value)}
-                    className="w-full px-4 py-3 rounded-xl bg-navy-900 border border-white/10 text-white text-sm focus:outline-none focus:border-royal-500"
+              {/* Level Selection (Foundation / Intermediate) */}
+              <div>
+                <label className="block text-xs font-bold text-gold-400 uppercase tracking-wider mb-2">
+                  Select Level
+                </label>
+                <div className="grid grid-cols-2 gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setLevel('Foundation')}
+                    className={`p-3.5 rounded-xl border text-sm font-bold transition-all ${
+                      level === 'Foundation'
+                        ? 'bg-emerald-600/30 border-emerald-500 text-white shadow-glow-emerald'
+                        : 'bg-navy-900 border-white/10 text-slate-400 hover:border-white/20'
+                    }`}
                   >
-                    <option value="January 2027">January 2027</option>
-                    <option value="September 2027">September 2027</option>
-                  </select>
+                    Foundation
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setLevel('Intermediate')}
+                    className={`p-3.5 rounded-xl border text-sm font-bold transition-all ${
+                      level === 'Intermediate'
+                        ? 'bg-emerald-600/30 border-emerald-500 text-white shadow-glow-emerald'
+                        : 'bg-navy-900 border-white/10 text-slate-400 hover:border-white/20'
+                    }`}
+                  >
+                    Intermediate
+                  </button>
                 </div>
-              )}
+              </div>
+
+              {/* Attempt Selection */}
+              <div>
+                <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-2">
+                  Select Exam Attempt
+                </label>
+                <select
+                  value={attempt}
+                  onChange={(e) => setAttempt(e.target.value)}
+                  className="w-full px-4 py-3 rounded-xl bg-navy-900 border border-white/10 text-white text-sm font-bold focus:outline-none focus:border-royal-500"
+                >
+                  {course === 'CA' ? (
+                    <>
+                      <option value="Jan 27">Jan 27</option>
+                      <option value="May 27">May 27</option>
+                      <option value="Sep 27">Sep 27</option>
+                    </>
+                  ) : (
+                    <>
+                      <option value="June 27">June 27</option>
+                      <option value="Dec 27">Dec 27</option>
+                    </>
+                  )}
+                </select>
+              </div>
 
               <div className="pt-2">
                 <button
@@ -185,7 +237,7 @@ export default function Profile() {
                   disabled={updating}
                   className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-royal-600 to-royal-500 hover:from-royal-500 hover:to-royal-600 text-white font-bold text-sm shadow-glow-blue transition-all disabled:opacity-50"
                 >
-                  {updating ? 'Updating...' : 'Save Profile Changes'}
+                  {updating ? 'Updating...' : 'Save Academic Stream Changes'}
                 </button>
               </div>
             </form>
@@ -194,13 +246,25 @@ export default function Profile() {
 
         {/* Right Column: Account Stats */}
         <div className="lg:col-span-5 space-y-6">
-          <div className="p-6 rounded-3xl glass-card border border-white/10 space-y-6">
+          <div className="p-6 rounded-3xl glass-card border border-white/10 space-y-6 shadow-xl">
             <h3 className="text-lg font-bold text-white flex items-center gap-2">
               <Award className="w-5 h-5 text-gold-400" />
               <span>Academic Statistics</span>
             </h3>
 
             <div className="space-y-4">
+              <div className="p-4 rounded-2xl bg-navy-900/60 border border-white/5 flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center">
+                    <BookOpenCheck className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <div className="text-xs text-slate-400">Active Stream</div>
+                    <div className="text-sm font-bold text-emerald-400">{fullStreamTitle} ({attempt})</div>
+                  </div>
+                </div>
+              </div>
+
               <div className="p-4 rounded-2xl bg-navy-900/60 border border-white/5 flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-xl bg-royal-500/20 text-royal-400 flex items-center justify-center">
@@ -227,7 +291,7 @@ export default function Profile() {
 
               <div className="p-4 rounded-2xl bg-navy-900/60 border border-white/5 flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center">
+                  <div className="w-10 h-10 rounded-xl bg-cyan-500/20 text-cyan-400 flex items-center justify-center">
                     <Calendar className="w-5 h-5" />
                   </div>
                   <div>
