@@ -105,7 +105,13 @@ export default function AdminStudents() {
       (student.email || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
       (student.phone || '').includes(searchQuery);
 
-    const matchesCourse = courseFilter === 'all' || student.course === courseFilter;
+    const matchesCourse = courseFilter === 'all' || 
+      (courseFilter === 'CA Foundation' && ((student.course === 'CA' && (student.level === 'Foundation' || !student.level)) || student.course === 'CA Foundation')) ||
+      (courseFilter === 'CA Intermediate' && ((student.course === 'CA' && student.level === 'Intermediate') || student.course === 'CA Intermediate')) ||
+      (courseFilter === 'CMA Foundation' && ((student.course === 'CMA' && (student.level === 'Foundation' || !student.level)) || student.course === 'CMA Foundation')) ||
+      (courseFilter === 'CMA Intermediate' && ((student.course === 'CMA' && student.level === 'Intermediate') || student.course === 'CMA Intermediate')) ||
+      student.course === courseFilter;
+
     const matchesAttempt = attemptFilter === 'all' || student.attempt === attemptFilter;
 
     const matchesStatus = 
@@ -318,9 +324,11 @@ export default function AdminStudents() {
             onChange={(e) => setCourseFilter(e.target.value)}
             className="px-4 py-3 rounded-2xl bg-navy-900 border border-white/10 text-white font-semibold text-xs focus:outline-none focus:border-emerald-500"
           >
-            <option value="all">All Courses</option>
+            <option value="all">All Courses & Levels</option>
             <option value="CA Foundation">CA Foundation</option>
-            <option value="CMA">CMA</option>
+            <option value="CA Intermediate">CA Intermediate</option>
+            <option value="CMA Foundation">CMA Foundation</option>
+            <option value="CMA Intermediate">CMA Intermediate</option>
           </select>
 
           {/* Attempt Filter */}
@@ -330,6 +338,11 @@ export default function AdminStudents() {
             className="px-4 py-3 rounded-2xl bg-navy-900 border border-white/10 text-white font-semibold text-xs focus:outline-none focus:border-emerald-500"
           >
             <option value="all">All Attempts</option>
+            <option value="Jan 27">Jan 27</option>
+            <option value="May 27">May 27</option>
+            <option value="Sep 27">Sep 27</option>
+            <option value="June 27">June 27</option>
+            <option value="Dec 27">Dec 27</option>
             <option value="January 2027">January 2027</option>
             <option value="September 2027">September 2027</option>
           </select>
@@ -506,7 +519,9 @@ export default function AdminStudents() {
                     <td className="px-6 py-4">
                       <div className="space-y-0.5">
                         <span className="px-2.5 py-1 rounded-lg bg-navy-900 border border-white/10 text-xs font-semibold text-emerald-400">
-                          {student.course || 'CA Foundation'}
+                          {student.course === 'CA' || student.course === 'CMA'
+                            ? `${student.course} ${student.level ? `(${student.level})` : ''}`
+                            : (student.course || 'CA Foundation')}
                         </span>
                         <div className="text-xs text-slate-400 pl-1">{student.attempt || 'N/A'}</div>
                       </div>
@@ -634,7 +649,11 @@ export default function AdminStudents() {
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
               <div className="p-4 rounded-2xl bg-navy-900/60 border border-white/5 space-y-1">
                 <div className="text-[11px] text-slate-400">Course Stream</div>
-                <div className="text-sm font-bold text-emerald-400">{selectedStudent.course}</div>
+                <div className="text-sm font-bold text-emerald-400">
+                  {selectedStudent.course === 'CA' || selectedStudent.course === 'CMA'
+                    ? `${selectedStudent.course} ${selectedStudent.level ? `(${selectedStudent.level})` : ''}`
+                    : selectedStudent.course}
+                </div>
               </div>
 
               <div className="p-4 rounded-2xl bg-navy-900/60 border border-white/5 space-y-1">

@@ -70,10 +70,26 @@ export default function AdminOverview({ setActiveTab }) {
   // Filter real student statistics
   const realStudents = students.filter(s => s.role !== 'admin');
   const totalStudents = realStudents.length;
-  const caStudents = realStudents.filter(s => s.course === 'CA Foundation').length;
-  const cmaStudents = realStudents.filter(s => s.course === 'CMA').length;
-  const jan2027Students = realStudents.filter(s => s.attempt === 'January 2027').length;
-  const sep2027Students = realStudents.filter(s => s.attempt === 'September 2027').length;
+
+  const caFoundationStudents = realStudents.filter(s => 
+    (s.course === 'CA' && (s.level === 'Foundation' || !s.level)) || 
+    s.course === 'CA Foundation'
+  ).length;
+
+  const caInterStudents = realStudents.filter(s => 
+    (s.course === 'CA' && s.level === 'Intermediate') || 
+    s.course === 'CA Intermediate'
+  ).length;
+
+  const cmaFoundationStudents = realStudents.filter(s => 
+    (s.course === 'CMA' && (s.level === 'Foundation' || !s.level)) || 
+    s.course === 'CMA Foundation'
+  ).length;
+
+  const cmaInterStudents = realStudents.filter(s => 
+    (s.course === 'CMA' && s.level === 'Intermediate') || 
+    s.course === 'CMA Intermediate'
+  ).length;
 
   const totalStudyHours = realStudents.reduce((acc, curr) => acc + (curr.studyHours || 0), 0);
   const totalPoints = realStudents.reduce((acc, curr) => acc + (curr.points || 0), 0);
@@ -101,7 +117,7 @@ export default function AdminOverview({ setActiveTab }) {
         </div>
       </div>
 
-      {/* 10 Real Metric Cards Grid */}
+      {/* Real Metric Cards Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
         
         {/* Metric 1: Total Students */}
@@ -116,7 +132,7 @@ export default function AdminOverview({ setActiveTab }) {
           <div className="text-[11px] text-slate-400">Registered platform users</div>
         </div>
 
-        {/* Metric 2: CA Foundation Students */}
+        {/* Metric 2: CA Foundation */}
         <div className="p-5 rounded-2xl glass-card border border-white/10 space-y-3">
           <div className="flex items-center justify-between">
             <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">CA Foundation</span>
@@ -124,44 +140,44 @@ export default function AdminOverview({ setActiveTab }) {
               <BookOpen className="w-4 h-4" />
             </div>
           </div>
-          <div className="text-2xl font-black text-white">{caStudents}</div>
+          <div className="text-2xl font-black text-white">{caFoundationStudents}</div>
           <div className="text-[11px] text-teal-400 font-medium">ICAI Foundation stream</div>
         </div>
 
-        {/* Metric 3: CMA Students */}
+        {/* Metric 3: CA Intermediate */}
         <div className="p-5 rounded-2xl glass-card border border-white/10 space-y-3">
           <div className="flex items-center justify-between">
-            <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">CMA Students</span>
+            <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">CA Intermediate</span>
+            <div className="w-9 h-9 rounded-xl bg-cyan-500/20 text-cyan-400 flex items-center justify-center">
+              <BookOpen className="w-4 h-4" />
+            </div>
+          </div>
+          <div className="text-2xl font-black text-white">{caInterStudents}</div>
+          <div className="text-[11px] text-cyan-400 font-medium">ICAI Intermediate stream</div>
+        </div>
+
+        {/* Metric 4: CMA Foundation */}
+        <div className="p-5 rounded-2xl glass-card border border-white/10 space-y-3">
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">CMA Foundation</span>
             <div className="w-9 h-9 rounded-xl bg-gold-500/20 text-gold-400 flex items-center justify-center">
               <GraduationCap className="w-4 h-4" />
             </div>
           </div>
-          <div className="text-2xl font-black text-white">{cmaStudents}</div>
-          <div className="text-[11px] text-gold-400 font-medium">ICMAI CMA stream</div>
+          <div className="text-2xl font-black text-white">{cmaFoundationStudents}</div>
+          <div className="text-[11px] text-gold-400 font-medium">ICMAI Foundation stream</div>
         </div>
 
-        {/* Metric 4: Jan 2027 Students */}
+        {/* Metric 5: CMA Intermediate */}
         <div className="p-5 rounded-2xl glass-card border border-white/10 space-y-3">
           <div className="flex items-center justify-between">
-            <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Jan 2027 Attempt</span>
-            <div className="w-9 h-9 rounded-xl bg-cyan-500/20 text-cyan-400 flex items-center justify-center">
-              <Calendar className="w-4 h-4" />
+            <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">CMA Intermediate</span>
+            <div className="w-9 h-9 rounded-xl bg-amber-500/20 text-amber-400 flex items-center justify-center">
+              <GraduationCap className="w-4 h-4" />
             </div>
           </div>
-          <div className="text-2xl font-black text-white">{jan2027Students}</div>
-          <div className="text-[11px] text-slate-400">Targeting Jan 2027</div>
-        </div>
-
-        {/* Metric 5: Sep 2027 Students */}
-        <div className="p-5 rounded-2xl glass-card border border-white/10 space-y-3">
-          <div className="flex items-center justify-between">
-            <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Sep 2027 Attempt</span>
-            <div className="w-9 h-9 rounded-xl bg-indigo-500/20 text-indigo-400 flex items-center justify-center">
-              <Calendar className="w-4 h-4" />
-            </div>
-          </div>
-          <div className="text-2xl font-black text-white">{sep2027Students}</div>
-          <div className="text-[11px] text-slate-400">Targeting Sep 2027</div>
+          <div className="text-2xl font-black text-white">{cmaInterStudents}</div>
+          <div className="text-[11px] text-amber-400 font-medium">ICMAI Intermediate stream</div>
         </div>
 
         {/* Metric 6: Total Study Hours */}
