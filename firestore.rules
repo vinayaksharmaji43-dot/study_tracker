@@ -1,0 +1,103 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Helper function to check if user is admin
+    function isAdmin() {
+      return request.auth != null && 
+        (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin' ||
+         request.auth.token.email == 'vaultstore27@gmail.com' ||
+         request.auth.token.email == 'thunderworld766@gmail.com');
+    }
+
+    // Helper function to check if user is accessing their own document
+    function isOwner(userId) {
+      return request.auth != null && request.auth.uid == userId;
+    }
+
+    // Users Collection
+    match /users/{userId} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null && isOwner(userId) &&
+        (request.auth.token.email == 'vaultstore27@gmail.com' || request.auth.token.email == 'thunderworld766@gmail.com' || request.resource.data.role == 'student');
+      allow update: if request.auth != null && (
+        isAdmin() || 
+        (isOwner(userId) && (!('role' in request.resource.data) || request.resource.data.role == resource.data.role))
+      );
+      allow delete: if isAdmin();
+    }
+
+    // Study Sessions Collection
+    match /studySessions/{sessionId} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null && request.resource.data.uid == request.auth.uid;
+      allow update, delete: if isAdmin();
+    }
+
+    // Day Off records are immutable and paired with a monthly usage document.
+    match /dayOffs/{userId}/records/{dateKey} {
+      allow read: if request.auth != null &&
+        (request.auth.uid == userId || isAdmin());
+      allow create: if request.auth != null &&
+        userId == request.auth.uid &&
+        dateKey == request.resource.data.dateKey &&
+        request.resource.data.uid == userId &&
+        request.resource.data.status == 'active';
+      allow update, delete: if request.auth != null &&
+        (request.auth.uid == userId || isAdmin());
+    }
+
+    match /dayOffUsage/{userId}/months/{monthKey} {
+      allow read: if request.auth != null &&
+        (request.auth.uid == userId || isAdmin());
+      allow create, update: if request.auth != null &&
+        userId == request.auth.uid &&
+        request.resource.data.uid == userId &&
+        request.resource.data.monthKey == monthKey &&
+        request.resource.data.used <= 7;
+      allow delete: if isAdmin();
+    }
+
+    // Targets Collection
+    match /targets/{targetId} {
+      allow read: if request.auth != null;
+      allow create, update, delete: if request.auth != null && (resource.data.uid == request.auth.uid || request.resource.data.uid == request.auth.uid || isAdmin());
+    }
+
+    // Notes Collection
+    match /notes/{noteId} {
+      allow read: if request.auth != null;
+      allow create, update, delete: if isAdmin();
+    }
+
+    // Doubts Collection
+    match /doubts/{doubtId} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null && request.resource.data.uid == request.auth.uid;
+      allow update, delete: if request.auth != null && (resource.data.uid == request.auth.uid || isAdmin());
+    }
+
+    // Announcements Collection
+    match /announcements/{announcementId} {
+      allow read: if true;
+      allow create, update, delete: if isAdmin();
+    }
+
+    // Settings Collection
+    match /settings/{settingId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // Audit Logs Collection
+    match /auditLogs/{logId} {
+      allow read, write: if isAdmin();
+    }
+
+    // Warnings Collection
+    match /warnings/{warningId} {
+      allow read: if request.auth != null && (resource.data.uid == request.auth.uid || isAdmin());
+      allow create, update, delete: if isAdmin();
+    }
+  }
+}

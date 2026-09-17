@@ -1,0 +1,91 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    -webkit-tap-highlight-color: transparent;
+    -webkit-text-size-adjust: 100%;
+    scroll-behavior: smooth;
+  }
+  body {
+    background: radial-gradient(circle at top left, rgba(236, 72, 153, 0.16), transparent 35%),
+      radial-gradient(circle at top right, rgba(168, 85, 247, 0.22), transparent 35%),
+      radial-gradient(circle at bottom left, rgba(245, 158, 11, 0.12), transparent 40%),
+      linear-gradient(135deg, #0d0714 0%, #160b24 45%, #1e1030 100%);
+    color: #f8fafc;
+    font-family: 'Inter', sans-serif;
+    overflow-x: hidden;
+    min-height: 100vh;
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+}
+
+@layer utilities {
+  .glass-card {
+    background: rgba(28, 16, 44, 0.72);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+  }
+
+  .glass-card-hover {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  .glass-card-hover:hover {
+    background: rgba(40, 23, 62, 0.82);
+    border-color: rgba(244, 114, 182, 0.35);
+    transform: translateY(-2px);
+    box-shadow: 0 12px 30px -10px rgba(0, 0, 0, 0.5), 0 0 20px -5px rgba(168, 85, 247, 0.3);
+  }
+
+  .glass-nav {
+    background: rgba(13, 7, 20, 0.88);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+    padding-top: env(safe-area-inset-top);
+  }
+
+  .gold-gradient-text {
+    background: linear-gradient(135deg, #fef08a 0%, #f59e0b 40%, #ea580c 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  .emerald-gradient-text {
+    background: linear-gradient(135deg, #a7f3d0 0%, #10b981 50%, #059669 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  .violet-gradient-text {
+    background: linear-gradient(135deg, #f472b6 0%, #c084fc 50%, #9333ea 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+}
+
+/* Responsive Table & Touch Scrolling */
+.overflow-x-auto {
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #0d0714;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #281540;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #361d56;
+}

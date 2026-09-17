@@ -1,0 +1,533 @@
+import React, { useState, useEffect, useRef } from 'react';
+import { collection, addDoc, doc, increment, onSnapshot, query, runTransaction, serverTimestamp, updateDoc, where } from 'firebase/firestore';
+import { db } from '../config/firebase';
+import { useAuth } from '../contexts/AuthContext';
+import { formatTimerTime, formatDate, getDateKey, getMonthKey, calculateDailyPoints } from '../utils/helpers';
+import EmptyState from '../components/EmptyState';
+import { Play, Pause, Square, Clock, BookOpen, CheckCircle, Calendar, ShieldCheck, X, Zap, AlertTriangle } from 'lucide-react';
+
+const CA_SUBJECTS = [
+  'Paper 1: Accounting',
+  'Paper 2: Business Laws',
+  'Paper 3: Quantitative Aptitude',
+  'Paper 4: Business Economics'
+];
+
+const CMA_SUBJECTS = [
+  'Financial Accounting',
+  'Cost Accounting',
+  'Laws & Ethics',
+  'Direct & Indirect Taxation'
+];
+
+export default function StudyTimer() {
+  const { currentUser, userProfile } = useAuth();
+  
+  const subjects = userProfile?.course === 'CMA' ? CMA_SUBJECTS : CA_SUBJECTS;
+
+  const [selectedSubject, setSelectedSubject] = useState(subjects[0]);
+  const [seconds, setSeconds] = useState(0);
+  const [isActive, setIsActive] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [sessions, setSessions] = useState([]);
+  const [savedSuccess, setSavedSuccess] = useState(false);
+  const [dayOffs, setDayOffs] = useState([]);
+  const [activeWarnings, setActiveWarnings] = useState([]);
+  const [showDayOffModal, setShowDayOffModal] = useState(false);
+  const [showDayOnModal, setShowDayOnModal] = useState(false);
+  const [savingDayOff, setSavingDayOff] = useState(false);
+  const [dayOffError, setDayOffError] = useState('');
+
+  const intervalRef = useRef(null);
+
+  // Timer logic
+  useEffect(() => {
+    if (isActive) {
+      intervalRef.current = setInterval(() => {
+        setSeconds((prev) => prev + 1);
+      }, 1000);
+    } else {
+      clearInterval(intervalRef.current);
+    }
+
+    return () => clearInterval(intervalRef.current);
+  }, [isActive]);
+
+  // Real-time listener for study sessions
+  useEffect(() => {
+    if (!currentUser?.uid) return;
+
+    const q = query(
+      collection(db, 'studySessions'),
+      where('uid', '==', currentUser.uid)
+    );
+
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const docs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      docs.sort((a, b) => {
+        const da = a.date?.toDate ? a.date.toDate() : new Date(a.date);
+        const dbDate = b.date?.toDate ? b.date.toDate() : new Date(b.date);
+        return dbDate - da;
+      });
+      setSessions(docs);
+    });
+
+    return () => unsubscribe();
+  }, [currentUser]);
+
+  useEffect(() => {
+    if (!currentUser?.uid) return;
+
+    const dayOffQuery = collection(db, 'dayOffs', currentUser.uid, 'records');
+
+    return onSnapshot(dayOffQuery, (snapshot) => {
+      setDayOffs(snapshot.docs
+        .map(dayOffDoc => ({ id: dayOffDoc.id, ...dayOffDoc.data() }))
+        .filter(dayOff => dayOff.monthKey === getMonthKey()));
+    }, (error) => console.error('Day Off subscription error:', error));
+  }, [currentUser]);
+
+  useEffect(() => {
+    if (!currentUser?.uid) return;
+
+    const warningsQuery = query(
+      collection(db, 'warnings'),
+      where('uid', '==', currentUser.uid)
+    );
+
+    return onSnapshot(warningsQuery, (snapshot) => {
+      const docs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      setActiveWarnings(docs.filter(w => w.status === 'active'));
+    }, (error) => console.error('Warnings subscription error:', error));
+  }, [currentUser]);
+
+  const todayKey = getDateKey();
+  const currentMonthKey = getMonthKey();
+  const todayDayOff = dayOffs.find(dayOff => dayOff.dateKey === todayKey && dayOff.status === 'active');
+  const dayOffsUsed = dayOffs.filter(dayOff => dayOff.status === 'active').length;
+  const remainingDayOffs = Math.max(0, 7 - dayOffsUsed);
+
+  const handleConfirmDayOff = async () => {
+    if (!currentUser?.uid || todayDayOff || dayOffsUsed >= 7) return;
+
+    const now = new Date();
+    const usageId = `${currentUser.uid}_${currentMonthKey}`;
+    const dayOffData = {
+      uid: currentUser.uid,
+      dateKey: todayKey,
+      monthKey: currentMonthKey,
+      year: now.getUTCFullYear(),
+      month: now.getUTCMonth() + 1,
+      day: now.getUTCDate(),
+      monthlyUsageId: usageId,
+      status: 'active',
+      createdAt: serverTimestamp()
+    };
+
+    try {
+      setSavingDayOff(true);
+      setDayOffError('');
+      await runTransaction(db, async (transaction) => {
+        const usageRef = doc(db, 'dayOffUsage', currentUser.uid, 'months', currentMonthKey);
+        const dayOffRef = doc(db, 'dayOffs', currentUser.uid, 'records', todayKey);
+        const usageSnapshot = await transaction.get(usageRef);
+        const dayOffSnapshot = await transaction.get(dayOffRef);
+        if (dayOffSnapshot.exists() && dayOffSnapshot.data()?.status === 'active') {
+          throw new Error('TODAY_ALREADY_ACTIVE');
+        }
+
+        const currentUsage = usageSnapshot.exists() ? usageSnapshot.data() : null;
+        if ((currentUsage?.used || 0) >= 7) throw new Error('MONTHLY_LIMIT_REACHED');
+
+        transaction.set(dayOffRef, dayOffData);
+        if (currentUsage) {
+          transaction.update(usageRef, { used: increment(1), updatedAt: serverTimestamp() });
+        } else {
+          transaction.set(usageRef, {
+            uid: currentUser.uid,
+            monthKey: currentMonthKey,
+            year: now.getUTCFullYear(),
+            month: now.getUTCMonth() + 1,
+            used: 1,
+            updatedAt: serverTimestamp()
+          });
+        }
+      });
+      setShowDayOffModal(false);
+    } catch (error) {
+      console.error('Error activating Day Off:', error);
+      setDayOffError(error.message === 'TODAY_ALREADY_ACTIVE'
+        ? 'Day Off is already active for today.'
+        : error.message === 'MONTHLY_LIMIT_REACHED'
+          ? 'Monthly limit reached (7/7).'
+          : (error.message || 'Failed to activate Day Off. Please try again.'));
+    } finally {
+      setSavingDayOff(false);
+    }
+  };
+
+  const handleCancelDayOff = async () => {
+    if (!currentUser?.uid || !todayDayOff) return;
+
+    try {
+      setSavingDayOff(true);
+      setDayOffError('');
+      await runTransaction(db, async (transaction) => {
+        const usageRef = doc(db, 'dayOffUsage', currentUser.uid, 'months', currentMonthKey);
+        const dayOffRef = doc(db, 'dayOffs', currentUser.uid, 'records', todayKey);
+
+        const usageSnapshot = await transaction.get(usageRef);
+        const dayOffSnapshot = await transaction.get(dayOffRef);
+
+        if (!dayOffSnapshot.exists() || dayOffSnapshot.data()?.status !== 'active') {
+          throw new Error('NO_ACTIVE_DAY_OFF');
+        }
+
+        transaction.delete(dayOffRef);
+
+        if (usageSnapshot.exists()) {
+          const currentUsed = usageSnapshot.data().used || 1;
+          const newUsed = Math.max(0, currentUsed - 1);
+          transaction.update(usageRef, { used: newUsed, updatedAt: serverTimestamp() });
+        }
+      });
+      setShowDayOnModal(false);
+    } catch (error) {
+      console.error('Error deactivating Day Off:', error);
+      setDayOffError(error.message === 'NO_ACTIVE_DAY_OFF'
+        ? 'No active Day Off found for today.'
+        : (error.message || 'Failed to turn Day On. Please try again.'));
+    } finally {
+      setSavingDayOff(false);
+    }
+  };
+
+  const handleStart = () => {
+    setIsActive(true);
+    setSavedSuccess(false);
+  };
+
+  const handlePause = () => {
+    setIsActive(false);
+  };
+
+  const handleStopAndSave = async () => {
+    if (seconds < 5) {
+      alert("Session is too short to save (minimum 5 seconds).");
+      setIsActive(false);
+      setSeconds(0);
+      return;
+    }
+
+    try {
+      setSaving(true);
+      setIsActive(false);
+
+      const sessionDuration = seconds;
+      const durationHours = sessionDuration / 3600;
+
+      // Compute daily points based on 6+ hours study rules
+      const todayStr = getDateKey();
+      const prevTodaySeconds = sessions.reduce((acc, curr) => {
+        const sDate = curr.date?.toDate ? curr.date.toDate() : new Date(curr.date);
+        if (sDate && getDateKey(sDate) === todayStr) {
+          return acc + (curr.duration || 0);
+        }
+        return acc;
+      }, 0);
+
+      const prevTodayHours = prevTodaySeconds / 3600;
+      const newTodayHours = (prevTodaySeconds + sessionDuration) / 3600;
+
+      const prevPoints = calculateDailyPoints(prevTodayHours);
+      const newPoints = calculateDailyPoints(newTodayHours);
+      const earnedPoints = Math.max(0, newPoints - prevPoints);
+
+      // 1. Add session to studySessions collection
+      await addDoc(collection(db, 'studySessions'), {
+        uid: currentUser.uid,
+        subject: selectedSubject,
+        duration: sessionDuration,
+        course: userProfile?.course || 'CA Foundation',
+        date: serverTimestamp()
+      });
+
+      // 2. Update user Firestore doc with new studyHours and points
+      const userRef = doc(db, 'users', currentUser.uid);
+      await updateDoc(userRef, {
+        studyHours: increment(durationHours),
+        points: increment(earnedPoints)
+      });
+
+      setSeconds(0);
+      setSavedSuccess(true);
+      setTimeout(() => setSavedSuccess(false), 4000);
+    } catch (err) {
+      console.error("Error saving study session:", err);
+      alert("Failed to save session. Please try again.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="space-y-8">
+      
+      {/* Official Admin Warnings Alert if present */}
+      {activeWarnings.length > 0 && (
+        <div className="space-y-3">
+          {activeWarnings.map((warn) => (
+            <div key={warn.id} className="p-5 rounded-3xl bg-rose-500/15 border border-rose-500/40 text-rose-200 flex items-start gap-4 shadow-xl">
+              <AlertTriangle className="w-6 h-6 text-rose-400 mt-0.5 shrink-0 animate-pulse" />
+              <div className="space-y-1 flex-1">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-black text-rose-300 uppercase tracking-wider">⚠️ Official Admin Warning</span>
+                  <span className="text-[11px] text-rose-400/80">{formatDate(warn.issuedAt)}</span>
+                </div>
+                <div className="text-sm font-bold text-white">{warn.reason || 'Minimum study hour threshold not met'}</div>
+                {warn.message && <div className="text-xs text-rose-200/90 bg-navy-950/40 p-2.5 rounded-xl border border-rose-500/20">{warn.message}</div>}
+                <div className="text-xs text-rose-300 font-medium pt-1">
+                  Please ensure you complete at least 6+ hours of study daily to fulfill target requirements.
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Daily 6+ Hours Requirement & Reward Note */}
+      <div className="p-5 rounded-3xl bg-amber-500/10 border border-amber-500/30 flex items-start gap-3.5 text-left shadow-lg">
+        <AlertTriangle className="w-5 h-5 text-amber-400 mt-0.5 shrink-0" />
+        <div className="space-y-1.5 flex-1">
+          <div className="text-xs font-black text-amber-300 uppercase tracking-wider flex items-center justify-between">
+            <span>Mandatory Daily Requirement & Point Rules</span>
+            <span className="px-2 py-0.5 rounded bg-amber-500/20 text-amber-200 text-[10px] font-bold">REQUIRED 6+ HRS</span>
+          </div>
+          <div className="text-xs text-slate-200 leading-relaxed">
+            Minimum <strong className="text-white font-black underline decoration-amber-400">6+ hours of study daily is mandatory</strong>. Failing to meet 6+ hours may lead to an official Warning issued from the Admin Panel.
+          </div>
+          <div className="text-xs text-amber-300 font-medium pt-1 border-t border-amber-500/20 flex flex-wrap items-center gap-x-4 gap-y-1">
+            <span>🏆 Reaching 6 Hours = <strong className="text-gold-300 font-extrabold">+5 Points</strong></span>
+            <span>⚡ 7+ Hours & Above = <strong className="text-gold-300 font-extrabold">+2 Points</strong> per extra hour!</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Top Banner */}
+      <div className="p-6 sm:p-8 rounded-3xl glass-card border border-royal-500/30 relative overflow-hidden">
+        <div className="absolute top-0 right-0 w-80 h-80 bg-royal-600/10 rounded-full blur-3xl pointer-events-none" />
+        <div className="relative z-10 space-y-2">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-royal-500/20 text-royal-400 text-xs font-bold border border-royal-500/30">
+            <Clock className="w-3.5 h-3.5" />
+            <span>Precision Session Tracker</span>
+          </div>
+          <h1 className="text-2xl sm:text-3xl font-extrabold text-white">
+            Academic <span className="gold-gradient-text">Study Timer</span>
+          </h1>
+          <p className="text-slate-300 text-sm max-w-2xl">
+            Select your subject, start the stopwatch, and log real study hours to gain verified points.
+          </p>
+        </div>
+      </div>
+
+      {/* Main Timer Workspace */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+        
+        {/* Left Column: Timer Controls */}
+        <div className="lg:col-span-7 space-y-6">
+          <div className="p-8 rounded-3xl glass-card border border-white/10 text-center space-y-8 relative overflow-hidden shadow-2xl">
+            
+            {/* Subject Selector */}
+            <div className="space-y-2 max-w-md mx-auto">
+              <label className="block text-xs font-bold uppercase tracking-wider text-slate-400">
+                Select Subject for Timer Session
+              </label>
+              <select
+                value={selectedSubject}
+                disabled={isActive}
+                onChange={(e) => setSelectedSubject(e.target.value)}
+                className="w-full py-3.5 px-4 rounded-2xl bg-navy-900 border border-white/15 text-white font-bold text-sm focus:outline-none focus:border-royal-500 cursor-pointer disabled:opacity-60"
+              >
+                {subjects.map((sub) => (
+                  <option key={sub} value={sub}>{sub}</option>
+                ))}
+              </select>
+            </div>
+
+            {/* Timer Clock Display */}
+            <div className="py-6">
+              <div className="inline-block relative">
+                {/* Glowing Ring */}
+                <div className={`absolute -inset-6 rounded-full blur-2xl transition-all duration-500 ${
+                  isActive ? 'bg-royal-500/25 scale-105' : 'bg-transparent'
+                }`} />
+
+                <div className="relative z-10 font-mono text-6xl sm:text-7xl font-black tracking-tight text-white drop-shadow-lg">
+                  {formatTimerTime(seconds)}
+                </div>
+                <div className="text-xs text-slate-400 mt-2 font-medium">
+                  {isActive ? 'Session Active — Time Recording...' : seconds > 0 ? 'Session Paused' : 'Ready to Start'}
+                </div>
+              </div>
+            </div>
+
+            {/* Success Toast */}
+            {savedSuccess && (
+              <div className="p-4 rounded-xl bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 text-sm font-semibold flex items-center justify-center gap-2 animate-in fade-in duration-300">
+                <CheckCircle className="w-5 h-5 text-emerald-400" />
+                <span>Session saved! Study hours and points updated.</span>
+              </div>
+            )}
+
+            {/* Timer Control Buttons */}
+            <div className="flex flex-wrap items-center justify-center gap-4 pt-4 border-t border-white/10">
+              {!isActive ? (
+                <button
+                  onClick={handleStart}
+                  disabled={Boolean(todayDayOff)}
+                  className="px-8 py-4 rounded-2xl bg-gradient-to-r from-royal-600 to-royal-500 hover:from-royal-500 hover:to-royal-600 text-white font-black text-base shadow-glow-blue hover:scale-105 transition-all flex items-center gap-2"
+                >
+                  <Play className="w-5 h-5 fill-white" />
+                  <span>{seconds > 0 ? 'Resume Session' : 'Start Session'}</span>
+                </button>
+              ) : (
+                <button
+                  onClick={handlePause}
+                  className="px-8 py-4 rounded-2xl bg-amber-500 hover:bg-amber-600 text-navy-950 font-black text-base shadow-glow-gold hover:scale-105 transition-all flex items-center gap-2"
+                >
+                  <Pause className="w-5 h-5 fill-navy-950" />
+                  <span>Pause Session</span>
+                </button>
+              )}
+
+              {seconds > 0 && (
+                <button
+                  onClick={handleStopAndSave}
+                  disabled={saving}
+                  className="px-8 py-4 rounded-2xl bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-500 hover:to-emerald-600 text-white font-black text-base shadow-lg hover:scale-105 transition-all flex items-center gap-2 disabled:opacity-50"
+                >
+                  <Square className="w-5 h-5 fill-white" />
+                  <span>{saving ? 'Saving...' : 'Stop & Save'}</span>
+                </button>
+              )}
+            </div>
+
+            <div className="pt-5 border-t border-white/10 text-left">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 rounded-2xl bg-amber-500/10 border border-amber-500/25 p-4">
+                <div className="flex items-start gap-3">
+                  <ShieldCheck className="w-5 h-5 text-amber-400 mt-0.5 shrink-0" />
+                  <div>
+                    <div className="text-sm font-bold text-white">{todayDayOff ? 'Day Off Active' : 'Day Off'}</div>
+                    <div className="text-xs text-slate-300 mt-1">
+                      {todayDayOff ? "You're all set for today. No study penalty will be applied." : `${dayOffsUsed}/7 used this month`}
+                    </div>
+                    {todayDayOff && <div className="text-xs text-amber-300 mt-1">Day Offs used this month: {dayOffsUsed}/7</div>}
+                  </div>
+                </div>
+                {todayDayOff ? (
+                  <button
+                    onClick={() => { setDayOffError(''); setShowDayOnModal(true); }}
+                    className="shrink-0 px-4 py-2.5 rounded-xl bg-emerald-500/20 border border-emerald-400/40 text-emerald-300 text-xs font-black hover:bg-emerald-500/30 flex items-center gap-1.5 transition-all"
+                  >
+                    <Zap className="w-3.5 h-3.5 text-emerald-400" />
+                    <span>Turn Day On</span>
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => { setDayOffError(''); setShowDayOffModal(true); }}
+                    disabled={dayOffsUsed >= 7 || isActive}
+                    className="shrink-0 px-4 py-2.5 rounded-xl bg-amber-500/20 border border-amber-400/40 text-amber-200 text-xs font-black hover:bg-amber-500/30 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {dayOffsUsed >= 7 ? 'Monthly limit reached (7/7)' : 'Take Day Off'}
+                  </button>
+                )}
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+        {/* Right Column: History of Logged Sessions */}
+        <div className="lg:col-span-5 space-y-4">
+          <h3 className="text-lg font-bold text-white flex items-center gap-2">
+            <BookOpen className="w-5 h-5 text-gold-400" />
+            Your Study Log History
+          </h3>
+
+          {sessions.length === 0 ? (
+            <EmptyState
+              icon={Clock}
+              title="No logged sessions yet"
+              description="Your completed sessions will be saved here automatically with timestamp and subject breakdown."
+            />
+          ) : (
+            <div className="glass-card rounded-2xl border border-white/10 divide-y divide-white/5 max-h-[460px] overflow-y-auto">
+              {sessions.map((sess) => (
+                <div key={sess.id} className="p-4 flex items-center justify-between hover:bg-white/5 transition-colors">
+                  <div className="space-y-1">
+                    <div className="text-sm font-bold text-white">{sess.subject}</div>
+                    <div className="text-xs text-slate-400 flex items-center gap-1">
+                      <Calendar className="w-3 h-3 text-gold-400" />
+                      <span>{formatDate(sess.date)}</span>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-sm font-mono font-bold text-royal-400">
+                      {formatTimerTime(sess.duration)}
+                    </div>
+                    <div className="text-[11px] text-emerald-400 font-semibold">
+                      +{(sess.duration / 3600 * 10).toFixed(0)} PTS
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+      </div>
+
+      {showDayOffModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-navy-950/85 backdrop-blur-md">
+          <div className="glass-card p-6 sm:p-8 rounded-3xl border border-amber-500/30 max-w-md w-full shadow-2xl space-y-6">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <h2 className="text-xl font-bold text-white">Take a Day Off?</h2>
+                <p className="text-sm text-slate-300 mt-2">You won't be penalized for not studying today. You have {remainingDayOffs} Day Offs remaining this month.</p>
+              </div>
+              <button onClick={() => setShowDayOffModal(false)} className="text-slate-400 hover:text-white" aria-label="Close"><X className="w-5 h-5" /></button>
+            </div>
+            {dayOffError && <div className="text-sm text-rose-300 bg-rose-500/10 border border-rose-500/30 rounded-xl p-3">{dayOffError}</div>}
+            <div className="flex gap-3">
+              <button onClick={() => setShowDayOffModal(false)} className="w-full py-3 rounded-xl border border-white/10 text-slate-300 text-sm font-semibold hover:bg-white/5">Cancel</button>
+              <button onClick={handleConfirmDayOff} disabled={savingDayOff} className="w-full py-3 rounded-xl bg-amber-500 text-navy-950 text-sm font-black hover:bg-amber-400 disabled:opacity-50">{savingDayOff ? 'Confirming...' : 'Confirm Day Off'}</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showDayOnModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-navy-950/85 backdrop-blur-md">
+          <div className="glass-card p-6 sm:p-8 rounded-3xl border border-emerald-500/30 max-w-md w-full shadow-2xl space-y-6">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <h2 className="text-xl font-bold text-white flex items-center gap-2">
+                  <Zap className="w-5 h-5 text-emerald-400" />
+                  Turn Day On?
+                </h2>
+                <p className="text-sm text-slate-300 mt-2">This will cancel your Day Off for today, restore 1 Day Off back to your monthly quota, and allow you to record your study sessions.</p>
+              </div>
+              <button onClick={() => setShowDayOnModal(false)} className="text-slate-400 hover:text-white" aria-label="Close"><X className="w-5 h-5" /></button>
+            </div>
+            {dayOffError && <div className="text-sm text-rose-300 bg-rose-500/10 border border-rose-500/30 rounded-xl p-3">{dayOffError}</div>}
+            <div className="flex gap-3">
+              <button onClick={() => setShowDayOnModal(false)} className="w-full py-3 rounded-xl border border-white/10 text-slate-300 text-sm font-semibold hover:bg-white/5">Keep Day Off</button>
+              <button onClick={handleCancelDayOff} disabled={savingDayOff} className="w-full py-3 rounded-xl bg-emerald-500 text-navy-950 text-sm font-black hover:bg-emerald-400 disabled:opacity-50">{savingDayOff ? 'Turning Day On...' : 'Confirm Day On'}</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+    </div>
+  );
+}
