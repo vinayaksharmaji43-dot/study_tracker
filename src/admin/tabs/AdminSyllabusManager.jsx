@@ -34,8 +34,9 @@ export default function AdminSyllabusManager() {
 
   const streamId = `${course}_${level}`;
 
+  const [initialLoad, setInitialLoad] = useState(true);
+
   useEffect(() => {
-    setLoading(true);
     const docRef = doc(db, 'syllabi', streamId);
     
     const unsub = onSnapshot(docRef, (snap) => {
@@ -47,7 +48,7 @@ export default function AdminSyllabusManager() {
         setSyllabusDoc(null);
         setLocalSubjects([]);
       }
-      setLoading(false);
+      setInitialLoad(false);
     });
 
     return () => unsub();
@@ -250,7 +251,7 @@ export default function AdminSyllabusManager() {
         </div>
       </div>
 
-      {loading ? (
+      {initialLoad ? (
         <div className="p-8 text-center text-slate-400 font-bold">Loading Syllabus...</div>
       ) : !syllabusDoc ? (
         <div className="glass-card rounded-3xl p-10 text-center space-y-4 border border-white/10">
@@ -337,8 +338,8 @@ export default function AdminSyllabusManager() {
                               <span className="text-xs text-slate-400 font-bold uppercase">Points:</span>
                               <input 
                                 type="number" 
-                                value={ch.points}
-                                onChange={(e) => handleUpdateChapterPoints(sub.id, ch.id, e.target.value)}
+                                defaultValue={ch.points}
+                                onBlur={(e) => handleUpdateChapterPoints(sub.id, ch.id, e.target.value)}
                                 className="w-20 px-2 py-1 rounded-lg bg-navy-950 border border-white/10 text-gold-400 text-sm font-mono font-bold text-center focus:outline-none focus:border-gold-500"
                               />
                             </div>
