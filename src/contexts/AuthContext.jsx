@@ -9,8 +9,9 @@ import {
   browserLocalPersistence,
   browserSessionPersistence
 } from 'firebase/auth';
-import { doc, getDoc, setDoc, onSnapshot, serverTimestamp } from 'firebase/firestore';
+import { doc, getDoc, setDoc, updateDoc, onSnapshot, serverTimestamp } from 'firebase/firestore';
 import { auth, db } from '../config/firebase';
+import LoadingSpinner from '../components/LoadingSpinner';
 
 const AuthContext = createContext();
 
@@ -26,14 +27,24 @@ export function AuthProvider({ children }) {
   // Subscribe to auth state changes and fetch Firestore user profile
   useEffect(() => {
     let unsubscribeProfile = null;
+    let isMounted = true;
+
+    // Safety fallback timeout to prevent infinite blank screen if firebase auth is slow/unresponsive
+    const timer = setTimeout(() => {
+      if (isMounted && loading) {
+        setLoading(false);
+      }
+    }, 4000);
 
     const unsubscribeAuth = onAuthStateChanged(auth, async (user) => {
+      if (!isMounted) return;
       setCurrentUser(user);
 
       if (user) {
         // Real-time listener for user profile from Firestore
         const userDocRef = doc(db, 'users', user.uid);
         unsubscribeProfile = onSnapshot(userDocRef, async (snapshot) => {
+          if (!isMounted) return;
           const isAuthorizedAdminEmail = 
             user.email?.toLowerCase() === 'vaultstore27@gmail.com' ||
             user.email?.toLowerCase() === 'thunderworld766@gmail.com';
@@ -110,7 +121,7 @@ export function AuthProvider({ children }) {
           setLoading(false);
         }, (error) => {
           console.error("Error listening to user profile:", error);
-          setLoading(false);
+          if (isMounted) setLoading(false);
         });
       } else {
         setUserProfile(null);
@@ -120,6 +131,8 @@ export function AuthProvider({ children }) {
     });
 
     return () => {
+      isMounted = false;
+      clearTimeout(timer);
       unsubscribeAuth();
       if (unsubscribeProfile) unsubscribeProfile();
     };
@@ -218,7 +231,7 @@ export function AuthProvider({ children }) {
 
   return (
     <AuthContext.Provider value={value}>
-      {!loading && children}
+      {loading ? <LoadingSpinner fullScreen text="Loading CA/CMA Blueprint..." /> : children}
     </AuthContext.Provider>
   );
 }

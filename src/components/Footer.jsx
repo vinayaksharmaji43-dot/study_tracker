@@ -7,7 +7,7 @@ export default function Footer() {
     <footer className="bg-navy-950 border-t border-white/5 py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6">
         <Link to="/" className="flex items-center space-x-3 group">
-          <img src="/logo.png" alt="CA & CMA Success Blueprint Logo" className="h-9 w-auto object-contain rounded-xl hover:scale-105 transition-transform duration-300" />
+          <img src={`${import.meta.env.BASE_URL}logo.png`} alt="CA & CMA Success Blueprint Logo" className="h-9 w-auto object-contain rounded-xl hover:scale-105 transition-transform duration-300" />
         </Link>
 
         <div className="flex flex-wrap items-center justify-center gap-6 text-sm text-slate-400">

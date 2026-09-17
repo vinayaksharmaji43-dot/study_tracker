@@ -123,7 +123,7 @@ export default function Register() {
       {/* Header Logo */}
       <div className="sm:mx-auto sm:w-full sm:max-w-md text-center space-y-3 z-10">
         <Link to="/" className="inline-flex items-center justify-center group">
-          <img src="/logo.png" alt="CA & CMA Success Blueprint Logo" className="h-14 sm:h-16 w-auto object-contain rounded-2xl group-hover:scale-105 transition-transform duration-300 shadow-lg" />
+          <img src={`${import.meta.env.BASE_URL}logo.png`} alt="CA & CMA Success Blueprint Logo" className="h-14 sm:h-16 w-auto object-contain rounded-2xl group-hover:scale-105 transition-transform duration-300 shadow-lg" />
         </Link>
         <h2 className="text-2xl sm:text-3xl font-extrabold text-white">Create Your Account</h2>
         <p className="text-sm text-slate-400">Join CA/CMA Blueprint and structure your preparation.</p>
