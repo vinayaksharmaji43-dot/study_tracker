@@ -25,6 +25,8 @@ import {
   Sparkles
 } from 'lucide-react';
 
+import CountdownWidget from '../components/CountdownWidget';
+
 export default function Dashboard() {
   const { userProfile, currentUser, logout } = useAuth();
   const [activeTab, setActiveTab] = useState('overview');
@@ -44,8 +46,11 @@ export default function Dashboard() {
     <div className="min-h-screen bg-navy-950 text-slate-100 flex flex-col selection:bg-emerald-500 selection:text-white">
       <Navbar />
 
-      <div className="flex-grow max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="flex-grow max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
         
+        {/* Exam Countdown Banner */}
+        <CountdownWidget />
+
         {/* Main Dashboard Layout: Sidebar + View Content */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
           
