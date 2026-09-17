@@ -6,6 +6,7 @@ import Footer from '../components/Footer';
 import AdminOverview from './tabs/AdminOverview';
 import AdminStudents from './tabs/AdminStudents';
 import AdminSyllabus from './tabs/AdminSyllabus';
+import AdminSyllabusManager from './tabs/AdminSyllabusManager';
 import AdminAnalytics from './tabs/AdminAnalytics';
 import AdminLeaderboard from './tabs/AdminLeaderboard';
 import AdminTargets from './tabs/AdminTargets';
@@ -20,6 +21,7 @@ import {
   LayoutDashboard, 
   Users, 
   BookOpenCheck,
+  Layers,
   TrendingUp, 
   Trophy, 
   Target, 
@@ -41,7 +43,8 @@ export default function AdminDashboard() {
   const navItems = [
     { id: 'overview', label: 'Dashboard', icon: LayoutDashboard },
     { id: 'students', label: 'Students', icon: Users },
-    { id: 'syllabus', label: 'Syllabus Progress', icon: BookOpenCheck },
+    { id: 'syllabus', label: 'Student Progress', icon: BookOpenCheck },
+    { id: 'syllabus_manager', label: 'Manage Syllabus', icon: Layers },
     { id: 'analytics', label: 'Analytics', icon: TrendingUp },
     { id: 'leaderboard', label: 'Leaderboard', icon: Trophy },
     { id: 'targets', label: 'Targets', icon: Target },
@@ -148,6 +151,7 @@ export default function AdminDashboard() {
             {activeTab === 'overview' && <AdminOverview setActiveTab={setActiveTab} />}
             {activeTab === 'students' && <AdminStudents />}
             {activeTab === 'syllabus' && <AdminSyllabus />}
+            {activeTab === 'syllabus_manager' && <AdminSyllabusManager />}
             {activeTab === 'analytics' && <AdminAnalytics />}
             {activeTab === 'leaderboard' && <AdminLeaderboard />}
             {activeTab === 'targets' && <AdminTargets />}

@@ -10,6 +10,9 @@ export default function AdminLeaderboard() {
   const [leaderboard, setLeaderboard] = useState([]);
   const [loading, setLoading] = useState(true);
 
+  // Dynamic syllabi mapping for correct totals
+  const [syllabiMeta, setSyllabiMeta] = useState({});
+
   // Admin stream filters
   const [courseFilter, setCourseFilter] = useState('all'); // 'all', 'CA', 'CMA'
   const [levelFilter, setLevelFilter] = useState('all');   // 'all', 'Foundation', 'Intermediate'
@@ -21,6 +24,20 @@ export default function AdminLeaderboard() {
   const [adjustReason, setAdjustReason] = useState('');
   const [submittingAdjust, setSubmittingAdjust] = useState(false);
 
+  // Load syllabi metadata (total chapters)
+  useEffect(() => {
+    const unsub = onSnapshot(collection(db, 'syllabi'), (snap) => {
+      const meta = {};
+      snap.docs.forEach(doc => {
+        let total = 0;
+        doc.data().subjects?.forEach(s => total += (s.chapters?.length || 0));
+        meta[doc.id] = total;
+      });
+      setSyllabiMeta(meta);
+    });
+    return () => unsub();
+  }, []);
+
   useEffect(() => {
     const q = query(collection(db, 'users'), orderBy('points', 'desc'));
 
@@ -30,9 +47,11 @@ export default function AdminLeaderboard() {
           const data = doc.data();
           const courseKey = data.course === 'CMA' || data.course?.includes('CMA') ? 'CMA' : 'CA';
           const levelKey = data.level === 'Intermediate' || data.course?.includes('Intermediate') ? 'Intermediate' : 'Foundation';
-          const syllabusInfo = getStudentSyllabus(data.course, data.level);
+          const streamId = `${courseKey}_${levelKey}`;
+
           const completedCount = data.syllabusCompletedCount || (data.syllabusCompleted ? Object.keys(data.syllabusCompleted).length : 0);
-          const progressPct = syllabusInfo.totalChaptersCount > 0 ? Math.round((completedCount / syllabusInfo.totalChaptersCount) * 100) : 0;
+          const totalChapters = syllabiMeta[streamId] || 1;
+          const progressPct = totalChapters > 0 ? Math.min(100, Math.round((completedCount / totalChapters) * 100)) : 0;
 
           return {
             id: doc.id,
@@ -40,7 +59,7 @@ export default function AdminLeaderboard() {
             courseKey,
             levelKey,
             completedCount,
-            totalChapters: syllabusInfo.totalChaptersCount,
+            totalChapters,
             progressPct
           };
         })
@@ -55,7 +74,7 @@ export default function AdminLeaderboard() {
     });
 
     return () => unsubscribe();
-  }, []);
+  }, [syllabiMeta]);
 
   // Filter leaderboard strictly by Admin selection
   const filteredLeaderboard = leaderboard

@@ -23,6 +23,20 @@ export default function AdminSyllabus() {
   const [selectedStudent, setSelectedStudent] = useState(null);
   const [courseFilter, setCourseFilter] = useState('all');
 
+  // Load syllabi metadata
+  const [syllabiMeta, setSyllabiMeta] = useState({});
+
+  useEffect(() => {
+    const unsub = onSnapshot(collection(db, 'syllabi'), (snap) => {
+      const meta = {};
+      snap.docs.forEach(doc => {
+        meta[doc.id] = doc.data();
+      });
+      setSyllabiMeta(meta);
+    });
+    return () => unsub();
+  }, []);
+
   useEffect(() => {
     const unsub = onSnapshot(collection(db, 'users'), (snapshot) => {
       const docs = snapshot.docs
@@ -53,12 +67,17 @@ export default function AdminSyllabus() {
   });
 
   // Calculate syllabus stats for currently selected student
-  const studentCourse = selectedStudent?.course || 'CA';
-  const studentLevel = selectedStudent?.level || 'Foundation';
+  const rawCourse = selectedStudent?.course || 'CA';
+  const courseKey = rawCourse === 'CMA' || rawCourse?.includes('CMA') ? 'CMA' : 'CA';
+  const levelKey = selectedStudent?.level || (rawCourse?.includes('Intermediate') ? 'Intermediate' : 'Foundation');
   const studentAttempt = selectedStudent?.attempt || 'Jan 27';
 
-  const syllabusInfo = getStudentSyllabus(studentCourse, studentLevel);
-  const { courseKey, levelKey, subjects, totalChaptersCount } = syllabusInfo;
+  const streamId = `${courseKey}_${levelKey}`;
+  const studentSyllabus = syllabiMeta[streamId];
+  
+  const subjects = studentSyllabus?.subjects || [];
+  let totalChaptersCount = 0;
+  subjects.forEach(s => totalChaptersCount += (s.chapters?.length || 0));
 
   const completedMap = selectedStudent?.syllabusCompleted || {};
   const completedChaptersCount = Object.keys(completedMap).filter(id => Boolean(completedMap[id])).length;
@@ -288,12 +307,12 @@ export default function AdminSyllabus() {
                   ) : (
                     <div className="space-y-2 max-h-72 overflow-y-auto pr-1">
                       {subjects.map(subObj => 
-                        subObj.chapters
+                        (subObj.chapters || [])
                           .filter(ch => Boolean(completedMap[ch.id]))
                           .map(ch => (
                             <div key={ch.id} className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-xs text-emerald-200 flex items-center justify-between">
                               <span className="font-medium">{ch.title}</span>
-                              <span className="font-bold text-emerald-400 shrink-0 ml-2">+10 PTS ✓</span>
+                              <span className="font-bold text-emerald-400 shrink-0 ml-2">+{ch.points || 0} PTS ✓</span>
                             </div>
                           ))
                       )}
@@ -315,7 +334,7 @@ export default function AdminSyllabus() {
                   ) : (
                     <div className="space-y-2 max-h-72 overflow-y-auto pr-1">
                       {subjects.map(subObj => 
-                        subObj.chapters
+                        (subObj.chapters || [])
                           .filter(ch => !Boolean(completedMap[ch.id]))
                           .map(ch => (
                             <div key={ch.id} className="p-3 rounded-xl bg-navy-900/60 border border-white/5 text-xs text-slate-300 flex items-center justify-between">

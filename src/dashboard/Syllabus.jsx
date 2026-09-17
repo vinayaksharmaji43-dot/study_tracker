@@ -1,22 +1,18 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { doc, onSnapshot, updateDoc, deleteField } from 'firebase/firestore';
 import { db } from '../config/firebase';
 import { useAuth } from '../contexts/AuthContext';
-import { getStudentSyllabus } from '../data/syllabusData';
 import EmptyState from '../components/EmptyState';
+import LoadingSpinner from '../components/LoadingSpinner';
 import { 
   BookOpen, 
   CheckCircle2, 
   Circle, 
   Award, 
-  TrendingUp, 
-  BookOpenCheck, 
-  Target, 
-  Sparkles, 
-  ShieldCheck,
   BarChart3,
   Layers,
-  Calendar
+  Calendar,
+  BookOpenCheck
 } from 'lucide-react';
 
 export default function Syllabus() {
@@ -25,40 +21,73 @@ export default function Syllabus() {
   const [completedMap, setCompletedMap] = useState({});
   const [togglingChapterId, setTogglingChapterId] = useState(null);
 
-  const course = userProfile?.course || 'CA';
-  const level = userProfile?.level || 'Foundation';
-  const attempt = userProfile?.attempt || 'Jan 27';
+  // Dynamic syllabus from Firestore
+  const [syllabusDoc, setSyllabusDoc] = useState(null);
+  const [loading, setLoading] = useState(true);
 
-  const syllabusInfo = getStudentSyllabus(course, level);
-  const { courseKey, levelKey, subjects, totalChaptersCount } = syllabusInfo;
+  const rawCourse = userProfile?.course || 'CA';
+  const courseKey = rawCourse === 'CMA' || rawCourse?.includes('CMA') ? 'CMA' : 'CA';
+  const levelKey = userProfile?.level || (rawCourse?.includes('Intermediate') ? 'Intermediate' : 'Foundation');
+  const attempt = userProfile?.attempt || (courseKey === 'CA' ? 'Jan 27' : 'June 27');
+  
+  const streamId = `${courseKey}_${levelKey}`;
 
-  // Real-time listener for student's completed syllabus chapters from Firestore
+  // Real-time listener for syllabus blueprint
+  useEffect(() => {
+    const unsubSyllabus = onSnapshot(doc(db, 'syllabi', streamId), (snap) => {
+      if (snap.exists()) {
+        setSyllabusDoc(snap.data());
+      } else {
+        setSyllabusDoc(null);
+      }
+      setLoading(false);
+    });
+    return () => unsubSyllabus();
+  }, [streamId]);
+
+  // Real-time listener for student's completed syllabus chapters
   useEffect(() => {
     if (!currentUser?.uid) return;
-
-    const userDocRef = doc(db, 'users', currentUser.uid);
-    const unsubscribe = onSnapshot(userDocRef, (snapshot) => {
+    const unsubUser = onSnapshot(doc(db, 'users', currentUser.uid), (snapshot) => {
       if (snapshot.exists()) {
-        const data = snapshot.data();
-        setCompletedMap(data.syllabusCompleted || {});
+        setCompletedMap(snapshot.data().syllabusCompleted || {});
       }
     }, (err) => console.error("Error subscribing to syllabus progress:", err));
-
-    return () => unsubscribe();
+    return () => unsubUser();
   }, [currentUser]);
 
-  // Calculate actual progress statistics
+  // Calculate actual progress statistics from dynamic syllabus
+  const { subjects, totalChaptersCount, totalSyllabusPoints, chapterPointsMap } = useMemo(() => {
+    let subjs = syllabusDoc?.subjects || [];
+    let count = 0;
+    let points = 0;
+    let pointMap = {};
+
+    subjs.forEach(s => {
+      s.chapters?.forEach(ch => {
+        count++;
+        const chPts = Number(ch.points) || 0;
+        points += chPts;
+        pointMap[ch.id] = chPts;
+      });
+    });
+    return { subjects: subjs, totalChaptersCount: count, totalSyllabusPoints: points, chapterPointsMap: pointMap };
+  }, [syllabusDoc]);
+
   const completedChaptersCount = Object.keys(completedMap).filter(id => Boolean(completedMap[id])).length;
   const remainingChaptersCount = Math.max(0, totalChaptersCount - completedChaptersCount);
+  
+  let pointsEarned = 0;
+  Object.keys(completedMap).forEach(id => {
+    if (completedMap[id]) pointsEarned += (chapterPointsMap[id] || 0);
+  });
+
   const completionPercentage = totalChaptersCount > 0 
     ? Math.min(100, Math.round((completedChaptersCount / totalChaptersCount) * 100))
     : 0;
 
-  const totalSyllabusPoints = totalChaptersCount * 10;
-  const pointsEarned = completedChaptersCount * 10;
-
   // Toggle chapter completion & sync with Firestore
-  const handleToggleChapter = async (chapterId) => {
+  const handleToggleChapter = async (chapterId, pointsReward) => {
     if (!currentUser?.uid || togglingChapterId) return;
 
     try {
@@ -67,22 +96,20 @@ export default function Syllabus() {
       const userRef = doc(db, 'users', currentUser.uid);
 
       if (isCurrentlyCompleted) {
-        // Uncheck chapter: remove from map and deduct 10 points
+        // Uncheck chapter: remove from map and deduct specific chapter points
         const newCount = Math.max(0, completedChaptersCount - 1);
         await updateDoc(userRef, {
           [`syllabusCompleted.${chapterId}`]: deleteField(),
           syllabusCompletedCount: newCount,
-          syllabusPoints: newCount * 10,
-          points: Math.max(0, (userProfile?.points || 0) - 10)
+          points: Math.max(0, (userProfile?.points || 0) - pointsReward)
         });
       } else {
-        // Check chapter: add to map and add 10 points
+        // Check chapter: add to map and add specific chapter points
         const newCount = completedChaptersCount + 1;
         await updateDoc(userRef, {
           [`syllabusCompleted.${chapterId}`]: true,
           syllabusCompletedCount: newCount,
-          syllabusPoints: newCount * 10,
-          points: (userProfile?.points || 0) + 10
+          points: (userProfile?.points || 0) + pointsReward
         });
       }
     } catch (err) {
@@ -92,6 +119,18 @@ export default function Syllabus() {
       setTogglingChapterId(null);
     }
   };
+
+  if (loading) return <LoadingSpinner text="Loading curriculum..." />;
+
+  if (!syllabusDoc) {
+    return (
+      <EmptyState
+        icon={BookOpenCheck}
+        title="Curriculum Not Configured"
+        description={`The syllabus for ${courseKey} ${levelKey} has not been set up yet. Please ask an administrator to initialize it from the Admin Panel.`}
+      />
+    );
+  }
 
   return (
     <div className="space-y-8">
@@ -103,7 +142,7 @@ export default function Syllabus() {
           <div className="flex flex-wrap items-center gap-2">
             <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-400 text-xs font-bold border border-emerald-500/40">
               <BookOpenCheck className="w-3.5 h-3.5" />
-              <span>Official ICAI / ICMAI Syllabus</span>
+              <span>Official Dynamic Syllabus</span>
             </div>
             <span className="px-3 py-1 rounded-full bg-royal-500/20 text-royal-300 text-xs font-bold border border-royal-500/30">
               {courseKey} • {levelKey}
@@ -118,7 +157,7 @@ export default function Syllabus() {
             {courseKey} {levelKey} <span className="gold-gradient-text">Academic Syllabus</span>
           </h1>
           <p className="text-slate-300 text-sm max-w-2xl">
-            Track your chapter-by-chapter preparation. Tick completed chapters to gain <strong>+10 Points</strong> per chapter and boost your live rank on the leaderboard!
+            Track your chapter-by-chapter preparation. Tick completed chapters to gain <strong>Reward Points</strong> and boost your live rank on the leaderboard!
           </p>
         </div>
       </div>
@@ -184,14 +223,14 @@ export default function Syllabus() {
           </div>
         </div>
 
-        {/* Circular Progress & Reward Banner */}
+        {/* Circular Progress */}
         <div className="lg:col-span-5 p-6 sm:p-8 rounded-3xl glass-card border border-white/10 flex flex-col justify-between space-y-6 shadow-xl relative overflow-hidden">
           <div className="absolute top-0 right-0 w-48 h-48 bg-gold-500/10 rounded-full blur-2xl pointer-events-none" />
           
           <div className="flex items-center justify-between">
-            <div className="text-xs font-bold uppercase tracking-wider text-slate-400">Chapter Point Engine</div>
+            <div className="text-xs font-bold uppercase tracking-wider text-slate-400">Completion Gauge</div>
             <div className="px-2.5 py-1 rounded-full bg-gold-500/20 border border-gold-500/30 text-gold-400 text-xs font-black">
-              +10 PTS / CHAPTER
+              {totalSyllabusPoints} TOTAL PTS MAX
             </div>
           </div>
 
@@ -199,27 +238,8 @@ export default function Syllabus() {
             <div className="relative w-36 h-36 flex items-center justify-center">
               {/* Circular Gauge SVG */}
               <svg className="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
-                <circle
-                  cx="50"
-                  cy="50"
-                  r="42"
-                  stroke="currentColor"
-                  strokeWidth="8"
-                  className="text-navy-900"
-                  fill="transparent"
-                />
-                <circle
-                  cx="50"
-                  cy="50"
-                  r="42"
-                  stroke="url(#progressGradient)"
-                  strokeWidth="8"
-                  strokeDasharray={264}
-                  strokeDashoffset={264 - (264 * completionPercentage) / 100}
-                  strokeLinecap="round"
-                  className="transition-all duration-700 ease-out"
-                  fill="transparent"
-                />
+                <circle cx="50" cy="50" r="42" stroke="currentColor" strokeWidth="8" className="text-navy-900" fill="transparent" />
+                <circle cx="50" cy="50" r="42" stroke="url(#progressGradient)" strokeWidth="8" strokeDasharray={264} strokeDashoffset={264 - (264 * completionPercentage) / 100} strokeLinecap="round" className="transition-all duration-700 ease-out" fill="transparent" />
                 <defs>
                   <linearGradient id="progressGradient" x1="0%" y1="0%" x2="100%" y2="100%">
                     <stop offset="0%" stopColor="#10b981" />
@@ -233,10 +253,6 @@ export default function Syllabus() {
                 <span className="text-[10px] text-slate-400 font-bold uppercase">Syllabus</span>
               </div>
             </div>
-          </div>
-
-          <div className="p-3.5 rounded-2xl bg-gold-500/10 border border-gold-500/25 text-xs text-gold-300 font-medium leading-relaxed">
-            🏆 Every completed chapter adds <strong>10 Points</strong> to your profile and updates the live Sunday Leaderboard!
           </div>
         </div>
 
@@ -257,7 +273,7 @@ export default function Syllabus() {
             const subPct = subTotal > 0 ? Math.round((subCompleted / subTotal) * 100) : 0;
 
             return (
-              <div key={subObj.subject} className="p-5 rounded-2xl glass-card border border-white/10 space-y-3 shadow-md">
+              <div key={subObj.id} className="p-5 rounded-2xl glass-card border border-white/10 space-y-3 shadow-md">
                 <div className="flex items-center justify-between gap-3">
                   <div className="font-bold text-white text-sm truncate">{subObj.subject}</div>
                   <div className="text-xs font-black text-emerald-400 font-mono shrink-0">
@@ -290,7 +306,7 @@ export default function Syllabus() {
             const subCompleted = subjectChapters.filter(ch => Boolean(completedMap[ch.id])).length;
 
             return (
-              <div key={subObj.subject} className="glass-card rounded-3xl border border-white/10 overflow-hidden shadow-xl">
+              <div key={subObj.id} className="glass-card rounded-3xl border border-white/10 overflow-hidden shadow-xl">
                 
                 {/* Subject Header */}
                 <div className="p-5 bg-navy-900/90 border-b border-white/10 flex items-center justify-between">
@@ -309,11 +325,12 @@ export default function Syllabus() {
                 <div className="divide-y divide-white/5">
                   {subjectChapters.map((ch) => {
                     const isChecked = Boolean(completedMap[ch.id]);
+                    const pts = Number(ch.points) || 0;
 
                     return (
                       <div 
                         key={ch.id}
-                        onClick={() => handleToggleChapter(ch.id)}
+                        onClick={() => handleToggleChapter(ch.id, pts)}
                         className={`p-4 sm:px-6 flex items-center justify-between cursor-pointer transition-all duration-200 select-none ${
                           isChecked 
                             ? 'bg-emerald-500/10 hover:bg-emerald-500/15' 
@@ -347,19 +364,17 @@ export default function Syllabus() {
                             ? 'bg-emerald-500/20 border-emerald-500/40 text-emerald-300' 
                             : 'bg-navy-900 border-white/5 text-slate-400'
                         }`}>
-                          {isChecked ? '+10 PTS ✓' : '+10 PTS'}
+                          {isChecked ? `+${pts} PTS ✓` : `+${pts} PTS`}
                         </span>
                       </div>
                     );
                   })}
                 </div>
-
               </div>
             );
           })}
         </div>
       </div>
-
     </div>
   );
 }

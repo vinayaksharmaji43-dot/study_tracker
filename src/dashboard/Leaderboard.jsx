@@ -12,6 +12,9 @@ export default function Leaderboard() {
   const { currentUser, userProfile } = useAuth();
   const [leaderboardData, setLeaderboardData] = useState([]);
   const [loading, setLoading] = useState(true);
+  
+  // Dynamic syllabi mapping for correct totals
+  const [syllabiMeta, setSyllabiMeta] = useState({});
 
   // Student's stream parameters
   const userCourseKey = userProfile?.course === 'CMA' || userProfile?.course?.includes('CMA') ? 'CMA' : 'CA';
@@ -27,6 +30,20 @@ export default function Leaderboard() {
     }
   }, [userProfile]);
 
+  // Load syllabi metadata (total chapters)
+  useEffect(() => {
+    const unsub = onSnapshot(collection(db, 'syllabi'), (snap) => {
+      const meta = {};
+      snap.docs.forEach(doc => {
+        let total = 0;
+        doc.data().subjects?.forEach(s => total += (s.chapters?.length || 0));
+        meta[doc.id] = total;
+      });
+      setSyllabiMeta(meta);
+    });
+    return () => unsub();
+  }, []);
+
   useEffect(() => {
     // Real-time listener for users collection sorted by points descending
     const q = query(
@@ -37,13 +54,15 @@ export default function Leaderboard() {
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const users = snapshot.docs.map((doc) => {
         const data = doc.data();
-        const syllabusInfo = getStudentSyllabus(data.course, data.level);
-        const completedCount = data.syllabusCompletedCount || (data.syllabusCompleted ? Object.keys(data.syllabusCompleted).length : 0);
-        const totalChapters = syllabusInfo.totalChaptersCount || 1;
-        const progressPct = Math.min(100, Math.round((completedCount / totalChapters) * 100));
-
+        
         const courseKey = data.course === 'CMA' || data.course?.includes('CMA') ? 'CMA' : 'CA';
         const levelKey = data.level === 'Intermediate' || data.course?.includes('Intermediate') ? 'Intermediate' : 'Foundation';
+        const streamId = `${courseKey}_${levelKey}`;
+
+        const completedCount = data.syllabusCompletedCount || (data.syllabusCompleted ? Object.keys(data.syllabusCompleted).length : 0);
+        // Fallback to static count if dynamic meta isn't loaded yet
+        const totalChapters = syllabiMeta[streamId] || 1;
+        const progressPct = Math.min(100, Math.round((completedCount / totalChapters) * 100));
 
         return {
           uid: doc.id,
@@ -63,7 +82,7 @@ export default function Leaderboard() {
     });
 
     return () => unsubscribe();
-  }, []);
+  }, [syllabiMeta]);
 
   if (loading) {
     return <LoadingSpinner text="Fetching live stream leaderboard..." />;
