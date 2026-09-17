@@ -359,7 +359,7 @@ export default function Syllabus() {
                               ? 'text-emerald-200 line-through decoration-emerald-500/50' 
                               : 'text-slate-200'
                           }`}>
-                            {ch.title}
+                            {ch.chapterNo ? `Ch ${ch.chapterNo}: ${ch.title}` : ch.title}
                           </span>
                         </div>
 

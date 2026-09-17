@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { doc, onSnapshot, setDoc, updateDoc } from 'firebase/firestore';
 import { db } from '../../config/firebase';
 import { SYLLABUS_DATA } from '../../data/syllabusData';
@@ -11,14 +11,14 @@ import {
   BookOpen, 
   FileText, 
   Award,
-  AlertCircle
+  AlertCircle,
+  GripVertical
 } from 'lucide-react';
 
 export default function AdminSyllabusManager() {
   const [course, setCourse] = useState('CA');
   const [level, setLevel] = useState('Foundation');
   const [syllabusDoc, setSyllabusDoc] = useState(null);
-  const [loading, setLoading] = useState(true);
   
   // Local state for editing the syllabus before saving
   const [localSubjects, setLocalSubjects] = useState([]);
@@ -29,11 +29,16 @@ export default function AdminSyllabusManager() {
   
   // Modal for adding chapter
   const [activeSubjectId, setActiveSubjectId] = useState(null);
+  const [newChapNo, setNewChapNo] = useState('');
   const [newChapTitle, setNewChapTitle] = useState('');
   const [newChapPoints, setNewChapPoints] = useState('10');
 
-  const streamId = `${course}_${level}`;
+  // Drag and Drop Refs
+  const dragItem = useRef();
+  const dragOverItem = useRef();
+  const draggingSubjectId = useRef();
 
+  const streamId = `${course}_${level}`;
   const [initialLoad, setInitialLoad] = useState(true);
 
   useEffect(() => {
@@ -65,12 +70,12 @@ export default function AdminSyllabusManager() {
       setSaving(true);
       const defaultSubjects = SYLLABUS_DATA[course]?.[level] || [];
       
-      // Inject unique IDs and default 10 points if they don't exist
       const mappedSubjects = defaultSubjects.map((sub, sIdx) => ({
         id: `sub_${Date.now()}_${sIdx}`,
         subject: sub.subject,
         chapters: sub.chapters.map((ch, cIdx) => ({
           id: ch.id || `ch_${Date.now()}_${sIdx}_${cIdx}`,
+          chapterNo: cIdx + 1,
           title: ch.title,
           points: 10
         }))
@@ -91,7 +96,7 @@ export default function AdminSyllabusManager() {
     }
   };
 
-  // Add a new empty subject
+  // Add a new empty subject (Part / Paper)
   const handleAddSubject = () => {
     if (!newSubjectTitle.trim()) return;
     const newSub = {
@@ -105,7 +110,7 @@ export default function AdminSyllabusManager() {
 
   // Delete a subject
   const handleDeleteSubject = (subId) => {
-    if (window.confirm('Are you sure you want to delete this entire subject and all its chapters?')) {
+    if (window.confirm('Are you sure you want to delete this entire Part/Paper and all its topics?')) {
       setLocalSubjects(localSubjects.filter(s => s.id !== subId));
     }
   };
@@ -113,6 +118,12 @@ export default function AdminSyllabusManager() {
   // Open chapter modal
   const openChapterModal = (subId) => {
     setActiveSubjectId(subId);
+    
+    // Auto-calculate next chapter number
+    const sub = localSubjects.find(s => s.id === subId);
+    const nextNo = sub && sub.chapters ? sub.chapters.length + 1 : 1;
+    
+    setNewChapNo(nextNo.toString());
     setNewChapTitle('');
     setNewChapPoints('10');
   };
@@ -128,8 +139,9 @@ export default function AdminSyllabusManager() {
       if (sub.id === activeSubjectId) {
         return {
           ...sub,
-          chapters: [...sub.chapters, {
+          chapters: [...(sub.chapters || []), {
             id: `ch_${Date.now()}`,
+            chapterNo: newChapNo.trim(),
             title: newChapTitle.trim(),
             points: pointsNum
           }]
@@ -143,7 +155,7 @@ export default function AdminSyllabusManager() {
 
   // Delete a chapter
   const handleDeleteChapter = (subId, chapId) => {
-    if (window.confirm('Are you sure you want to remove this chapter?')) {
+    if (window.confirm('Are you sure you want to remove this topic?')) {
       setLocalSubjects(prev => prev.map(sub => {
         if (sub.id === subId) {
           return {
@@ -156,16 +168,18 @@ export default function AdminSyllabusManager() {
     }
   };
 
-  // Edit chapter points
-  const handleUpdateChapterPoints = (subId, chapId, newPoints) => {
-    const pointsNum = parseInt(newPoints, 10) || 0;
+  // Edit chapter details inline
+  const handleUpdateChapter = (subId, chapId, field, value) => {
     setLocalSubjects(prev => prev.map(sub => {
       if (sub.id === subId) {
         return {
           ...sub,
           chapters: sub.chapters.map(ch => {
             if (ch.id === chapId) {
-              return { ...ch, points: pointsNum };
+              if (field === 'points') {
+                return { ...ch, points: parseInt(value, 10) || 0 };
+              }
+              return { ...ch, [field]: value };
             }
             return ch;
           })
@@ -175,6 +189,56 @@ export default function AdminSyllabusManager() {
     }));
   };
 
+  // --- Drag and Drop Handlers ---
+  const handleDragStart = (e, index, subId) => {
+    dragItem.current = index;
+    draggingSubjectId.current = subId;
+    e.dataTransfer.effectAllowed = "move";
+    // Optional: make it look slightly transparent while dragging
+    setTimeout(() => {
+      e.target.style.opacity = '0.5';
+    }, 0);
+  };
+
+  const handleDragEnter = (e, index, subId) => {
+    e.preventDefault();
+    if (draggingSubjectId.current === subId) {
+      dragOverItem.current = index;
+    }
+  };
+
+  const handleDragEnd = (e, subId) => {
+    e.target.style.opacity = '1';
+    if (draggingSubjectId.current !== subId || dragItem.current === null || dragOverItem.current === null || dragItem.current === dragOverItem.current) {
+      dragItem.current = null;
+      dragOverItem.current = null;
+      draggingSubjectId.current = null;
+      return;
+    }
+
+    const copyListItems = [...localSubjects];
+    const subjectIndex = copyListItems.findIndex(s => s.id === subId);
+    
+    if (subjectIndex !== -1) {
+      const chapters = [...copyListItems[subjectIndex].chapters];
+      const dragItemContent = chapters[dragItem.current];
+      
+      chapters.splice(dragItem.current, 1);
+      chapters.splice(dragOverItem.current, 0, dragItemContent);
+      
+      copyListItems[subjectIndex].chapters = chapters;
+      setLocalSubjects(copyListItems);
+    }
+
+    dragItem.current = null;
+    dragOverItem.current = null;
+    draggingSubjectId.current = null;
+  };
+
+  const handleDragOver = (e) => {
+    e.preventDefault(); // Necessary to allow dropping
+  };
+
   // Save changes to Firestore
   const handleSaveChanges = async () => {
     try {
@@ -182,7 +246,6 @@ export default function AdminSyllabusManager() {
       const docRef = doc(db, 'syllabi', streamId);
       
       if (!syllabusDoc) {
-        // If document doesn't exist at all yet
         await setDoc(docRef, {
           course,
           level,
@@ -193,7 +256,7 @@ export default function AdminSyllabusManager() {
           subjects: localSubjects
         });
       }
-      alert('Syllabus updated successfully! Changes are live for students.');
+      alert('Curriculum sequence & points updated successfully! Changes are live.');
     } catch (err) {
       console.error(err);
       alert('Failed to save changes.');
@@ -217,7 +280,7 @@ export default function AdminSyllabusManager() {
             Manage <span className="gold-gradient-text">Stream Syllabus</span>
           </h1>
           <p className="text-slate-300 text-sm max-w-xl">
-            Add/Remove chapters and customize the specific points awarded for completing each topic.
+            Add/Remove parts and topics. <strong>Drag & Drop</strong> topics to sequence them correctly. Customize the specific points awarded for completing each topic.
           </p>
         </div>
       </div>
@@ -250,7 +313,7 @@ export default function AdminSyllabusManager() {
               className="px-4 py-2 rounded-xl bg-emerald-600 text-white font-bold shadow-glow-emerald hover:bg-emerald-500 disabled:opacity-50 flex items-center gap-2"
             >
               <Save className="w-4 h-4" />
-              <span>{saving ? 'Saving...' : 'Save Changes'}</span>
+              <span>{saving ? 'Saving...' : 'Save Sequence & Changes'}</span>
             </button>
           )}
         </div>
@@ -277,11 +340,11 @@ export default function AdminSyllabusManager() {
       ) : (
         <div className="space-y-6">
           
-          {/* Add New Subject */}
+          {/* Add New Subject (Part/Paper) */}
           <div className="flex items-center gap-2 p-4 glass-card rounded-2xl border border-white/10">
             <input 
               type="text" 
-              placeholder="New Subject Title..."
+              placeholder="e.g. PART A: Business Laws..."
               value={newSubjectTitle}
               onChange={(e) => setNewSubjectTitle(e.target.value)}
               className="flex-grow px-4 py-2 rounded-xl bg-navy-900 border border-white/10 text-white text-sm focus:outline-none focus:border-royal-500"
@@ -290,68 +353,96 @@ export default function AdminSyllabusManager() {
               onClick={handleAddSubject}
               className="px-4 py-2 rounded-xl bg-royal-600/30 text-royal-400 border border-royal-500/50 hover:bg-royal-600/50 hover:text-white font-bold flex items-center gap-2 transition-all"
             >
-              <Plus className="w-4 h-4" /> Add Subject
+              <Plus className="w-4 h-4" /> Add Part / Paper
             </button>
           </div>
 
           {/* Subjects & Chapters List */}
           {localSubjects.length === 0 ? (
-            <EmptyState icon={BookOpen} title="No Subjects Added" description="Start building the curriculum by adding a subject." />
+            <EmptyState icon={BookOpen} title="No Parts/Papers Added" description="Start building the curriculum by adding a Part or Paper." />
           ) : (
             <div className="space-y-4">
               {localSubjects.map(sub => (
                 <div key={sub.id} className="glass-card rounded-2xl border border-white/10 overflow-hidden shadow-xl">
                   
                   {/* Subject Header */}
-                  <div className="p-4 bg-navy-900/90 border-b border-white/10 flex items-center justify-between">
+                  <div className="p-4 bg-navy-900/90 border-b border-white/10 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                     <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-xl bg-royal-500/20 text-royal-400 flex items-center justify-center font-bold text-xs">
+                      <div className="w-8 h-8 shrink-0 rounded-xl bg-royal-500/20 text-royal-400 flex items-center justify-center font-bold text-xs">
                         <BookOpen className="w-4 h-4" />
                       </div>
-                      <span className="font-bold text-white">{sub.subject}</span>
+                      <span className="font-bold text-white text-lg">{sub.subject}</span>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 shrink-0">
                       <button
                         onClick={() => openChapterModal(sub.id)}
                         className="px-3 py-1.5 rounded-lg bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500 hover:text-navy-950 text-xs font-bold transition-all flex items-center gap-1"
                       >
-                        <Plus className="w-3.5 h-3.5" /> Chapter
+                        <Plus className="w-3.5 h-3.5" /> Add Topic
                       </button>
                       <button
                         onClick={() => handleDeleteSubject(sub.id)}
                         className="px-3 py-1.5 rounded-lg bg-red-500/20 text-red-400 hover:bg-red-500 hover:text-white text-xs font-bold transition-all flex items-center gap-1"
                       >
-                        <Trash2 className="w-3.5 h-3.5" /> Delete Subject
+                        <Trash2 className="w-3.5 h-3.5" /> Delete Part
                       </button>
                     </div>
                   </div>
 
-                  {/* Chapters List */}
-                  <div className="divide-y divide-white/5">
+                  {/* Chapters List (Draggable) */}
+                  <div className="divide-y divide-white/5 bg-navy-950/30 p-2">
                     {(!sub.chapters || sub.chapters.length === 0) ? (
-                      <div className="p-4 text-xs text-slate-400 text-center">No chapters added to this subject.</div>
+                      <div className="p-4 text-xs text-slate-400 text-center">No topics added to this part yet.</div>
                     ) : (
-                      sub.chapters.map(ch => (
-                        <div key={ch.id} className="p-3 sm:px-6 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:bg-white/5 transition-colors">
-                          <div className="flex items-center gap-3">
-                            <FileText className="w-4 h-4 text-slate-500" />
-                            <span className="text-sm font-medium text-slate-200">{ch.title}</span>
+                      sub.chapters.map((ch, index) => (
+                        <div 
+                          key={ch.id} 
+                          draggable
+                          onDragStart={(e) => handleDragStart(e, index, sub.id)}
+                          onDragEnter={(e) => handleDragEnter(e, index, sub.id)}
+                          onDragEnd={(e) => handleDragEnd(e, sub.id)}
+                          onDragOver={handleDragOver}
+                          className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-2 rounded-xl hover:bg-white/5 transition-colors cursor-move group"
+                        >
+                          <div className="flex items-center gap-3 flex-grow">
+                            <div className="cursor-grab active:cursor-grabbing p-1.5 text-slate-500 group-hover:text-slate-300">
+                              <GripVertical className="w-4 h-4" />
+                            </div>
+                            
+                            <div className="flex items-center gap-2 bg-navy-900 border border-white/10 rounded-lg px-2 py-1">
+                              <span className="text-[10px] text-slate-400 font-bold uppercase shrink-0">Ch.</span>
+                              <input 
+                                type="text"
+                                defaultValue={ch.chapterNo || ''}
+                                onBlur={(e) => handleUpdateChapter(sub.id, ch.id, 'chapterNo', e.target.value)}
+                                className="w-10 bg-transparent text-white text-sm font-bold text-center focus:outline-none"
+                                placeholder="No."
+                              />
+                            </div>
+
+                            <input 
+                              type="text"
+                              defaultValue={ch.title}
+                              onBlur={(e) => handleUpdateChapter(sub.id, ch.id, 'title', e.target.value)}
+                              className="flex-grow bg-transparent text-sm font-medium text-slate-200 border-b border-transparent focus:border-royal-500 focus:outline-none px-1 py-1"
+                              placeholder="Topic Name..."
+                            />
                           </div>
                           
-                          <div className="flex items-center gap-3">
+                          <div className="flex items-center gap-3 shrink-0">
                             <div className="flex items-center gap-2">
-                              <span className="text-xs text-slate-400 font-bold uppercase">Points:</span>
+                              <span className="text-[10px] text-slate-400 font-bold uppercase">Pts:</span>
                               <input 
                                 type="number" 
                                 defaultValue={ch.points}
-                                onBlur={(e) => handleUpdateChapterPoints(sub.id, ch.id, e.target.value)}
-                                className="w-20 px-2 py-1 rounded-lg bg-navy-950 border border-white/10 text-gold-400 text-sm font-mono font-bold text-center focus:outline-none focus:border-gold-500"
+                                onBlur={(e) => handleUpdateChapter(sub.id, ch.id, 'points', e.target.value)}
+                                className="w-16 px-2 py-1 rounded-lg bg-navy-900 border border-white/10 text-gold-400 text-sm font-mono font-bold text-center focus:outline-none focus:border-gold-500"
                               />
                             </div>
                             <button
                               onClick={() => handleDeleteChapter(sub.id, ch.id)}
                               className="p-1.5 rounded-lg bg-red-500/10 text-red-400 hover:bg-red-500 hover:text-white transition-colors"
-                              title="Delete Chapter"
+                              title="Delete Topic"
                             >
                               <Trash2 className="w-4 h-4" />
                             </button>
@@ -376,7 +467,7 @@ export default function AdminSyllabusManager() {
             <div className="flex items-center justify-between border-b border-white/10 pb-4">
               <h3 className="text-xl font-bold text-white flex items-center gap-2">
                 <FileText className="w-5 h-5 text-emerald-400" />
-                <span>Add New Chapter</span>
+                <span>Add New Topic</span>
               </h3>
               <button onClick={() => setActiveSubjectId(null)} className="text-slate-400 hover:text-white font-bold">
                 ✕
@@ -384,23 +475,38 @@ export default function AdminSyllabusManager() {
             </div>
 
             <form onSubmit={handleAddChapter} className="space-y-4">
-              <div>
-                <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-2">
-                  Chapter / Topic Title
-                </label>
-                <input
-                  type="text"
-                  required
-                  placeholder="e.g. Chapter 1: Basic Concepts"
-                  value={newChapTitle}
-                  onChange={(e) => setNewChapTitle(e.target.value)}
-                  className="w-full px-4 py-3 rounded-xl bg-navy-900 border border-white/10 text-white text-sm focus:outline-none focus:border-emerald-500"
-                />
+              <div className="grid grid-cols-4 gap-3">
+                <div className="col-span-1">
+                  <label className="block text-[10px] font-bold text-slate-300 uppercase tracking-wider mb-2">
+                    Ch. No
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="1, 2, A..."
+                    value={newChapNo}
+                    onChange={(e) => setNewChapNo(e.target.value)}
+                    className="w-full px-3 py-3 rounded-xl bg-navy-900 border border-white/10 text-white text-center text-sm font-bold focus:outline-none focus:border-emerald-500"
+                  />
+                </div>
+                <div className="col-span-3">
+                  <label className="block text-[10px] font-bold text-slate-300 uppercase tracking-wider mb-2">
+                    Topic Name
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. Basic Concepts"
+                    value={newChapTitle}
+                    onChange={(e) => setNewChapTitle(e.target.value)}
+                    className="w-full px-4 py-3 rounded-xl bg-navy-900 border border-white/10 text-white text-sm focus:outline-none focus:border-emerald-500"
+                  />
+                </div>
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-2 flex items-center gap-2">
-                  <Award className="w-4 h-4 text-gold-400" /> Reward Points
+                <label className="block text-[10px] font-bold text-slate-300 uppercase tracking-wider mb-2 flex items-center gap-2">
+                  <Award className="w-3 h-3 text-gold-400" /> Reward Points
                 </label>
                 <input
                   type="number"
@@ -426,7 +532,7 @@ export default function AdminSyllabusManager() {
                   type="submit"
                   className="w-full py-3 rounded-xl bg-emerald-600 text-white text-sm font-black shadow-glow-emerald hover:bg-emerald-500"
                 >
-                  Add Chapter
+                  Add Topic
                 </button>
               </div>
             </form>

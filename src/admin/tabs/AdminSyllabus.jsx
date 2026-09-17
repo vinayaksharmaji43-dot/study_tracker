@@ -311,7 +311,7 @@ export default function AdminSyllabus() {
                           .filter(ch => Boolean(completedMap[ch.id]))
                           .map(ch => (
                             <div key={ch.id} className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-xs text-emerald-200 flex items-center justify-between">
-                              <span className="font-medium">{ch.title}</span>
+                              <span className="font-medium">{ch.chapterNo ? `Ch ${ch.chapterNo}: ${ch.title}` : ch.title}</span>
                               <span className="font-bold text-emerald-400 shrink-0 ml-2">+{ch.points || 0} PTS ✓</span>
                             </div>
                           ))
@@ -338,7 +338,7 @@ export default function AdminSyllabus() {
                           .filter(ch => !Boolean(completedMap[ch.id]))
                           .map(ch => (
                             <div key={ch.id} className="p-3 rounded-xl bg-navy-900/60 border border-white/5 text-xs text-slate-300 flex items-center justify-between">
-                              <span className="font-medium">{ch.title}</span>
+                              <span className="font-medium">{ch.chapterNo ? `Ch ${ch.chapterNo}: ${ch.title}` : ch.title}</span>
                               <span className="text-slate-500 shrink-0 ml-2">Pending</span>
                             </div>
                           ))
