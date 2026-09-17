@@ -28,9 +28,13 @@ export default function StudyTimer() {
   const [selectedSubject, setSelectedSubject] = useState(subjects[0]);
   const [seconds, setSeconds] = useState(0);
   const [isActive, setIsActive] = useState(false);
+  const [accumulatedSeconds, setAccumulatedSeconds] = useState(0);
+  const [startTimestamp, setStartTimestamp] = useState(null);
+
   const [saving, setSaving] = useState(false);
   const [sessions, setSessions] = useState([]);
   const [savedSuccess, setSavedSuccess] = useState(false);
+  const [autoStoppedAlert, setAutoStoppedAlert] = useState(false);
   const [dayOffs, setDayOffs] = useState([]);
   const [activeWarnings, setActiveWarnings] = useState([]);
   const [showDayOffModal, setShowDayOffModal] = useState(false);
@@ -39,19 +43,90 @@ export default function StudyTimer() {
   const [dayOffError, setDayOffError] = useState('');
 
   const intervalRef = useRef(null);
+  const isAutoSavingRef = useRef(false);
 
-  // Timer logic
+  const storageKey = currentUser?.uid ? `study_timer_state_${currentUser.uid}` : null;
+
+  // 1. Restore saved timer state from localStorage on component mount / user load
   useEffect(() => {
-    if (isActive) {
+    if (!storageKey) return;
+
+    try {
+      const savedRaw = localStorage.getItem(storageKey);
+      if (savedRaw) {
+        const saved = JSON.parse(savedRaw);
+        if (saved.selectedSubject && subjects.includes(saved.selectedSubject)) {
+          setSelectedSubject(saved.selectedSubject);
+        }
+
+        const savedAccumulated = saved.accumulatedSeconds || 0;
+
+        if (saved.isActive && saved.startTimestamp) {
+          const now = Date.now();
+          const elapsed = savedAccumulated + Math.floor((now - saved.startTimestamp) / 1000);
+
+          if (elapsed >= 18000) {
+            // Reached 5-hour limit while away
+            setSeconds(18000);
+            setAccumulatedSeconds(0);
+            setStartTimestamp(null);
+            setIsActive(false);
+            localStorage.removeItem(storageKey);
+            triggerAutoStop5Hours(18000, saved.selectedSubject || subjects[0]);
+          } else {
+            // Restore running timer
+            setAccumulatedSeconds(savedAccumulated);
+            setStartTimestamp(saved.startTimestamp);
+            setIsActive(true);
+            setSeconds(elapsed);
+          }
+        } else {
+          // Restore paused / idle state
+          setAccumulatedSeconds(savedAccumulated);
+          setStartTimestamp(null);
+          setIsActive(false);
+          setSeconds(savedAccumulated);
+        }
+      }
+    } catch (e) {
+      console.warn("Could not restore saved timer state:", e);
+    }
+  }, [storageKey]);
+
+  // 2. Accurate timestamp-based timer tick & 5-hour auto-stop check
+  useEffect(() => {
+    if (isActive && startTimestamp) {
       intervalRef.current = setInterval(() => {
-        setSeconds((prev) => prev + 1);
-      }, 1000);
+        const now = Date.now();
+        const currentElapsed = accumulatedSeconds + Math.floor((now - startTimestamp) / 1000);
+
+        if (currentElapsed >= 18000) {
+          clearInterval(intervalRef.current);
+          setSeconds(18000);
+          setIsActive(false);
+          setStartTimestamp(null);
+          setAccumulatedSeconds(0);
+          if (storageKey) localStorage.removeItem(storageKey);
+          triggerAutoStop5Hours(18000, selectedSubject);
+        } else {
+          setSeconds(currentElapsed);
+          // Persist running state continuously to localStorage
+          if (storageKey) {
+            localStorage.setItem(storageKey, JSON.stringify({
+              selectedSubject,
+              isActive: true,
+              accumulatedSeconds,
+              startTimestamp
+            }));
+          }
+        }
+      }, 500);
     } else {
       clearInterval(intervalRef.current);
     }
 
     return () => clearInterval(intervalRef.current);
-  }, [isActive]);
+  }, [isActive, startTimestamp, accumulatedSeconds, selectedSubject, storageKey]);
 
   // Real-time listener for study sessions
   useEffect(() => {
@@ -202,20 +277,138 @@ export default function StudyTimer() {
     }
   };
 
+  // Helper function to save completed session to Firestore
+  const saveSessionToFirestore = async (durationSecs, targetSubject) => {
+    if (!currentUser?.uid) return;
+    const durationHours = durationSecs / 3600;
+
+    const todayStr = getDateKey();
+    const prevTodaySeconds = sessions.reduce((acc, curr) => {
+      const sDate = curr.date?.toDate ? curr.date.toDate() : new Date(curr.date);
+      if (sDate && getDateKey(sDate) === todayStr) {
+        return acc + (curr.duration || 0);
+      }
+      return acc;
+    }, 0);
+
+    const prevTodayHours = prevTodaySeconds / 3600;
+    const newTodayHours = (prevTodaySeconds + durationSecs) / 3600;
+
+    const prevPoints = calculateDailyPoints(prevTodayHours);
+    const newPoints = calculateDailyPoints(newTodayHours);
+    const earnedPoints = Math.max(0, newPoints - prevPoints);
+
+    // 1. Add session to studySessions collection
+    await addDoc(collection(db, 'studySessions'), {
+      uid: currentUser.uid,
+      subject: targetSubject || selectedSubject,
+      duration: durationSecs,
+      course: userProfile?.course || 'CA Foundation',
+      date: serverTimestamp()
+    });
+
+    // 2. Update user Firestore doc with new studyHours and points
+    const userRef = doc(db, 'users', currentUser.uid);
+    await updateDoc(userRef, {
+      studyHours: increment(durationHours),
+      points: increment(earnedPoints)
+    });
+  };
+
+  // Auto-stop 5-hour limit handler
+  const triggerAutoStop5Hours = async (durationSecs, subjectToSave) => {
+    if (isAutoSavingRef.current) return;
+    isAutoSavingRef.current = true;
+
+    try {
+      await saveSessionToFirestore(durationSecs, subjectToSave || selectedSubject);
+      setAutoStoppedAlert(true);
+      alert("5 hours completed! Study Timer has been automatically stopped.");
+    } catch (e) {
+      console.error("Error auto-saving 5 hour session:", e);
+    } finally {
+      isAutoSavingRef.current = false;
+    }
+  };
+
+  // Handle Start / Resume Session
   const handleStart = () => {
+    const now = Date.now();
+    let currentAccumulated = accumulatedSeconds;
+
+    if (seconds === 0) {
+      currentAccumulated = 0;
+      setAccumulatedSeconds(0);
+    } else {
+      currentAccumulated = seconds;
+      setAccumulatedSeconds(seconds);
+    }
+
+    setStartTimestamp(now);
     setIsActive(true);
     setSavedSuccess(false);
+    setAutoStoppedAlert(false);
+
+    if (storageKey) {
+      localStorage.setItem(storageKey, JSON.stringify({
+        selectedSubject,
+        isActive: true,
+        accumulatedSeconds: currentAccumulated,
+        startTimestamp: now
+      }));
+    }
   };
 
+  // Handle Pause Session
   const handlePause = () => {
+    const now = Date.now();
+    let currentElapsed = seconds;
+    if (startTimestamp) {
+      currentElapsed = accumulatedSeconds + Math.floor((now - startTimestamp) / 1000);
+    }
+
     setIsActive(false);
+    setStartTimestamp(null);
+    setAccumulatedSeconds(currentElapsed);
+    setSeconds(currentElapsed);
+
+    if (storageKey) {
+      localStorage.setItem(storageKey, JSON.stringify({
+        selectedSubject,
+        isActive: false,
+        accumulatedSeconds: currentElapsed,
+        startTimestamp: null
+      }));
+    }
   };
 
+  // Handle Subject Change
+  const handleSubjectChange = (newSubject) => {
+    setSelectedSubject(newSubject);
+    if (storageKey) {
+      localStorage.setItem(storageKey, JSON.stringify({
+        selectedSubject: newSubject,
+        isActive,
+        accumulatedSeconds,
+        startTimestamp
+      }));
+    }
+  };
+
+  // Handle Stop & Save Session
   const handleStopAndSave = async () => {
-    if (seconds < 5) {
+    let finalSeconds = seconds;
+    if (isActive && startTimestamp) {
+      finalSeconds = accumulatedSeconds + Math.floor((Date.now() - startTimestamp) / 1000);
+    }
+
+    if (finalSeconds < 5) {
       alert("Session is too short to save (minimum 5 seconds).");
       setIsActive(false);
+      setStartTimestamp(null);
+      setAccumulatedSeconds(0);
       setSeconds(0);
+      if (storageKey) localStorage.removeItem(storageKey);
       return;
     }
 
@@ -223,43 +416,14 @@ export default function StudyTimer() {
       setSaving(true);
       setIsActive(false);
 
-      const sessionDuration = seconds;
-      const durationHours = sessionDuration / 3600;
-
-      // Compute daily points based on 6+ hours study rules
-      const todayStr = getDateKey();
-      const prevTodaySeconds = sessions.reduce((acc, curr) => {
-        const sDate = curr.date?.toDate ? curr.date.toDate() : new Date(curr.date);
-        if (sDate && getDateKey(sDate) === todayStr) {
-          return acc + (curr.duration || 0);
-        }
-        return acc;
-      }, 0);
-
-      const prevTodayHours = prevTodaySeconds / 3600;
-      const newTodayHours = (prevTodaySeconds + sessionDuration) / 3600;
-
-      const prevPoints = calculateDailyPoints(prevTodayHours);
-      const newPoints = calculateDailyPoints(newTodayHours);
-      const earnedPoints = Math.max(0, newPoints - prevPoints);
-
-      // 1. Add session to studySessions collection
-      await addDoc(collection(db, 'studySessions'), {
-        uid: currentUser.uid,
-        subject: selectedSubject,
-        duration: sessionDuration,
-        course: userProfile?.course || 'CA Foundation',
-        date: serverTimestamp()
-      });
-
-      // 2. Update user Firestore doc with new studyHours and points
-      const userRef = doc(db, 'users', currentUser.uid);
-      await updateDoc(userRef, {
-        studyHours: increment(durationHours),
-        points: increment(earnedPoints)
-      });
+      const sessionDuration = Math.min(finalSeconds, 18000);
+      await saveSessionToFirestore(sessionDuration, selectedSubject);
 
       setSeconds(0);
+      setAccumulatedSeconds(0);
+      setStartTimestamp(null);
+      if (storageKey) localStorage.removeItem(storageKey);
+
       setSavedSuccess(true);
       setTimeout(() => setSavedSuccess(false), 4000);
     } catch (err) {
@@ -345,7 +509,7 @@ export default function StudyTimer() {
               <select
                 value={selectedSubject}
                 disabled={isActive}
-                onChange={(e) => setSelectedSubject(e.target.value)}
+                onChange={(e) => handleSubjectChange(e.target.value)}
                 className="w-full py-3.5 px-4 rounded-2xl bg-navy-900 border border-white/15 text-white font-bold text-sm focus:outline-none focus:border-royal-500 cursor-pointer disabled:opacity-60"
               >
                 {subjects.map((sub) => (
@@ -370,6 +534,14 @@ export default function StudyTimer() {
                 </div>
               </div>
             </div>
+
+            {/* 5-Hour Auto Stop Alert */}
+            {autoStoppedAlert && (
+              <div className="p-4 rounded-xl bg-gold-500/20 border border-gold-500/40 text-gold-300 text-sm font-semibold flex items-center justify-center gap-2 animate-in fade-in duration-300">
+                <CheckCircle className="w-5 h-5 text-gold-400" />
+                <span>5 hours completed! Study Timer has been automatically stopped.</span>
+              </div>
+            )}
 
             {/* Success Toast */}
             {savedSuccess && (
