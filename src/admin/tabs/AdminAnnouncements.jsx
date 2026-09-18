@@ -181,7 +181,7 @@ export default function AdminAnnouncements() {
                       </span>
                     ) : (
                       <span className="px-2.5 py-0.5 rounded-full bg-amber-500/20 text-amber-300 text-[10px] font-bold">
-                        Unpublished
+                        Archived
                       </span>
                     )}
                   </div>
@@ -193,17 +193,17 @@ export default function AdminAnnouncements() {
                   </div>
                 </div>
 
-                <div className="flex items-center space-x-2">
-                  <button
-                    onClick={() => togglePublishStatus(item)}
-                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
-                      item.published !== false 
-                        ? 'bg-amber-500/20 text-amber-300 hover:bg-amber-500/30' 
-                        : 'bg-emerald-500/20 text-emerald-300 hover:bg-emerald-500/30'
-                    }`}
-                  >
-                    {item.published !== false ? 'Unpublish' : 'Publish'}
-                  </button>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => togglePublishStatus(item)}
+                      className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
+                        item.published !== false 
+                          ? 'bg-amber-500/20 text-amber-300 hover:bg-amber-500/30' 
+                          : 'bg-emerald-500/20 text-emerald-300 hover:bg-emerald-500/30'
+                      }`}
+                    >
+                      {item.published !== false ? 'Archive' : 'Publish'}
+                    </button>
 
                   <button
                     onClick={() => handleOpenEditModal(item)}

@@ -1,13 +1,71 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { BookOpen, Menu, X, LayoutDashboard, LogOut, User, ChevronRight, ShieldCheck } from 'lucide-react';
+import { collection, query, onSnapshot, where, orderBy, doc, setDoc, serverTimestamp } from 'firebase/firestore';
+import { db } from '../config/firebase';
+import { BookOpen, Menu, X, LayoutDashboard, LogOut, User, ChevronRight, ShieldCheck, Bell, Megaphone, Check } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
+
+function parseStream(userProfile) {
+  const raw = (userProfile?.course || '').toUpperCase();
+  const isCMA = raw.includes('CMA');
+  const course = isCMA ? 'CMA' : 'CA';
+  const level = raw.includes('FOUNDATION') ? 'Foundation' : 'Intermediate';
+  const attempt = userProfile?.attempt || '';
+  return { course, level, attempt };
+}
+
+function normalizeAttempt(att) {
+  return (att || '').toLowerCase().replace(/\s+/g, '').replace('2027', '27');
+}
 
 export default function Navbar() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [showAnnouncements, setShowAnnouncements] = useState(false);
+  const [announcements, setAnnouncements] = useState([]);
+  const [readIds, setReadIds] = useState(new Set());
+  
   const { currentUser, userProfile, isAdmin, logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+
+  useEffect(() => {
+    if (!currentUser || isAdmin || !userProfile) return;
+
+    const my = parseStream(userProfile);
+    const qA = query(collection(db, 'announcements'), orderBy('createdAt', 'desc'));
+    const unsubA = onSnapshot(qA, (snap) => {
+      const allA = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      const activeA = allA.filter(a => 
+        a.published && (
+          a.audienceType === 'all' || 
+          (a.course === my.course && a.level === my.level && normalizeAttempt(a.attempt) === normalizeAttempt(my.attempt))
+        )
+      );
+      setAnnouncements(activeA);
+    });
+
+    const qR = query(collection(db, 'announcementReads'), where('studentId', '==', currentUser.uid));
+    const unsubR = onSnapshot(qR, (snap) => {
+      const ids = new Set(snap.docs.map(d => d.data().announcementId));
+      setReadIds(ids);
+    });
+
+    return () => { unsubA(); unsubR(); };
+  }, [currentUser, isAdmin, userProfile?.course, userProfile?.level, userProfile?.attempt]);
+
+  const handleMarkAsRead = async (announcementId) => {
+    if (readIds.has(announcementId) || !currentUser) return;
+    try {
+      const readRef = doc(db, 'announcementReads', `${currentUser.uid}_${announcementId}`);
+      await setDoc(readRef, {
+        studentId: currentUser.uid,
+        announcementId,
+        readAt: serverTimestamp()
+      });
+    } catch (err) {
+      console.error('Failed to mark read', err);
+    }
+  };
 
   const handleLogout = async () => {
     try {
@@ -80,6 +138,19 @@ export default function Navbar() {
                 </Link>
                 
                 <div className="flex items-center space-x-3 pl-2 border-l border-white/10">
+                  {/* Announcement Bell (Students Only) */}
+                  {!isAdmin && isDashboardRoute && (
+                    <button
+                      onClick={() => setShowAnnouncements(true)}
+                      className="relative p-2 rounded-xl text-slate-400 hover:text-white hover:bg-white/5 transition-colors mr-1"
+                    >
+                      <Bell className="w-5 h-5" />
+                      {announcements.filter(a => !readIds.has(a.id)).length > 0 && (
+                        <span className="absolute top-1.5 right-1.5 w-2.5 h-2.5 bg-rose-500 rounded-full border-2 border-navy-950 animate-pulse"></span>
+                      )}
+                    </button>
+                  )}
+
                   <div className="text-right hidden sm:block">
                     <div className="text-xs font-semibold text-white">{userProfile?.name || currentUser.email}</div>
                     <div className="text-[11px] text-gold-400 font-medium">{isAdmin ? 'Administrator' : (userProfile?.course || 'Student')}</div>
@@ -114,6 +185,17 @@ export default function Navbar() {
 
           {/* Mobile Menu Button */}
           <div className="flex md:hidden items-center space-x-3">
+            {currentUser && !isAdmin && isDashboardRoute && (
+              <button
+                onClick={() => setShowAnnouncements(true)}
+                className="relative p-2 rounded-xl text-slate-400 hover:text-white hover:bg-white/5 transition-colors"
+              >
+                <Bell className="w-5 h-5" />
+                {announcements.filter(a => !readIds.has(a.id)).length > 0 && (
+                  <span className="absolute top-1.5 right-1.5 w-2.5 h-2.5 bg-rose-500 rounded-full border-2 border-navy-950 animate-pulse"></span>
+                )}
+              </button>
+            )}
             {currentUser && (
               <Link
                 to="/dashboard"
@@ -223,6 +305,81 @@ export default function Navbar() {
                 </Link>
               </div>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* Announcement Center Modal */}
+      {showAnnouncements && (
+        <div className="fixed inset-0 z-[100] flex justify-end bg-navy-950/60 backdrop-blur-sm transition-opacity">
+          <div className="w-full max-w-md bg-navy-900 h-full border-l border-white/10 shadow-2xl flex flex-col animate-in slide-in-from-right duration-300">
+            
+            {/* Header */}
+            <div className="p-6 border-b border-white/10 flex items-center justify-between bg-navy-950/50">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-rose-500/20 text-rose-400 flex items-center justify-center border border-rose-500/30">
+                  <Bell className="w-5 h-5" />
+                </div>
+                <div>
+                  <h2 className="text-lg font-bold text-white">Announcements</h2>
+                  <p className="text-xs text-slate-400">Updates & Important Notices</p>
+                </div>
+              </div>
+              <button 
+                onClick={() => setShowAnnouncements(false)}
+                className="p-2 rounded-xl text-slate-400 hover:text-white hover:bg-white/5 transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* List */}
+            <div className="flex-1 overflow-y-auto p-4 space-y-4">
+              {announcements.length === 0 ? (
+                <div className="text-center py-12">
+                  <div className="w-12 h-12 rounded-2xl bg-white/5 text-slate-500 flex items-center justify-center mx-auto mb-3">
+                    <Bell className="w-6 h-6" />
+                  </div>
+                  <p className="text-sm font-medium text-slate-400">No announcements yet</p>
+                </div>
+              ) : (
+                announcements.map((a) => {
+                  const isRead = readIds.has(a.id);
+                  return (
+                    <div 
+                      key={a.id} 
+                      onClick={() => handleMarkAsRead(a.id)}
+                      className={`p-4 rounded-2xl border transition-all cursor-pointer ${isRead ? 'bg-navy-950/50 border-white/5 opacity-75' : 'bg-rose-500/5 border-rose-500/30 shadow-lg shadow-rose-500/5'}`}
+                    >
+                      <div className="flex items-start justify-between gap-3 mb-2">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-1">
+                            {!isRead && <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-rose-500 text-white uppercase tracking-wider">New</span>}
+                            <span className="text-[10px] font-bold text-slate-400">
+                              {a.createdAt?.toDate ? new Intl.DateTimeFormat('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }).format(a.createdAt.toDate()) : 'Recent'}
+                            </span>
+                          </div>
+                          <h4 className={`text-sm font-bold ${isRead ? 'text-slate-200' : 'text-white'}`}>{a.title}</h4>
+                        </div>
+                        {isRead && <Check className="w-4 h-4 text-emerald-500 shrink-0 mt-1" />}
+                      </div>
+                      
+                      <p className="text-xs text-slate-300 leading-relaxed whitespace-pre-wrap">{a.message}</p>
+                      
+                      <div className="mt-3 pt-3 border-t border-white/5 flex items-center justify-between">
+                        <span className="text-[10px] font-semibold text-slate-500">
+                          {a.audienceType === 'specific' ? `${a.course} ${a.level}` : 'All Streams'}
+                        </span>
+                        <span className="text-[10px] font-semibold text-slate-500">
+                          By Admin
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+
           </div>
         </div>
       )}

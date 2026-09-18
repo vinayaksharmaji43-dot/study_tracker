@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { collection, query, where, onSnapshot, doc } from 'firebase/firestore';
+import { collection, query, where, onSnapshot, doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../config/firebase';
 import { useAuth } from '../contexts/AuthContext';
 import { formatHours, formatTimerTime, calculateStreak, formatDate, getDateKey } from '../utils/helpers';
@@ -46,6 +46,7 @@ export default function Overview({ setActiveTab }) {
   const [studyGroup, setStudyGroup] = useState(null);
   const [weeklyMissions, setWeeklyMissions] = useState([]);
   const [missionSubmissions, setMissionSubmissions] = useState([]);
+  const [readIds, setReadIds] = useState(new Set());
   const [rank, setRank] = useState(null);
   const [loading, setLoading] = useState(true);
 
@@ -135,6 +136,11 @@ export default function Overview({ setActiveTab }) {
       setMissionSubmissions(snap.docs.map(d => ({ id: d.id, ...d.data() })));
     });
 
+    const qRead = query(collection(db, 'announcementReads'), where('studentId', '==', currentUser.uid));
+    const unsubRead = onSnapshot(qRead, (snap) => {
+      setReadIds(new Set(snap.docs.map(d => d.data().announcementId)));
+    });
+
     return () => {
       unsubGroup();
       unsubAnnouncements();
@@ -144,6 +150,7 @@ export default function Overview({ setActiveTab }) {
       unsubUsers();
       unsubMissions();
       unsubSubmissions();
+      unsubRead();
     };
   }, [currentUser, userProfile?.course, userProfile?.level, userProfile?.attempt]);
 
@@ -158,6 +165,22 @@ export default function Overview({ setActiveTab }) {
   ];
   const motivationIndex = new Date().getDate() % motivationQuotes.length;
   const dailyMotivation = motivationQuotes[motivationIndex];
+
+  const handleMarkAsRead = async (announcementId) => {
+    if (readIds.has(announcementId) || !currentUser) return;
+    try {
+      const readRef = doc(db, 'announcementReads', `${currentUser.uid}_${announcementId}`);
+      await setDoc(readRef, {
+        studentId: currentUser.uid,
+        announcementId,
+        readAt: serverTimestamp()
+      });
+    } catch (err) {
+      console.error('Failed to mark read', err);
+    }
+  };
+
+  if (!currentUser?.uid || !userProfile) return null;
 
 
   // Today's study time calculation (in seconds)
@@ -265,22 +288,34 @@ export default function Overview({ setActiveTab }) {
             <span>Official Platform Announcements</span>
           </div>
           <div className="grid grid-cols-1 gap-3">
-              {announcements.map((a) => (
-                <div key={a.id} className="p-4 rounded-2xl bg-rose-500/10 border border-rose-500/30 flex items-start space-x-3">
-                  <div className="p-2 rounded-xl bg-rose-500/20 text-rose-400 shrink-0 mt-0.5">
-                    <Megaphone className="w-4 h-4" />
+            {announcements.slice(0, 1).map((a) => {
+              const isRead = readIds.has(a.id);
+              return (
+                <div 
+                  key={a.id} 
+                  onClick={() => handleMarkAsRead(a.id)}
+                  className={`p-4 rounded-2xl border flex items-start space-x-3 relative overflow-hidden group cursor-pointer transition-all ${isRead ? 'bg-rose-500/5 border-rose-500/10' : 'bg-rose-500/10 border-rose-500/30'}`}
+                >
+                  <div className="absolute right-0 top-0 w-32 h-32 bg-rose-500/10 rounded-full blur-2xl pointer-events-none group-hover:bg-rose-500/20 transition-all"></div>
+                  <div className="p-2 rounded-xl bg-rose-500/20 text-rose-400 shrink-0 mt-0.5 relative z-10">
+                    <Megaphone className="w-5 h-5" />
                   </div>
-                  <div className="space-y-1 w-full">
+                  <div className="space-y-2 w-full relative z-10">
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                      <h4 className="text-sm font-bold text-white">{a.title}</h4>
+                      <div className="flex items-center gap-2">
+                        {!isRead && <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-rose-500 text-white uppercase tracking-wider">New</span>}
+                        <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-white/10 text-white uppercase tracking-wider">Latest</span>
+                        <h4 className="text-sm font-bold text-white">{a.title}</h4>
+                      </div>
                       <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-rose-500/20 border border-rose-500/20 text-rose-300 w-fit">
-                        {a.audienceType === 'specific' ? `${a.course} ${a.level} • ${a.attempt}` : 'All Students'}
+                        {a.audienceType === 'specific' ? `${a.course} ${a.level}` : 'All Students'}
                       </span>
                     </div>
-                    <p className="text-xs text-slate-300 leading-relaxed">{a.message}</p>
+                    <p className="text-xs text-slate-300 leading-relaxed whitespace-pre-wrap">{a.message}</p>
                   </div>
                 </div>
-              ))}
+              );
+            })}
           </div>
         </div>
       )}
