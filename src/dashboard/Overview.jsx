@@ -144,7 +144,7 @@ export default function Overview({ setActiveTab }) {
       unsubMissions();
       unsubSubmissions();
     };
-  }, [currentUser]);
+  }, [currentUser, userProfile?.course, userProfile?.level, userProfile?.attempt]);
 
   // Daily rotating motivational quote
   const motivationQuotes = [

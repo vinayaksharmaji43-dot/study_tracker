@@ -77,7 +77,7 @@ export default function WeeklyMissions() {
     });
 
     return () => { unsubM(); unsubS(); };
-  }, [currentUser, userProfile]);
+  }, [currentUser, userProfile?.course, userProfile?.level, userProfile?.attempt]);
 
   const today = new Date().toISOString().split('T')[0];
 
