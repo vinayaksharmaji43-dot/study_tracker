@@ -185,14 +185,14 @@ export default function Home() {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-5xl mx-auto">
               
-              {/* CA Foundation Card */}
+              {/* CA Card */}
               <div className="p-8 rounded-3xl glass-card border border-violet-500/30 relative overflow-hidden group shadow-xl hover:-translate-y-1 transition-all duration-300">
                 <div className="absolute top-0 right-0 w-32 h-32 bg-violet-600/10 rounded-full blur-2xl group-hover:bg-violet-600/20 transition-all pointer-events-none"></div>
                 <div className="w-12 h-12 rounded-2xl bg-violet-600/20 border border-violet-500/40 flex items-center justify-center text-violet-200 mb-6 shadow-glow-violet">
                   <BookOpen className="w-6 h-6" />
                 </div>
-                <h4 className="text-2xl font-bold text-white mb-2">CA Foundation</h4>
-                <p className="text-slate-400 text-sm mb-6">Complete blueprint for ICAI CA Foundation aspirants. Includes Accounting, Business Laws, Quantitative Aptitude & Economics.</p>
+                <h4 className="text-xl sm:text-2xl font-bold text-white mb-2 leading-tight">CA Foundation &<br />CA Intermediate</h4>
+                <p className="text-slate-400 text-sm mb-6">Complete blueprint for ICAI CA Foundation & Intermediate aspirants. Track study sessions and build subject mastery.</p>
 
                 <div className="space-y-3">
                   <div className="text-xs font-bold text-slate-300 uppercase tracking-wider">Available Exam Attempts:</div>
@@ -203,17 +203,17 @@ export default function Home() {
                     </div>
                     <div className="p-3 rounded-xl bg-navy-950/80 border border-violet-500/30 flex items-center gap-2 text-sm font-semibold text-white">
                       <Calendar className="w-4 h-4 text-amber-300" />
-                      <span>September 2027</span>
+                      <span>May / Sep 2027</span>
                     </div>
                   </div>
                 </div>
 
                 <div className="mt-8">
                   <Link
-                    to="/register?course=CA Foundation"
+                    to="/register?course=CA"
                     className="inline-flex items-center gap-2 text-sm font-bold text-violet-300 group-hover:text-violet-200 transition-colors"
                   >
-                    <span>Enroll for CA Foundation</span>
+                    <span>Enroll for CA</span>
                     <ChevronRight className="w-4 h-4" />
                   </Link>
                 </div>
@@ -225,8 +225,8 @@ export default function Home() {
                 <div className="w-12 h-12 rounded-2xl bg-amber-500/20 border border-amber-400/40 flex items-center justify-center text-amber-300 mb-6 shadow-glow-gold">
                   <GraduationCap className="w-6 h-6" />
                 </div>
-                <h4 className="text-2xl font-bold text-white mb-2">CMA Preparation</h4>
-                <p className="text-slate-400 text-sm mb-6">Dedicated preparation path for Cost and Management Accountant students. Track study sessions and build subject mastery.</p>
+                <h4 className="text-xl sm:text-2xl font-bold text-white mb-2 leading-tight">CMA Foundation &<br />CMA Intermediate</h4>
+                <p className="text-slate-400 text-sm mb-6">Dedicated preparation path for CMA Foundation & Intermediate students. Track study sessions and build subject mastery.</p>
 
                 <div className="space-y-3">
                   <div className="text-xs font-bold text-slate-300 uppercase tracking-wider">Exam Attempts:</div>
