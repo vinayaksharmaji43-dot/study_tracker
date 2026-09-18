@@ -1,5 +1,7 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import { collection, addDoc, onSnapshot, query, orderBy, serverTimestamp } from 'firebase/firestore';
+import { db } from '../config/firebase';
 import { 
   BookOpen, 
   Trophy, 
@@ -13,12 +15,56 @@ import {
   Calendar,
   Sparkles,
   ArrowRight,
-  GraduationCap
+  GraduationCap,
+  Star,
+  MessageSquare,
+  Mail,
+  Send
 } from 'lucide-react';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 
 export default function Home() {
+  // Feedback State
+  const [feedbacks, setFeedbacks] = useState([]);
+  const [fbName, setFbName] = useState('');
+  const [fbRating, setFbRating] = useState(0);
+  const [fbHover, setFbHover] = useState(0);
+  const [fbText, setFbText] = useState('');
+  const [fbSubmitting, setFbSubmitting] = useState(false);
+  const [fbSuccess, setFbSuccess] = useState(false);
+
+  useEffect(() => {
+    const q = query(collection(db, 'feedbacks'), orderBy('createdAt', 'desc'));
+    const unsub = onSnapshot(q, (snap) => {
+      setFeedbacks(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+    });
+    return () => unsub();
+  }, []);
+
+  const handleFeedbackSubmit = async (e) => {
+    e.preventDefault();
+    if (!fbRating || !fbText.trim() || !fbName.trim()) {
+      alert('Please fill all fields and select a star rating.');
+      return;
+    }
+    try {
+      setFbSubmitting(true);
+      await addDoc(collection(db, 'feedbacks'), {
+        name: fbName.trim(),
+        rating: fbRating,
+        text: fbText.trim(),
+        createdAt: serverTimestamp()
+      });
+      setFbName(''); setFbRating(0); setFbText(''); setFbSuccess(true);
+      setTimeout(() => setFbSuccess(false), 3000);
+    } catch (err) {
+      alert('Failed to submit feedback. Please try again.');
+    } finally {
+      setFbSubmitting(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-navy-950 text-slate-100 flex flex-col selection:bg-violet-500 selection:text-white">
       <Navbar />
@@ -395,6 +441,166 @@ export default function Home() {
           </div>
         </section>
       </main>
+
+      {/* =========== FEEDBACK SECTION =========== */}
+      <section id="feedback" className="py-24 bg-navy-900/50 border-t border-white/5 relative overflow-hidden">
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[300px] bg-gold-500/5 rounded-full blur-3xl pointer-events-none" />
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+          <div className="text-center mb-14 space-y-3">
+            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-gold-500/10 border border-gold-500/30 text-gold-300 text-xs font-bold">
+              <Star className="w-4 h-4 fill-gold-400 text-gold-400" /> Student Feedback
+            </div>
+            <h2 className="text-3xl sm:text-4xl font-extrabold text-white">What Students Say</h2>
+            <p className="text-slate-400 text-base max-w-xl mx-auto">Real reviews from CA & CMA aspirants using this platform daily.</p>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-start">
+
+            {/* Submit Feedback Form */}
+            <div className="p-8 rounded-3xl glass-card border border-gold-500/20 shadow-xl space-y-6">
+              <h3 className="text-xl font-bold text-white flex items-center gap-2">
+                <MessageSquare className="w-5 h-5 text-gold-400" /> Leave Your Feedback
+              </h3>
+              {fbSuccess && (
+                <div className="p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-sm font-bold text-center">
+                  ✅ Thank you! Your feedback has been submitted.
+                </div>
+              )}
+              <form onSubmit={handleFeedbackSubmit} className="space-y-5">
+                <div>
+                  <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Your Name</label>
+                  <input
+                    type="text"
+                    required
+                    value={fbName}
+                    onChange={e => setFbName(e.target.value)}
+                    placeholder="e.g. Rahul Sharma"
+                    className="w-full px-4 py-3 rounded-xl bg-navy-900 border border-white/10 text-white text-sm focus:outline-none focus:border-gold-500/50"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">Your Rating</label>
+                  <div className="flex items-center gap-2">
+                    {[1,2,3,4,5].map(star => (
+                      <button
+                        key={star}
+                        type="button"
+                        onClick={() => setFbRating(star)}
+                        onMouseEnter={() => setFbHover(star)}
+                        onMouseLeave={() => setFbHover(0)}
+                        className="transition-transform hover:scale-110"
+                      >
+                        <Star
+                          className={`w-8 h-8 transition-colors ${(fbHover || fbRating) >= star ? 'fill-gold-400 text-gold-400' : 'text-slate-600'}`}
+                        />
+                      </button>
+                    ))}
+                    <span className="ml-2 text-sm font-bold text-slate-300">
+                      {(fbHover || fbRating) > 0 ? ['', 'Poor', 'Fair', 'Good', 'Very Good', 'Excellent!'][(fbHover || fbRating)] : 'Select rating'}
+                    </span>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Your Review</label>
+                  <textarea
+                    rows="4"
+                    required
+                    value={fbText}
+                    onChange={e => setFbText(e.target.value)}
+                    placeholder="Share your experience with CA/CMA Blueprint..."
+                    className="w-full px-4 py-3 rounded-xl bg-navy-900 border border-white/10 text-white text-sm resize-none focus:outline-none focus:border-gold-500/50"
+                  />
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={fbSubmitting}
+                  className="w-full py-3.5 rounded-xl bg-gradient-to-r from-gold-600 to-gold-500 hover:from-gold-500 hover:to-gold-400 text-navy-950 font-black text-sm shadow-lg disabled:opacity-50 transition-all hover:scale-[1.02]"
+                >
+                  {fbSubmitting ? 'Submitting...' : '⭐ Submit Feedback'}
+                </button>
+              </form>
+            </div>
+
+            {/* Live Feedback Cards */}
+            <div className="space-y-4 max-h-[600px] overflow-y-auto pr-1">
+              {feedbacks.length === 0 ? (
+                <div className="p-8 rounded-3xl glass-card border border-white/5 text-center text-slate-400 text-sm">
+                  No reviews yet. Be the first to share your feedback!
+                </div>
+              ) : (
+                feedbacks.map(f => (
+                  <div key={f.id} className="p-5 rounded-2xl glass-card border border-white/10 hover:border-gold-500/20 transition-all space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-xl bg-gold-500/20 text-gold-400 font-black text-sm flex items-center justify-center border border-gold-500/20">
+                          {f.name?.charAt(0)?.toUpperCase() || 'S'}
+                        </div>
+                        <div>
+                          <div className="text-sm font-bold text-white">{f.name}</div>
+                          <div className="flex items-center gap-0.5 mt-0.5">
+                            {[1,2,3,4,5].map(s => (
+                              <Star key={s} className={`w-3.5 h-3.5 ${f.rating >= s ? 'fill-gold-400 text-gold-400' : 'text-slate-600'}`} />
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    <p className="text-sm text-slate-300 leading-relaxed">"{f.text}"</p>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* =========== CONTACT US SECTION =========== */}
+      <section id="contact" className="py-20 bg-navy-950 border-t border-white/5 relative">
+        <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 text-center space-y-8">
+          <div className="space-y-3">
+            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-cyan-500/10 border border-cyan-500/30 text-cyan-300 text-xs font-bold">
+              <Mail className="w-3.5 h-3.5" /> Contact Us
+            </div>
+            <h2 className="text-3xl sm:text-4xl font-extrabold text-white">Get In Touch</h2>
+            <p className="text-slate-400 text-base">Have a question or need support? Reach out to us directly.</p>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 max-w-xl mx-auto">
+            {/* Gmail */}
+            <a
+              href="mailto:casuccessblueprint@gmail.com"
+              className="group flex items-center gap-4 p-6 rounded-2xl glass-card border border-white/10 hover:border-red-500/40 hover:bg-red-500/5 transition-all"
+            >
+              <div className="w-12 h-12 rounded-xl bg-red-500/20 text-red-400 flex items-center justify-center border border-red-500/20 group-hover:scale-110 transition-transform">
+                <Mail className="w-6 h-6" />
+              </div>
+              <div className="text-left">
+                <div className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-0.5">Email Us</div>
+                <div className="text-sm font-bold text-white group-hover:text-red-300 transition-colors break-all">casuccessblueprint@gmail.com</div>
+              </div>
+            </a>
+
+            {/* WhatsApp */}
+            <a
+              href="https://wa.me/919509351975"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="group flex items-center gap-4 p-6 rounded-2xl glass-card border border-white/10 hover:border-emerald-500/40 hover:bg-emerald-500/5 transition-all"
+            >
+              <div className="w-12 h-12 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center border border-emerald-500/20 group-hover:scale-110 transition-transform">
+                <Send className="w-6 h-6" />
+              </div>
+              <div className="text-left">
+                <div className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-0.5">WhatsApp</div>
+                <div className="text-sm font-bold text-white group-hover:text-emerald-300 transition-colors">Chat on WhatsApp</div>
+              </div>
+            </a>
+          </div>
+        </div>
+      </section>
 
       <Footer />
     </div>

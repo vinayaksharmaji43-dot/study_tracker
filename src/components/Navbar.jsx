@@ -48,7 +48,13 @@ export default function Navbar() {
                   Courses
                 </a>
                 <a href="#how-it-works" className="text-sm font-medium text-slate-300 hover:text-white transition-colors">
-                  How It Works
+                  How it Works
+                </a>
+                <a href="#feedback" className="text-sm font-medium text-slate-300 hover:text-white transition-colors">
+                  Reviews
+                </a>
+                <a href="#contact" className="text-sm font-medium text-slate-300 hover:text-white transition-colors">
+                  Contact
                 </a>
               </>
             )}
