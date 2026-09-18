@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { collection, query, where, onSnapshot } from 'firebase/firestore';
+import { collection, query, where, onSnapshot, doc } from 'firebase/firestore';
 import { db } from '../config/firebase';
 import { useAuth } from '../contexts/AuthContext';
 import { formatHours, formatTimerTime, calculateStreak, formatDate, getDateKey } from '../utils/helpers';
@@ -42,6 +42,7 @@ export default function Overview({ setActiveTab }) {
   const [targets, setTargets] = useState([]);
   const [announcements, setAnnouncements] = useState([]);
   const [dayOffs, setDayOffs] = useState([]);
+  const [studyGroup, setStudyGroup] = useState(null);
   const [rank, setRank] = useState(null);
   const [loading, setLoading] = useState(true);
 
@@ -50,6 +51,16 @@ export default function Overview({ setActiveTab }) {
     if (!currentUser?.uid || !userProfile) return;
 
     const my = parseStream(userProfile);
+
+    // Fetch relevant study group link
+    const groupId = `${my.course}_${my.level}_${normalizeAttempt(my.attempt)}`;
+    const unsubGroup = onSnapshot(doc(db, 'studyGroups', groupId), (d) => {
+      if (d.exists()) {
+        setStudyGroup({ id: d.id, ...d.data() });
+      } else {
+        setStudyGroup(null);
+      }
+    });
 
     // Listen to announcements
     const unsubAnnouncements = onSnapshot(collection(db, 'announcements'), (snapshot) => {
@@ -105,6 +116,7 @@ export default function Overview({ setActiveTab }) {
     });
 
     return () => {
+      unsubGroup();
       unsubAnnouncements();
       unsubSessions();
       unsubDayOffs();
@@ -125,12 +137,6 @@ export default function Overview({ setActiveTab }) {
   const motivationIndex = new Date().getDate() % motivationQuotes.length;
   const dailyMotivation = motivationQuotes[motivationIndex];
 
-  const communityLinks = [
-    { name: 'Telegram', url: 'https://t.me/Ca_foundation_help', icon: Send, color: 'text-violet-400 bg-violet-500/20' },
-    { name: 'YouTube', url: 'https://youtube.com/@casuccessblueprint?si=_eCZhlzUlwn9DnnT', icon: Play, color: 'text-red-400 bg-red-500/20' },
-    { name: 'Instagram', url: 'https://www.instagram.com/ca_success_blueprint?igsh=eDZtbGQxa2lsanVi', icon: Camera, color: 'text-pink-400 bg-pink-500/20' },
-    { name: 'WhatsApp', url: 'https://whatsapp.com/channel/0029Vb8IO0XAu3aMmUjkKW3o', icon: MessageCircle, color: 'text-emerald-400 bg-emerald-500/20' },
-  ];
 
   // Today's study time calculation (in seconds)
   const todayStr = new Date().toISOString().split('T')[0];
@@ -188,6 +194,35 @@ export default function Overview({ setActiveTab }) {
           </div>
         </div>
       </div>
+
+      {/* Dynamic Study Group Banner */}
+      {studyGroup && (
+        <a href={studyGroup.url} target="_blank" rel="noopener noreferrer" className={`block w-full p-1 rounded-3xl bg-gradient-to-r ${studyGroup.platform === 'youtube' ? 'from-red-600 to-rose-500' : studyGroup.platform === 'whatsapp' ? 'from-emerald-500 to-teal-400' : studyGroup.platform === 'telegram' ? 'from-blue-600 to-cyan-500' : 'from-purple-600 to-pink-500'} hover:scale-[1.01] transition-transform duration-300 shadow-xl group`}>
+          <div className="bg-navy-950/40 backdrop-blur-md rounded-[22px] p-5 sm:p-6 flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div className="flex items-center gap-4">
+              <div className={`w-14 h-14 rounded-2xl flex items-center justify-center bg-white/10 border border-white/20 shadow-inner group-hover:scale-110 transition-transform ${studyGroup.platform === 'youtube' ? 'text-red-400' : studyGroup.platform === 'whatsapp' ? 'text-emerald-400' : studyGroup.platform === 'telegram' ? 'text-blue-400' : 'text-purple-400'}`}>
+                <Users className="w-7 h-7" />
+              </div>
+              <div>
+                <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-white/10 text-white text-[10px] font-bold uppercase tracking-wider mb-1">
+                  <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse"></span>
+                  Official Study Group
+                </div>
+                <h3 className="text-xl sm:text-2xl font-extrabold text-white group-hover:text-gold-200 transition-colors">
+                  {studyGroup.title || `Join ${studyGroup.course} ${studyGroup.level} Community`}
+                </h3>
+                <p className="text-sm text-slate-200 font-medium">Connect with mentors and peers for {studyGroup.attempt}</p>
+              </div>
+            </div>
+            <div className="shrink-0">
+              <div className="px-6 py-3 rounded-xl bg-white/20 hover:bg-white/30 text-white font-bold text-sm flex items-center gap-2 border border-white/30 shadow-lg backdrop-blur-sm transition-all">
+                <span>Join Now</span>
+                <Send className="w-4 h-4" />
+              </div>
+            </div>
+          </div>
+        </a>
+      )}
 
       {/* Daily Motivation Quote */}
       <div className="p-5 sm:p-6 rounded-3xl border border-gold-500/25 bg-gradient-to-r from-gold-500/10 via-amber-500/10 to-orange-500/10 shadow-[0_0_20px_rgba(245,158,11,0.18)]">
@@ -437,37 +472,6 @@ export default function Overview({ setActiveTab }) {
               </div>
             </button>
 
-            <div className="p-4 rounded-xl bg-navy-900/60 border border-white/10 space-y-3">
-              <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-lg bg-cyan-500/20 text-cyan-400 flex items-center justify-center">
-                  <Users className="w-5 h-5" />
-                </div>
-                <div>
-                  <div className="text-sm font-bold text-white">Join Community</div>
-                  <div className="text-xs text-slate-400">Connect with mentors & students</div>
-                </div>
-              </div>
-
-              <div className="space-y-2 pt-1">
-                {communityLinks.map(({ name, url, icon: Icon, color }) => (
-                  <a
-                    key={name}
-                    href={url}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="flex items-center justify-between w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-slate-200 transition hover:border-gold-500/40 hover:bg-white/10"
-                  >
-                    <span className="flex items-center gap-2">
-                      <span className={`flex h-7 w-7 items-center justify-center rounded-md ${color}`}>
-                        <Icon className="h-3.5 w-3.5" />
-                      </span>
-                      {name}
-                    </span>
-                    <span className="text-xs text-slate-400">Open</span>
-                  </a>
-                ))}
-              </div>
-            </div>
           </div>
         </div>
 

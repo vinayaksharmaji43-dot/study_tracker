@@ -16,6 +16,7 @@ import AdminDoubts from './tabs/AdminDoubts';
 import AdminAnnouncements from './tabs/AdminAnnouncements';
 import AdminCourses from './tabs/AdminCourses';
 import AdminSettings from './tabs/AdminSettings';
+import AdminStudyGroups from './tabs/AdminStudyGroups';
 import AdminWritingPractice from './tabs/AdminWritingPractice';
 
 import { 
@@ -55,6 +56,7 @@ export default function AdminDashboard() {
     { id: 'notes', label: 'Notes', icon: FileText },
     { id: 'doubts', label: 'Doubts', icon: HelpCircle },
     { id: 'announcements', label: 'Announcements', icon: Megaphone },
+    { id: 'study_groups', label: 'Study Groups', icon: Users },
     { id: 'courses', label: 'Courses & Attempts', icon: Calendar },
     { id: 'settings', label: 'Settings', icon: Settings },
   ];
@@ -163,6 +165,7 @@ export default function AdminDashboard() {
             {activeTab === 'notes' && <AdminNotes />}
             {activeTab === 'doubts' && <AdminDoubts />}
             {activeTab === 'announcements' && <AdminAnnouncements />}
+            {activeTab === 'study_groups' && <AdminStudyGroups />}
             {activeTab === 'courses' && <AdminCourses />}
             {activeTab === 'settings' && <AdminSettings />}
           </main>
