@@ -11,6 +11,7 @@ import Notes from '../dashboard/Notes';
 import Doubts from '../dashboard/Doubts';
 import Profile from '../dashboard/Profile';
 import WritingPractice from '../dashboard/WritingPractice';
+import WeeklyMissions from '../dashboard/WeeklyMissions';
 
 import { 
   LayoutDashboard, 
@@ -18,6 +19,7 @@ import {
   Trophy, 
   Clock, 
   Target, 
+  Flag,
   FileText, 
   HelpCircle, 
   User, 
@@ -39,6 +41,7 @@ export default function Dashboard() {
     { id: 'leaderboard', label: 'Live Leaderboard', icon: Trophy },
     { id: 'timer', label: 'Study Timer', icon: Clock },
     { id: 'writing', label: 'Writing Practice', icon: PenLine },
+    { id: 'missions', label: 'Weekly Mission', icon: Flag },
     { id: 'targets', label: 'Self-Managed Hub', icon: Target },
     { id: 'notes', label: 'Notes & Resources', icon: FileText },
     { id: 'doubts', label: 'Academic Doubts', icon: HelpCircle },
@@ -143,6 +146,7 @@ export default function Dashboard() {
             {activeTab === 'leaderboard' && <Leaderboard />}
             {activeTab === 'timer' && <StudyTimer />}
             {activeTab === 'writing' && <WritingPractice />}
+            {activeTab === 'missions' && <WeeklyMissions />}
             {activeTab === 'targets' && <Targets />}
             {activeTab === 'notes' && <Notes />}
             {activeTab === 'doubts' && <Doubts />}

@@ -43,6 +43,8 @@ export default function Overview({ setActiveTab }) {
   const [announcements, setAnnouncements] = useState([]);
   const [dayOffs, setDayOffs] = useState([]);
   const [studyGroup, setStudyGroup] = useState(null);
+  const [weeklyMissions, setWeeklyMissions] = useState([]);
+  const [missionSubmissions, setMissionSubmissions] = useState([]);
   const [rank, setRank] = useState(null);
   const [loading, setLoading] = useState(true);
 
@@ -115,6 +117,23 @@ export default function Overview({ setActiveTab }) {
       setLoading(false);
     });
 
+    // Listen to Weekly Missions
+    const today = new Date().toISOString().split('T')[0];
+    const qM = query(collection(db, 'weeklyMissions'));
+    const unsubMissions = onSnapshot(qM, (snap) => {
+      const allM = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      const activeFiltered = allM.filter(m => m.endDate >= today && m.startDate <= today && (
+        m.audienceType === 'all' || 
+        (m.course === my.course && m.level === my.level && normalizeAttempt(m.attempt) === normalizeAttempt(my.attempt))
+      ));
+      setWeeklyMissions(activeFiltered);
+    });
+
+    const qSub = query(collection(db, 'weeklyMissionSubmissions'), where('studentId', '==', currentUser.uid));
+    const unsubSubmissions = onSnapshot(qSub, (snap) => {
+      setMissionSubmissions(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+    });
+
     return () => {
       unsubGroup();
       unsubAnnouncements();
@@ -122,6 +141,8 @@ export default function Overview({ setActiveTab }) {
       unsubDayOffs();
       unsubTargets();
       unsubUsers();
+      unsubMissions();
+      unsubSubmissions();
     };
   }, [currentUser]);
 
@@ -262,6 +283,35 @@ export default function Overview({ setActiveTab }) {
           </div>
         </div>
       )}
+
+      {/* Weekly Mission Widget */}
+      <div className="p-5 sm:p-6 rounded-3xl glass-card border border-rose-500/30 bg-gradient-to-r from-navy-900 to-navy-800 shadow-xl relative overflow-hidden group">
+        <div className="absolute right-0 top-0 w-64 h-64 bg-rose-500/5 rounded-full blur-3xl pointer-events-none group-hover:bg-rose-500/10 transition-all"></div>
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 relative z-10">
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 rounded-2xl bg-rose-500/20 text-rose-400 flex items-center justify-center border border-rose-500/30">
+              <Flag className="w-6 h-6" />
+            </div>
+            <div>
+              <div className="text-[10px] font-bold uppercase tracking-wider text-rose-400 mb-1">Weekly Mission</div>
+              <h3 className="text-xl font-bold text-white mb-1">
+                {weeklyMissions.length > 0 
+                  ? `${missionSubmissions.filter(s => s.status === 'completed' && weeklyMissions.find(m => m.id === s.missionId)).length} / ${weeklyMissions.length} Missions Completed`
+                  : 'No Active Missions This Week'}
+              </h3>
+              {weeklyMissions.length > 0 && (
+                <div className="text-xs text-slate-300">
+                  Next: <span className="font-semibold text-rose-300">{weeklyMissions.find(m => !missionSubmissions.find(s => s.missionId === m.id && s.status === 'completed'))?.title || 'All caught up!'}</span>
+                </div>
+              )}
+            </div>
+          </div>
+          
+          <button onClick={() => setActiveTab('missions')} className="shrink-0 px-6 py-3 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-bold text-sm transition-all shadow-lg shadow-rose-500/20 flex items-center gap-2 border border-rose-500/50">
+            <span>View Missions</span>
+          </button>
+        </div>
+      </div>
 
       {/* Overview Metric Cards Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">

@@ -18,6 +18,7 @@ import AdminCourses from './tabs/AdminCourses';
 import AdminSettings from './tabs/AdminSettings';
 import AdminStudyGroups from './tabs/AdminStudyGroups';
 import AdminWritingPractice from './tabs/AdminWritingPractice';
+import AdminWeeklyMissions from './tabs/AdminWeeklyMissions';
 
 import { 
   LayoutDashboard, 
@@ -36,7 +37,8 @@ import {
   LogOut,
   ChevronRight,
   ShieldCheck,
-  PenLine
+  PenLine,
+  Flag
 } from 'lucide-react';
 
 export default function AdminDashboard() {
@@ -52,6 +54,7 @@ export default function AdminDashboard() {
     { id: 'leaderboard', label: 'Leaderboard', icon: Trophy },
     { id: 'targets', label: 'Targets', icon: Target },
     { id: 'writing_practice', label: 'Writing Practice', icon: PenLine },
+    { id: 'missions', label: 'Weekly Missions', icon: Flag },
     { id: 'sessions', label: 'Study Sessions', icon: Clock },
     { id: 'notes', label: 'Notes', icon: FileText },
     { id: 'doubts', label: 'Doubts', icon: HelpCircle },
@@ -161,6 +164,7 @@ export default function AdminDashboard() {
             {activeTab === 'leaderboard' && <AdminLeaderboard />}
             {activeTab === 'targets' && <AdminTargets />}
             {activeTab === 'writing_practice' && <AdminWritingPractice />}
+            {activeTab === 'missions' && <AdminWeeklyMissions />}
             {activeTab === 'sessions' && <AdminSessions />}
             {activeTab === 'notes' && <AdminNotes />}
             {activeTab === 'doubts' && <AdminDoubts />}
