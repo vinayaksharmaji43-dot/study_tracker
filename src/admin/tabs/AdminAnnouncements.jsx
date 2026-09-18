@@ -5,6 +5,15 @@ import { formatDate } from '../../utils/helpers';
 import EmptyState from '../../components/EmptyState';
 import { Megaphone, Plus, Edit2, Trash2, CheckCircle, EyeOff, AlertCircle } from 'lucide-react';
 
+const COURSES = ['CA', 'CMA'];
+const LEVELS = ['Foundation', 'Intermediate'];
+const CA_ATTEMPTS = ['Jan 2027', 'May 2027', 'Sep 2027'];
+const CMA_ATTEMPTS = ['June 2027', 'December 2027'];
+
+function getAttempts(course) {
+  return course === 'CMA' ? CMA_ATTEMPTS : CA_ATTEMPTS;
+}
+
 export default function AdminAnnouncements() {
   const [announcements, setAnnouncements] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -16,6 +25,10 @@ export default function AdminAnnouncements() {
   // Form State
   const [title, setTitle] = useState('');
   const [message, setMessage] = useState('');
+  const [audienceType, setAudienceType] = useState('all');
+  const [course, setCourse] = useState('CA');
+  const [level, setLevel] = useState('Foundation');
+  const [attempt, setAttempt] = useState('Jan 2027');
   const [submitting, setSubmitting] = useState(false);
 
   // Delete Confirmation State
@@ -36,6 +49,10 @@ export default function AdminAnnouncements() {
     setEditingItem(null);
     setTitle('');
     setMessage('');
+    setAudienceType('all');
+    setCourse('CA');
+    setLevel('Foundation');
+    setAttempt('Jan 2027');
     setShowModal(true);
   };
 
@@ -43,6 +60,10 @@ export default function AdminAnnouncements() {
     setEditingItem(item);
     setTitle(item.title || '');
     setMessage(item.message || '');
+    setAudienceType(item.audienceType || 'all');
+    setCourse(item.course || 'CA');
+    setLevel(item.level || 'Foundation');
+    setAttempt(item.attempt || 'Jan 2027');
     setShowModal(true);
   };
 
@@ -52,17 +73,21 @@ export default function AdminAnnouncements() {
 
     try {
       setSubmitting(true);
+      const payload = {
+        title: title.trim(),
+        message: message.trim(),
+        audienceType: audienceType,
+        ...(audienceType === 'specific' && { course, level, attempt }),
+      };
 
       if (editingItem) {
         await updateDoc(doc(db, 'announcements', editingItem.id), {
-          title: title.trim(),
-          message: message.trim(),
+          ...payload,
           updatedAt: serverTimestamp()
         });
       } else {
         await addDoc(collection(db, 'announcements'), {
-          title: title.trim(),
-          message: message.trim(),
+          ...payload,
           published: true,
           createdAt: serverTimestamp(),
           author: 'Platform Admin'
@@ -160,7 +185,12 @@ export default function AdminAnnouncements() {
                       </span>
                     )}
                   </div>
-                  <div className="text-xs text-slate-400">By {item.author || 'Admin'} • {formatDate(item.createdAt)}</div>
+                  <div className="flex items-center gap-2 mt-1">
+                    <div className="text-xs text-slate-400">By {item.author || 'Admin'} • {formatDate(item.createdAt)}</div>
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-navy-900 border border-white/10 text-slate-300">
+                      {item.audienceType === 'specific' ? `${item.course} ${item.level} • ${item.attempt}` : 'All Streams'}
+                    </span>
+                  </div>
                 </div>
 
                 <div className="flex items-center space-x-2">
@@ -241,6 +271,45 @@ export default function AdminAnnouncements() {
                   onChange={(e) => setMessage(e.target.value)}
                   className="w-full px-4 py-3 rounded-xl bg-navy-900 border border-white/10 text-white text-sm focus:outline-none focus:border-rose-500 resize-none"
                 ></textarea>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-2">
+                  Audience Type
+                </label>
+                <div className="grid grid-cols-2 gap-3 mb-3">
+                  <button type="button" onClick={() => setAudienceType('all')} className={`py-2 rounded-xl border text-xs font-bold transition-all ${audienceType === 'all' ? 'bg-rose-500/20 border-rose-500 text-rose-400' : 'bg-navy-900 border-white/10 text-slate-400 hover:bg-white/5'}`}>
+                    All Streams
+                  </button>
+                  <button type="button" onClick={() => setAudienceType('specific')} className={`py-2 rounded-xl border text-xs font-bold transition-all ${audienceType === 'specific' ? 'bg-rose-500/20 border-rose-500 text-rose-400' : 'bg-navy-900 border-white/10 text-slate-400 hover:bg-white/5'}`}>
+                    Specific Stream
+                  </button>
+                </div>
+                
+                {audienceType === 'specific' && (
+                  <div className="space-y-3 p-3 rounded-xl bg-navy-900/50 border border-white/5">
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Course</label>
+                        <select value={course} onChange={e => { setCourse(e.target.value); setAttempt(getAttempts(e.target.value)[0]); }} className="w-full px-3 py-2 rounded-lg bg-navy-900 border border-white/10 text-white text-xs font-bold focus:outline-none focus:border-rose-500">
+                          {COURSES.map(c => <option key={c} value={c}>{c}</option>)}
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Level</label>
+                        <select value={level} onChange={e => setLevel(e.target.value)} className="w-full px-3 py-2 rounded-lg bg-navy-900 border border-white/10 text-white text-xs font-bold focus:outline-none focus:border-rose-500">
+                          {LEVELS.map(l => <option key={l} value={l}>{l}</option>)}
+                        </select>
+                      </div>
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Attempt</label>
+                      <select value={attempt} onChange={e => setAttempt(e.target.value)} className="w-full px-3 py-2 rounded-lg bg-navy-900 border border-white/10 text-white text-xs font-bold focus:outline-none focus:border-rose-500">
+                        {getAttempts(course).map(a => <option key={a} value={a}>{a}</option>)}
+                      </select>
+                    </div>
+                  </div>
+                )}
               </div>
 
               <div className="pt-4 flex gap-3">

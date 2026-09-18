@@ -23,6 +23,19 @@ import {
   Users
 } from 'lucide-react';
 
+function parseStream(userProfile) {
+  const raw = (userProfile?.course || '').toUpperCase();
+  const isCMA = raw.includes('CMA');
+  const course = isCMA ? 'CMA' : 'CA';
+  const level = raw.includes('FOUNDATION') ? 'Foundation' : 'Intermediate';
+  const attempt = userProfile?.attempt || '';
+  return { course, level, attempt };
+}
+
+function normalizeAttempt(att) {
+  return (att || '').toLowerCase().replace(/\s+/g, '').replace('2027', '27');
+}
+
 export default function Overview({ setActiveTab }) {
   const { userProfile, currentUser } = useAuth();
   const [sessions, setSessions] = useState([]);
@@ -34,13 +47,23 @@ export default function Overview({ setActiveTab }) {
 
   // Fetch real-time user sessions, targets, and published announcements
   useEffect(() => {
-    if (!currentUser?.uid) return;
+    if (!currentUser?.uid || !userProfile) return;
+
+    const my = parseStream(userProfile);
 
     // Listen to announcements
     const unsubAnnouncements = onSnapshot(collection(db, 'announcements'), (snapshot) => {
       const docs = snapshot.docs
         .map(doc => ({ id: doc.id, ...doc.data() }))
-        .filter(a => a.published !== false);
+        .filter(a => {
+          if (a.published === false) return false;
+          if (a.audienceType !== 'specific') return true;
+          return (
+            a.course === my.course &&
+            a.level === my.level &&
+            normalizeAttempt(a.attempt) === normalizeAttempt(my.attempt)
+          );
+        });
       setAnnouncements(docs);
     });
 
@@ -185,17 +208,22 @@ export default function Overview({ setActiveTab }) {
             <span>Official Platform Announcements</span>
           </div>
           <div className="grid grid-cols-1 gap-3">
-            {announcements.map((a) => (
-              <div key={a.id} className="p-4 rounded-2xl bg-rose-500/10 border border-rose-500/30 flex items-start space-x-3">
-                <div className="p-2 rounded-xl bg-rose-500/20 text-rose-400 shrink-0 mt-0.5">
-                  <Megaphone className="w-4 h-4" />
+              {announcements.map((a) => (
+                <div key={a.id} className="p-4 rounded-2xl bg-rose-500/10 border border-rose-500/30 flex items-start space-x-3">
+                  <div className="p-2 rounded-xl bg-rose-500/20 text-rose-400 shrink-0 mt-0.5">
+                    <Megaphone className="w-4 h-4" />
+                  </div>
+                  <div className="space-y-1 w-full">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                      <h4 className="text-sm font-bold text-white">{a.title}</h4>
+                      <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-rose-500/20 border border-rose-500/20 text-rose-300 w-fit">
+                        {a.audienceType === 'specific' ? `${a.course} ${a.level} • ${a.attempt}` : 'All Students'}
+                      </span>
+                    </div>
+                    <p className="text-xs text-slate-300 leading-relaxed">{a.message}</p>
+                  </div>
                 </div>
-                <div className="space-y-1">
-                  <h4 className="text-sm font-bold text-white">{a.title}</h4>
-                  <p className="text-xs text-slate-300 leading-relaxed">{a.message}</p>
-                </div>
-              </div>
-            ))}
+              ))}
           </div>
         </div>
       )}
