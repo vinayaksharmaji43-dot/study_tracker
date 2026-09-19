@@ -32,6 +32,7 @@ import {
 } from 'lucide-react';
 
 import CountdownWidget from '../components/CountdownWidget';
+import GlobalAnnouncementPopup from '../components/GlobalAnnouncementPopup';
 
 export default function Dashboard() {
   const { userProfile, currentUser, logout } = useAuth();
@@ -53,6 +54,9 @@ export default function Dashboard() {
 
   return (
     <div className="min-h-screen bg-navy-950 text-slate-100 flex flex-col selection:bg-emerald-500 selection:text-white">
+      {/* Global Announcement Priority Overlay */}
+      <GlobalAnnouncementPopup />
+
       <Navbar />
 
       <div className="flex-grow max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
