@@ -32,6 +32,7 @@ export default function GlobalAnnouncementPopup() {
   const [unreadAnnouncement, setUnreadAnnouncement] = useState(null);
   const [loading, setLoading] = useState(true);
   const [markingRead, setMarkingRead] = useState(false);
+  const [isDismissed, setIsDismissed] = useState(false);
 
   useEffect(() => {
     if (!currentUser?.uid || !userProfile) {
@@ -68,7 +69,7 @@ export default function GlobalAnnouncementPopup() {
           return timeB - timeA;
         });
 
-        // Take the newest
+        // Only set it if we haven't dismissed one locally in this session
         setUnreadAnnouncement(unread[0]);
       } else {
         setUnreadAnnouncement(null);
@@ -93,10 +94,17 @@ export default function GlobalAnnouncementPopup() {
     };
   }, [currentUser, userProfile]);
 
-  const handleMarkAsRead = async () => {
+  const handleMarkAsRead = async (withLink = false) => {
     if (!unreadAnnouncement || !currentUser || markingRead) return;
     
+    // Close the UI immediately!
+    setIsDismissed(true);
     setMarkingRead(true);
+
+    if (withLink && unreadAnnouncement.link) {
+      window.open(unreadAnnouncement.link, '_blank');
+    }
+
     try {
       const readRef = doc(db, 'announcementReads', `${currentUser.uid}_${unreadAnnouncement.id}`);
       await setDoc(readRef, {
@@ -104,15 +112,16 @@ export default function GlobalAnnouncementPopup() {
         announcementId: unreadAnnouncement.id,
         readAt: serverTimestamp()
       });
-      // The onSnapshot will automatically detect the read document and close the popup
     } catch (err) {
       console.error("Error marking announcement as read:", err);
+      // DB failed but UI is already closed, so user is not stuck.
+    } finally {
       setMarkingRead(false);
     }
   };
 
-  // If loading or no unread announcement, don't render anything
-  if (loading || !unreadAnnouncement) return null;
+  // If loading, no unread announcement, or user dismissed it locally -> render nothing
+  if (loading || !unreadAnnouncement || isDismissed) return null;
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-navy-950/90 backdrop-blur-md transition-opacity">
@@ -141,27 +150,36 @@ export default function GlobalAnnouncementPopup() {
         <div className="p-6 space-y-6">
           <div className="flex items-center gap-2 text-xs font-semibold text-slate-400">
              <Clock className="w-4 h-4 text-slate-500" />
-             {unreadAnnouncement.createdAt ? formatDate(unreadAnnouncement.createdAt.toDate().toISOString()) : 'Recently Published'}
+             {unreadAnnouncement.createdAt?.toDate ? formatDate(unreadAnnouncement.createdAt.toDate().toISOString()) : 'Recently Published'}
           </div>
 
           <div className="text-slate-300 text-sm leading-relaxed whitespace-pre-wrap max-h-60 overflow-y-auto custom-scrollbar">
             {unreadAnnouncement.message}
           </div>
 
-          <button
-            onClick={handleMarkAsRead}
-            disabled={markingRead}
-            className="w-full py-4 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-bold text-sm transition-all shadow-lg shadow-rose-500/25 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed group"
-          >
-            {markingRead ? (
-              'Processing...'
-            ) : (
-              <>
-                <span>View / Got It</span>
-                <CheckCircle className="w-5 h-5 group-hover:scale-110 transition-transform" />
-              </>
+          <div className="flex flex-col sm:flex-row gap-3 pt-2">
+            {unreadAnnouncement.link && (
+              <button
+                onClick={() => handleMarkAsRead(true)}
+                disabled={markingRead}
+                className="flex-1 py-4 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-bold text-sm transition-all shadow-lg shadow-rose-500/25 flex items-center justify-center gap-2 disabled:opacity-50"
+              >
+                View Announcement
+              </button>
             )}
-          </button>
+            <button
+              onClick={() => handleMarkAsRead(false)}
+              disabled={markingRead}
+              className={`flex-1 py-4 rounded-xl font-bold text-sm transition-all flex items-center justify-center gap-2 disabled:opacity-50 ${
+                unreadAnnouncement.link 
+                  ? 'bg-navy-800 hover:bg-navy-700 text-slate-300 border border-white/10' 
+                  : 'bg-rose-600 hover:bg-rose-500 text-white shadow-lg shadow-rose-500/25'
+              }`}
+            >
+              <span>Got It</span>
+              {!unreadAnnouncement.link && <CheckCircle className="w-5 h-5" />}
+            </button>
+          </div>
         </div>
       </div>
     </div>
