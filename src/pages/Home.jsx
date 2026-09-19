@@ -147,13 +147,23 @@ export default function Home() {
               
               {/* Hero Text */}
               <div className="space-y-8 text-center lg:text-left">
-                <div className="inline-flex flex-col sm:flex-row items-center gap-2 sm:gap-3 px-4 py-2 sm:py-1.5 rounded-2xl sm:rounded-full bg-royal-500/10 border border-royal-500/20 text-royal-400 text-xs font-bold tracking-wider">
-                  <div className="flex items-center gap-2">
-                    <Sparkles className="w-3.5 h-3.5" />
-                    <span className="uppercase">Premium Productivity Engine</span>
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2 justify-center lg:justify-start">
+                    <Sparkles className="w-3.5 h-3.5 text-royal-400" />
+                    <span className="text-xs font-bold uppercase tracking-widest text-royal-400">Premium Productivity Engine</span>
                   </div>
-                  <span className="hidden sm:block text-royal-400/30">•</span>
-                  <span className="text-[10px] sm:text-xs">CA FOUNDATION & INTERMEDIATE | CMA FOUNDATION & INTERMEDIATE</span>
+                  <div className="flex flex-wrap gap-2 justify-center lg:justify-start">
+                    {[
+                      { label: 'CA Foundation', color: 'text-sky-400', bg: 'bg-sky-500/10', border: 'border-sky-500/20' },
+                      { label: 'CA Intermediate', color: 'text-royal-400', bg: 'bg-royal-500/10', border: 'border-royal-500/20' },
+                      { label: 'CMA Foundation', color: 'text-emerald-400', bg: 'bg-emerald-500/10', border: 'border-emerald-500/20' },
+                      { label: 'CMA Intermediate', color: 'text-purple-400', bg: 'bg-purple-500/10', border: 'border-purple-500/20' },
+                    ].map((s, i) => (
+                      <span key={i} className={`px-3 py-1.5 rounded-xl text-xs font-bold border ${s.bg} ${s.border} ${s.color} tracking-wide`}>
+                        {s.label}
+                      </span>
+                    ))}
+                  </div>
                 </div>
                 
                 <h1 className="text-4xl sm:text-5xl lg:text-6xl font-black text-white leading-[1.1] tracking-tight">
