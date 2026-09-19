@@ -11,13 +11,16 @@ function normalizeAttempt(att) {
 
 function parseStream(userProfile) {
   if (!userProfile) return { course: 'CA', level: 'Foundation', attempt: '' };
-  const rawCourse = userProfile.course || 'CA Foundation';
+  const rawCourse = String(userProfile.course || 'CA Foundation').toUpperCase();
   let course = 'CA';
   let level = 'Foundation';
   
-  if (rawCourse.toUpperCase().includes('CMA')) course = 'CMA';
-  if (rawCourse.toUpperCase().includes('INTER')) level = 'Intermediate';
-  else if (userProfile.level) level = userProfile.level; // In case they do have a level field
+  if (rawCourse.includes('CMA')) course = 'CMA';
+  
+  const rawLevel = String(userProfile.level || '').toUpperCase();
+  if (rawCourse.includes('INTER') || rawLevel.includes('INTER')) level = 'Intermediate';
+  else if (rawLevel.includes('FOUND')) level = 'Foundation';
+  else if (userProfile.level) level = userProfile.level;
   
   const attempt = userProfile?.attempt || '';
   return { course, level, attempt };
@@ -48,8 +51,8 @@ export default function MentorSession() {
       const filtered = allFetched.filter(sess => {
         if (sess.audienceType !== 'specific') return true;
         return (
-          sess.course === myCourse &&
-          sess.level === myLevel &&
+          String(sess.course).toUpperCase() === String(myCourse).toUpperCase() &&
+          String(sess.level).toUpperCase() === String(myLevel).toUpperCase() &&
           normalizeAttempt(sess.attempt) === myAttempt
         );
       });

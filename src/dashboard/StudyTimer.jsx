@@ -12,12 +12,15 @@ function normalizeAttempt(att) {
 
 function parseStream(userProfile) {
   if (!userProfile) return { course: 'CA', level: 'Foundation', attempt: '' };
-  const rawCourse = userProfile.course || 'CA Foundation';
+  const rawCourse = String(userProfile.course || 'CA Foundation').toUpperCase();
   let course = 'CA';
   let level = 'Foundation';
   
-  if (rawCourse.toUpperCase().includes('CMA')) course = 'CMA';
-  if (rawCourse.toUpperCase().includes('INTER')) level = 'Intermediate';
+  if (rawCourse.includes('CMA')) course = 'CMA';
+  
+  const rawLevel = String(userProfile.level || '').toUpperCase();
+  if (rawCourse.includes('INTER') || rawLevel.includes('INTER')) level = 'Intermediate';
+  else if (rawLevel.includes('FOUND')) level = 'Foundation';
   else if (userProfile.level) level = userProfile.level; 
   
   const attempt = userProfile?.attempt || '';
