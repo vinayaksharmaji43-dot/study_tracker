@@ -105,5 +105,62 @@ service cloud.firestore {
       allow read: if request.auth != null;
       allow write: if isAdmin();
     }
+
+    // Timer Subjects Collection (admin manages, students read)
+    match /timerSubjects/{subjectId} {
+      allow read: if request.auth != null;
+      allow create, update, delete: if isAdmin();
+    }
+
+    // Feedbacks Collection (anyone can submit, all can read)
+    match /feedbacks/{feedbackId} {
+      allow read: if true;
+      allow create: if true;
+      allow update, delete: if isAdmin();
+    }
+
+    // Active Study Sessions (live presence - students write their own, all read)
+    match /activeStudySessions/{userId} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null && request.auth.uid == userId;
+    }
+
+    // Announcement Reads (students mark their own reads)
+    match /announcementReads/{readId} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null;
+      allow update, delete: if request.auth != null && (resource.data.studentId == request.auth.uid || isAdmin());
+    }
+
+    // Mentor Sessions
+    match /mentorSessions/{sessionId} {
+      allow read: if request.auth != null;
+      allow create, update, delete: if isAdmin();
+    }
+
+    // Writing Practice
+    match /writingPractice/{docId} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null && request.resource.data.uid == request.auth.uid;
+      allow update, delete: if request.auth != null && (resource.data.uid == request.auth.uid || isAdmin());
+    }
+
+    // Weekly Missions
+    match /weeklyMissions/{missionId} {
+      allow read: if request.auth != null;
+      allow create, update, delete: if isAdmin();
+    }
+
+    // Weekly Mission Progress
+    match /weeklyMissionProgress/{docId} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null;
+    }
+
+    // Syllabus Completions
+    match /syllabusCompletions/{docId} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null;
+    }
   }
 }

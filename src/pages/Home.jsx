@@ -136,114 +136,133 @@ export default function Home() {
       <main className="pt-20">
         
         {/* HERO SECTION */}
-        <section className="relative pt-16 pb-20 lg:pt-24 lg:pb-32 overflow-hidden">
+        <section className="relative pt-10 pb-14 sm:pt-16 sm:pb-20 lg:pt-24 lg:pb-32 overflow-hidden">
           {/* Subtle Premium Background Elements */}
           <div className="absolute top-0 inset-x-0 h-full w-full opacity-[0.03] bg-[linear-gradient(to_right,#ffffff_1px,transparent_1px),linear-gradient(to_bottom,#ffffff_1px,transparent_1px)] bg-[size:4rem_4rem] pointer-events-none"></div>
           <div className="absolute top-1/4 -right-64 w-[600px] h-[600px] bg-royal-600/10 rounded-full blur-[120px] pointer-events-none" />
           <div className="absolute -bottom-32 -left-64 w-[600px] h-[600px] bg-navy-800/50 rounded-full blur-[100px] pointer-events-none" />
           
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 lg:gap-8 items-center">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 sm:gap-12 lg:gap-8 items-center">
               
               {/* Hero Text */}
-              <div className="space-y-8 text-center lg:text-left">
-                <div className="space-y-3">
+              <div className="space-y-5 sm:space-y-8 text-center lg:text-left">
+                {/* Stream Pills */}
+                <div className="space-y-2">
                   <div className="flex items-center gap-2 justify-center lg:justify-start">
                     <Sparkles className="w-3.5 h-3.5 text-royal-400" />
-                    <span className="text-xs font-bold uppercase tracking-widest text-royal-400">Premium Productivity Engine</span>
+                    <span className="text-[10px] sm:text-xs font-bold uppercase tracking-widest text-royal-400">Premium Productivity Engine</span>
                   </div>
-                  <div className="flex flex-wrap gap-2 justify-center lg:justify-start">
+                  <div className="flex flex-wrap gap-1.5 sm:gap-2 justify-center lg:justify-start">
                     {[
                       { label: 'CA Foundation', color: 'text-sky-400', bg: 'bg-sky-500/10', border: 'border-sky-500/20' },
                       { label: 'CA Intermediate', color: 'text-royal-400', bg: 'bg-royal-500/10', border: 'border-royal-500/20' },
                       { label: 'CMA Foundation', color: 'text-emerald-400', bg: 'bg-emerald-500/10', border: 'border-emerald-500/20' },
                       { label: 'CMA Intermediate', color: 'text-purple-400', bg: 'bg-purple-500/10', border: 'border-purple-500/20' },
                     ].map((s, i) => (
-                      <span key={i} className={`px-3 py-1.5 rounded-xl text-xs font-bold border ${s.bg} ${s.border} ${s.color} tracking-wide`}>
+                      <span key={i} className={`px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-lg sm:rounded-xl text-[10px] sm:text-xs font-bold border ${s.bg} ${s.border} ${s.color} tracking-wide`}>
                         {s.label}
                       </span>
                     ))}
                   </div>
                 </div>
                 
-                <h1 className="text-4xl sm:text-5xl lg:text-6xl font-black text-white leading-[1.1] tracking-tight">
-                  Build Your <br className="hidden sm:inline" />
+                <h1 className="text-[2rem] sm:text-5xl lg:text-6xl font-black text-white leading-[1.1] tracking-tight">
+                  Build Your{' '}
                   <span className="text-transparent bg-clip-text bg-gradient-to-r from-royal-400 to-sky-400">
                     CA/CMA Success Blueprint
                   </span>
                 </h1>
 
-                <p className="text-lg sm:text-xl text-slate-400 max-w-2xl mx-auto lg:mx-0 font-normal leading-relaxed">
+                <p className="text-base sm:text-lg text-slate-400 max-w-2xl mx-auto lg:mx-0 leading-relaxed">
                   Plan your studies, track your progress, build consistency and stay focused throughout your CA/CMA preparation.
                 </p>
                 
-                <div className="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-4 pt-4">
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-center lg:justify-start gap-3 sm:gap-4">
                   <Link 
                     to="/register" 
-                    className="w-full sm:w-auto px-8 py-4 rounded-xl bg-royal-600 hover:bg-royal-500 text-white font-bold shadow-[0_8px_30px_rgba(37,99,235,0.2)] hover:shadow-[0_8px_30px_rgba(37,99,235,0.3)] transition-all flex items-center justify-center gap-2"
+                    className="px-6 py-3.5 sm:px-8 sm:py-4 rounded-xl bg-royal-600 hover:bg-royal-500 text-white font-bold shadow-[0_8px_30px_rgba(37,99,235,0.2)] transition-all flex items-center justify-center gap-2 text-sm sm:text-base"
                   >
                     <span>Get Started</span>
-                    <ChevronRight className="w-5 h-5" />
+                    <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5" />
                   </Link>
                   <a 
                     href="#features" 
-                    className="w-full sm:w-auto px-8 py-4 rounded-xl bg-navy-900 border border-white/10 hover:bg-white/5 text-white font-bold transition-colors flex items-center justify-center"
+                    className="px-6 py-3.5 sm:px-8 sm:py-4 rounded-xl bg-navy-900 border border-white/10 hover:bg-white/5 text-white font-bold transition-colors flex items-center justify-center text-sm sm:text-base"
                   >
                     Explore Features
                   </a>
                 </div>
               </div>
 
-              {/* Hero Visual Mockup */}
-              <div className="relative mx-auto w-full max-w-lg lg:max-w-none">
+              {/* Hero Visual Mockup — hidden on very small phones, shown from sm upward */}
+              <div className="relative mx-auto w-full max-w-sm sm:max-w-lg lg:max-w-none hidden sm:block">
                 <div className="absolute inset-0 bg-gradient-to-tr from-royal-500/20 to-transparent blur-2xl rounded-3xl"></div>
-                <div className="relative rounded-2xl bg-navy-900 border border-white/10 shadow-2xl p-6 space-y-4 transform lg:rotate-1 hover:rotate-0 transition-transform duration-500 ease-out">
+                <div className="relative rounded-2xl bg-navy-900 border border-white/10 shadow-2xl p-4 sm:p-6 space-y-3 sm:space-y-4 transform lg:rotate-1 hover:rotate-0 transition-transform duration-500 ease-out">
                   
-                  <div className="flex items-center justify-between border-b border-white/5 pb-4">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full bg-gradient-to-br from-royal-500 to-navy-800 p-[2px]">
-                        <div className="w-full h-full bg-navy-950 rounded-full flex items-center justify-center text-sm font-bold">CA</div>
+                  <div className="flex items-center justify-between border-b border-white/5 pb-3 sm:pb-4">
+                    <div className="flex items-center gap-2 sm:gap-3">
+                      <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-gradient-to-br from-royal-500 to-navy-800 p-[2px]">
+                        <div className="w-full h-full bg-navy-950 rounded-full flex items-center justify-center text-xs sm:text-sm font-bold">CA</div>
                       </div>
                       <div>
-                        <div className="text-sm font-bold text-white">Dashboard Preview</div>
-                        <div className="text-xs text-slate-400">Foundation • May 2027</div>
+                        <div className="text-xs sm:text-sm font-bold text-white">Dashboard Preview</div>
+                        <div className="text-[10px] sm:text-xs text-slate-400">Foundation • May 2027</div>
                       </div>
                     </div>
-                    <div className="flex gap-1.5">
-                      <div className="w-3 h-3 rounded-full bg-slate-700"></div>
-                      <div className="w-3 h-3 rounded-full bg-slate-700"></div>
-                      <div className="w-3 h-3 rounded-full bg-slate-700"></div>
+                    <div className="flex gap-1">
+                      <div className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-slate-700"></div>
+                      <div className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-slate-700"></div>
+                      <div className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-slate-700"></div>
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="p-4 rounded-xl bg-navy-950 border border-white/5">
-                      <div className="text-xs text-slate-400 mb-1 flex items-center gap-1.5"><Clock className="w-3.5 h-3.5 text-royal-400"/> Study Time</div>
-                      <div className="text-xl font-black text-white">7h 24m</div>
+                  <div className="grid grid-cols-2 gap-2 sm:gap-4">
+                    <div className="p-3 sm:p-4 rounded-xl bg-navy-950 border border-white/5">
+                      <div className="text-[10px] sm:text-xs text-slate-400 mb-1 flex items-center gap-1"><Clock className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-royal-400"/> Study Time</div>
+                      <div className="text-lg sm:text-xl font-black text-white">7h 24m</div>
                     </div>
-                    <div className="p-4 rounded-xl bg-navy-950 border border-white/5">
-                      <div className="text-xs text-slate-400 mb-1 flex items-center gap-1.5"><Target className="w-3.5 h-3.5 text-emerald-400"/> Daily Target</div>
-                      <div className="text-xl font-black text-white">80%</div>
+                    <div className="p-3 sm:p-4 rounded-xl bg-navy-950 border border-white/5">
+                      <div className="text-[10px] sm:text-xs text-slate-400 mb-1 flex items-center gap-1"><Target className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-emerald-400"/> Daily Target</div>
+                      <div className="text-lg sm:text-xl font-black text-white">80%</div>
                     </div>
-                    <div className="p-4 rounded-xl bg-navy-950 border border-white/5">
-                      <div className="text-xs text-slate-400 mb-1 flex items-center gap-1.5"><BookOpenCheck className="w-3.5 h-3.5 text-purple-400"/> Syllabus</div>
-                      <div className="text-xl font-black text-white">64%</div>
+                    <div className="p-3 sm:p-4 rounded-xl bg-navy-950 border border-white/5">
+                      <div className="text-[10px] sm:text-xs text-slate-400 mb-1 flex items-center gap-1"><BookOpenCheck className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-purple-400"/> Syllabus</div>
+                      <div className="text-lg sm:text-xl font-black text-white">64%</div>
                     </div>
-                    <div className="p-4 rounded-xl bg-navy-950 border border-white/5">
-                      <div className="text-xs text-slate-400 mb-1 flex items-center gap-1.5"><Award className="w-3.5 h-3.5 text-gold-400"/> Current Streak</div>
-                      <div className="text-xl font-black text-white">12 Days</div>
+                    <div className="p-3 sm:p-4 rounded-xl bg-navy-950 border border-white/5">
+                      <div className="text-[10px] sm:text-xs text-slate-400 mb-1 flex items-center gap-1"><Award className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-gold-400"/> Streak</div>
+                      <div className="text-lg sm:text-xl font-black text-white">12 Days</div>
                     </div>
                   </div>
 
-                  <div className="p-4 rounded-xl bg-royal-600/10 border border-royal-500/20 flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-lg bg-royal-500/20 flex items-center justify-center"><CheckCircle2 className="w-4 h-4 text-royal-400"/></div>
-                      <div className="text-sm font-bold text-slate-200">Consistency is Key</div>
+                  <div className="p-3 sm:p-4 rounded-xl bg-royal-600/10 border border-royal-500/20 flex items-center justify-between">
+                    <div className="flex items-center gap-2 sm:gap-3">
+                      <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-royal-500/20 flex items-center justify-center"><CheckCircle2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-royal-400"/></div>
+                      <div className="text-xs sm:text-sm font-bold text-slate-200">Consistency is Key</div>
                     </div>
-                    <div className="text-xs font-bold text-royal-400">Keep Going</div>
+                    <div className="text-[10px] sm:text-xs font-bold text-royal-400">Keep Going</div>
                   </div>
 
                 </div>
+              </div>
+
+              {/* Mobile-only compact stats strip (replaces the full mockup card on tiny phones) */}
+              <div className="sm:hidden grid grid-cols-2 gap-3">
+                {[
+                  { icon: Clock, label: 'Study Time', val: '7h 24m', c: 'text-royal-400' },
+                  { icon: Target, label: 'Daily Target', val: '80%', c: 'text-emerald-400' },
+                  { icon: BookOpenCheck, label: 'Syllabus', val: '64%', c: 'text-purple-400' },
+                  { icon: Award, label: 'Streak', val: '12 Days', c: 'text-gold-400' },
+                ].map((s, i) => (
+                  <div key={i} className="p-3 rounded-xl bg-navy-900 border border-white/10 flex items-center gap-3">
+                    <s.icon className={`w-5 h-5 ${s.c} shrink-0`} />
+                    <div>
+                      <div className="text-[10px] text-slate-400">{s.label}</div>
+                      <div className="text-sm font-black text-white">{s.val}</div>
+                    </div>
+                  </div>
+                ))}
               </div>
 
             </div>
