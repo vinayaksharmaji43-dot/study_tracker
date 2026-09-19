@@ -33,10 +33,14 @@ import {
 
 import CountdownWidget from '../components/CountdownWidget';
 import GlobalAnnouncementPopup from '../components/GlobalAnnouncementPopup';
+import useDailyEvaluator from '../hooks/useDailyEvaluator';
 
 export default function Dashboard() {
   const { userProfile, currentUser, logout } = useAuth();
   const [activeTab, setActiveTab] = useState('overview');
+
+  // Run the daily evaluator when Dashboard mounts
+  useDailyEvaluator(currentUser);
 
   const navItems = [
     { id: 'overview', label: 'Overview', icon: LayoutDashboard },

@@ -95,6 +95,9 @@ export default function StudyTimer() {
   const [savingDayOff, setSavingDayOff] = useState(false);
   const [dayOffError, setDayOffError] = useState('');
 
+  const [todayStats, setTodayStats] = useState(null);
+  const [todayTarget, setTodayTarget] = useState(null);
+
   const intervalRef = useRef(null);
   const isAutoSavingRef = useRef(false);
 
@@ -184,12 +187,10 @@ export default function StudyTimer() {
   // Real-time listener for study sessions
   useEffect(() => {
     if (!currentUser?.uid) return;
+    const uid = currentUser.uid;
+    const todayStr = getDateKey(new Date());
 
-    const q = query(
-      collection(db, 'studySessions'),
-      where('uid', '==', currentUser.uid)
-    );
-
+    const q = query(collection(db, 'studySessions'), where('uid', '==', uid));
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const docs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
       docs.sort((a, b) => {
@@ -200,7 +201,19 @@ export default function StudyTimer() {
       setSessions(docs);
     });
 
-    return () => unsubscribe();
+    const qStats = query(collection(db, 'studyDailyStats'), where('studentId', '==', uid), where('date', '==', todayStr));
+    const unsubStats = onSnapshot(qStats, (snap) => {
+      if (!snap.empty) setTodayStats({ id: snap.docs[0].id, ...snap.docs[0].data() });
+      else setTodayStats(null);
+    });
+
+    const qTarget = query(collection(db, 'targets'), where('uid', '==', uid), where('targetDate', '==', todayStr));
+    const unsubTarget = onSnapshot(qTarget, (snap) => {
+      if (!snap.empty) setTodayTarget({ id: snap.docs[0].id, ...snap.docs[0].data() });
+      else setTodayTarget(null);
+    });
+
+    return () => { unsubscribe(); unsubStats(); unsubTarget(); };
   }, [currentUser]);
 
   useEffect(() => {
@@ -331,41 +344,117 @@ export default function StudyTimer() {
   };
 
   // Helper function to save completed session to Firestore
+  const [milestoneMessages, setMilestoneMessages] = useState([]);
+
+  useEffect(() => {
+    if (milestoneMessages.length > 0) {
+      const timer = setTimeout(() => setMilestoneMessages([]), 8000);
+      return () => clearTimeout(timer);
+    }
+  }, [milestoneMessages]);
+
+  const getMilestoneMessage = (hours) => {
+    switch (hours) {
+      case 1: return "⏱️ 1 Hour Completed! Keep going — consistency wins.";
+      case 2: return "🔥 2 Hours Done! You're building momentum.";
+      case 3: return "💪 3 Hours Completed! Keep pushing.";
+      case 4: return "🎯 4 Hours Done! Keep the consistency going.";
+      case 5: return "🚀 5 Hours Completed! One more hour to unlock +10 points.";
+      case 6: return "🏆 6 Hours Completed! +10 Points Unlocked!";
+      case 7: return "⚡ 7 Hours Done! +3 Bonus Points Earned.";
+      case 8: return "🔥 8 Hours Completed! Another +3 Bonus Points.";
+      case 9: return "👑 9 Hours Done! Excellent consistency.";
+      case 10: return "💎 10 Hours Completed! Amazing discipline.";
+      default: return `🔥 ${hours} Hours Completed! Another +3 Bonus Points.`;
+    }
+  };
+
   const saveSessionToFirestore = async (durationSecs, targetSubject) => {
     if (!currentUser?.uid) return;
     const durationHours = durationSecs / 3600;
+    const todayStr = getDateKey(new Date());
 
-    const todayStr = getDateKey();
-    const prevTodaySeconds = sessions.reduce((acc, curr) => {
-      const sDate = curr.date?.toDate ? curr.date.toDate() : new Date(curr.date);
-      if (sDate && getDateKey(sDate) === todayStr) {
-        return acc + (curr.duration || 0);
+    try {
+      const { newMilestones, pointsEarned } = await runTransaction(db, async (transaction) => {
+        const userRef = doc(db, 'users', currentUser.uid);
+        const statRef = doc(db, 'studyDailyStats', `${currentUser.uid}_${todayStr}`);
+        
+        const statDoc = await transaction.get(statRef);
+        let prevTotalSecs = 0;
+        let completedMilestones = [];
+        
+        if (statDoc.exists()) {
+          prevTotalSecs = statDoc.data().totalStudySeconds || 0;
+          completedMilestones = statDoc.data().completedMilestones || [];
+        }
+
+        const newTotalSecs = prevTotalSecs + durationSecs;
+        const newFullHours = Math.floor(newTotalSecs / 3600);
+        
+        let earned = 0;
+        let newlyUnlocked = [];
+
+        for (let h = 1; h <= newFullHours; h++) {
+          if (!completedMilestones.includes(h)) {
+            newlyUnlocked.push(h);
+            completedMilestones.push(h);
+            if (h === 6) earned += 10;
+            if (h >= 7) earned += 3;
+          }
+        }
+
+        transaction.set(statRef, {
+          studentId: currentUser.uid,
+          date: todayStr,
+          totalStudySeconds: newTotalSecs,
+          completedFullHours: newFullHours,
+          dailyStudyPoints: increment(earned),
+          completedMilestones,
+          lowStudyPenaltyApplied: statDoc.exists() ? statDoc.data().lowStudyPenaltyApplied || false : false
+        }, { merge: true });
+
+        if (earned > 0) {
+          const txRef = doc(collection(db, 'pointTransactions'));
+          transaction.set(txRef, {
+            studentId: currentUser.uid,
+            amount: earned,
+            type: 'reward',
+            reason: `Study Milestones: ${newlyUnlocked.join(', ')} Hours`,
+            sourceId: `timer_${todayStr}`,
+            date: todayStr,
+            createdAt: serverTimestamp()
+          });
+
+          transaction.update(userRef, {
+            studyHours: increment(durationHours),
+            points: increment(earned)
+          });
+        } else {
+          transaction.update(userRef, {
+            studyHours: increment(durationHours)
+          });
+        }
+        
+        return { newMilestones: newlyUnlocked, pointsEarned: earned };
+      });
+
+      await addDoc(collection(db, 'studySessions'), {
+        uid: currentUser.uid,
+        subject: targetSubject || selectedSubject,
+        duration: durationSecs,
+        course: userProfile?.course || 'CA Foundation',
+        date: serverTimestamp()
+      });
+
+      if (newMilestones.length > 0) {
+        const msgs = newMilestones.map(h => getMilestoneMessage(h));
+        setMilestoneMessages(msgs);
       }
-      return acc;
-    }, 0);
 
-    const prevTodayHours = prevTodaySeconds / 3600;
-    const newTodayHours = (prevTodaySeconds + durationSecs) / 3600;
-
-    const prevPoints = calculateDailyPoints(prevTodayHours);
-    const newPoints = calculateDailyPoints(newTodayHours);
-    const earnedPoints = Math.max(0, newPoints - prevPoints);
-
-    // 1. Add session to studySessions collection
-    await addDoc(collection(db, 'studySessions'), {
-      uid: currentUser.uid,
-      subject: targetSubject || selectedSubject,
-      duration: durationSecs,
-      course: userProfile?.course || 'CA Foundation',
-      date: serverTimestamp()
-    });
-
-    // 2. Update user Firestore doc with new studyHours and points
-    const userRef = doc(db, 'users', currentUser.uid);
-    await updateDoc(userRef, {
-      studyHours: increment(durationHours),
-      points: increment(earnedPoints)
-    });
+    } catch (err) {
+      console.error("Error saving session in transaction:", err);
+      throw err;
+    }
   };
 
   // Auto-stop 5-hour limit handler
@@ -512,21 +601,34 @@ export default function StudyTimer() {
         </div>
       )}
 
-      {/* Daily 6+ Hours Requirement & Reward Note */}
-      <div className="p-5 rounded-3xl bg-amber-500/10 border border-amber-500/30 flex items-start gap-3.5 text-left shadow-lg">
-        <AlertTriangle className="w-5 h-5 text-amber-400 mt-0.5 shrink-0" />
-        <div className="space-y-1.5 flex-1">
-          <div className="text-xs font-black text-amber-300 uppercase tracking-wider flex items-center justify-between">
-            <span>Mandatory Daily Requirement & Point Rules</span>
-            <span className="px-2 py-0.5 rounded bg-amber-500/20 text-amber-200 text-[10px] font-bold">REQUIRED 6+ HRS</span>
-          </div>
-          <div className="text-xs text-slate-200 leading-relaxed">
-            Minimum <strong className="text-white font-black underline decoration-amber-400">6+ hours of study daily is mandatory</strong>. Failing to meet 6+ hours may lead to an official Warning issued from the Admin Panel.
-          </div>
-          <div className="text-xs text-amber-300 font-medium pt-1 border-t border-amber-500/20 flex flex-wrap items-center gap-x-4 gap-y-1">
-            <span>🏆 Reaching 6 Hours = <strong className="text-gold-300 font-extrabold">+5 Points</strong></span>
-            <span>⚡ 7+ Hours & Above = <strong className="text-gold-300 font-extrabold">+2 Points</strong> per extra hour!</span>
-          </div>
+      {/* Compact Daily Progress Area */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="p-4 rounded-3xl bg-navy-900 border border-white/5 flex flex-col gap-1">
+          <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Today's Study Time</span>
+          <span className="text-lg font-black text-white">{todayStats ? formatTimerTime(todayStats.totalStudySeconds) : '0h 00m 00s'}</span>
+        </div>
+        <div className="p-4 rounded-3xl bg-navy-900 border border-white/5 flex flex-col gap-1">
+          <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Today's Points</span>
+          <span className="text-lg font-black text-emerald-400">+{todayStats?.dailyStudyPoints || 0}</span>
+          <span className="text-[10px] font-semibold text-slate-500">
+            Next: {((todayStats?.completedFullHours || 0) + 1) === 6 ? '6 Hrs → +10' : ((todayStats?.completedFullHours || 0) + 1) > 6 ? `${(todayStats?.completedFullHours || 0) + 1} Hrs → +3` : '6 Hrs → +10'}
+          </span>
+        </div>
+        <div className="p-4 rounded-3xl bg-navy-900 border border-white/5 flex flex-col gap-1">
+          <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Daily Target</span>
+          <span className="text-sm font-bold text-white truncate">{todayTarget ? `${todayTarget.targetValue} Hrs ${todayTarget.subject || 'Target'}` : 'No Target Set'}</span>
+          <span className="text-[10px] font-semibold text-slate-500">{todayTarget?.locked ? '🔒 Locked' : ''}</span>
+        </div>
+        <div className="p-4 rounded-3xl bg-navy-900 border border-white/5 flex flex-col gap-1">
+          <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Target Status</span>
+          {todayTarget ? (
+            <span className={`text-sm font-bold ${todayTarget.status === 'completed' ? 'text-emerald-400' : 'text-amber-400'}`}>
+              {todayTarget.status === 'completed' ? '✅ Completed' : '⚠️ Pending'}
+            </span>
+          ) : (
+            <span className="text-sm font-bold text-slate-500">-</span>
+          )}
+          <span className="text-[10px] font-semibold text-slate-500">Reward: +10 Points</span>
         </div>
       </div>
 
@@ -603,6 +705,18 @@ export default function StudyTimer() {
               <div className="p-4 rounded-xl bg-gold-500/20 border border-gold-500/40 text-gold-300 text-sm font-semibold flex items-center justify-center gap-2 animate-in fade-in duration-300">
                 <CheckCircle className="w-5 h-5 text-gold-400" />
                 <span>5 hours completed! Study Timer has been automatically stopped.</span>
+              </div>
+            )}
+
+            {/* Milestone Messages */}
+            {milestoneMessages.length > 0 && (
+              <div className="space-y-2 mb-2">
+                {milestoneMessages.map((msg, idx) => (
+                  <div key={idx} className="p-4 rounded-xl bg-purple-500/20 border border-purple-500/40 text-purple-200 text-sm font-semibold flex items-center justify-center gap-2 animate-in fade-in slide-in-from-bottom-2 duration-300">
+                    <Sparkles className="w-5 h-5 text-purple-400" />
+                    <span>{msg}</span>
+                  </div>
+                ))}
               </div>
             )}
 
