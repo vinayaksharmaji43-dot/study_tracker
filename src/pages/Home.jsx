@@ -15,7 +15,10 @@ import {
   X,
   Sparkles,
   BarChart3,
-  Award
+  Award,
+  FileText,
+  HelpCircle,
+  TrendingUp
 } from 'lucide-react';
 
 // Custom Navbar for Public Home Page
@@ -28,15 +31,12 @@ function PublicNavbar() {
         <div className="flex items-center justify-between h-20">
           
           {/* Logo */}
-          <Link to="/" className="flex items-center gap-2 group">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-royal-600 to-royal-400 p-[1px] shadow-lg shadow-royal-600/20">
-              <div className="w-full h-full bg-navy-950 rounded-[11px] flex items-center justify-center">
-                <span className="text-white font-extrabold text-sm tracking-tighter">CA/CMA</span>
-              </div>
-            </div>
-            <span className="text-xl font-bold text-white tracking-tight group-hover:text-slate-200 transition-colors">
-              Blueprint
-            </span>
+          <Link to="/" className="flex items-center space-x-3 group">
+            <img 
+              src={`${import.meta.env.BASE_URL}logo.png`} 
+              alt="CA & CMA Success Blueprint Logo" 
+              className="h-10 sm:h-12 w-auto object-contain rounded-xl group-hover:scale-105 transition-transform duration-300 shadow-md" 
+            />
           </Link>
 
           {/* Desktop Nav */}
@@ -102,14 +102,14 @@ export default function Home() {
                 </div>
                 
                 <h1 className="text-4xl sm:text-5xl lg:text-6xl font-black text-white leading-[1.1] tracking-tight">
-                  Your CA & CMA Preparation, <br className="hidden sm:block" />
+                  Build Your <br className="hidden sm:inline" />
                   <span className="text-transparent bg-clip-text bg-gradient-to-r from-royal-400 to-sky-400">
-                    Organized in One Place.
+                    CA/CMA Success Blueprint
                   </span>
                 </h1>
-                
-                <p className="text-lg text-slate-400 max-w-2xl mx-auto lg:mx-0 leading-relaxed">
-                  Study smarter, track your progress, complete your targets and stay consistent throughout your entire preparation journey.
+
+                <p className="text-lg sm:text-xl text-slate-400 max-w-2xl mx-auto lg:mx-0 font-normal leading-relaxed">
+                  Plan your studies, track your progress, build consistency and stay focused throughout your CA/CMA preparation.
                 </p>
                 
                 <div className="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-4 pt-4">
@@ -207,18 +207,19 @@ export default function Home() {
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
             
             <div className="text-center max-w-3xl mx-auto mb-16 space-y-4">
-              <h2 className="text-3xl md:text-4xl font-black text-white tracking-tight">Everything You Need to Stay Consistent</h2>
-              <p className="text-slate-400">A complete ecosystem designed strictly for CA and CMA aspirants to maximize daily output and track syllabus coverage.</p>
+              <h2 className="text-xs font-bold tracking-widest text-royal-400 uppercase">Engineered for Academic Excellence</h2>
+              <h3 className="text-3xl sm:text-4xl font-black text-white">Powerful Dashboard Features</h3>
+              <p className="text-slate-400 text-base">Everything you need to systematically complete your CA/CMA syllabus without distractions.</p>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {[
-                { icon: Clock, title: 'Study Timer', desc: 'Track your actual study time with a built-in session timer and build daily consistency.', color: 'text-emerald-400', bg: 'bg-emerald-400/10' },
-                { icon: BookOpenCheck, title: 'Smart Syllabus', desc: 'Mark completed chapters, track your overall syllabus progress, and know exactly what is left.', color: 'text-royal-400', bg: 'bg-royal-400/10' },
-                { icon: PenLine, title: 'Writing Practice', desc: 'Practice answers, upload written work and review your performance to improve exam presentation.', color: 'text-purple-400', bg: 'bg-purple-400/10' },
-                { icon: Flag, title: 'Weekly Mission', desc: 'Complete structured weekly revision missions and stay strictly on your preparation track.', color: 'text-rose-400', bg: 'bg-rose-400/10' },
-                { icon: Trophy, title: 'Live Leaderboard', desc: 'See your real-time progress and compete with fellow aspirants within your exact preparation stream.', color: 'text-gold-400', bg: 'bg-gold-400/10' },
-                { icon: Video, title: 'Mentor Sessions', desc: 'Join scheduled live mentor sessions directly from the platform for guidance and doubt clearing.', color: 'text-sky-400', bg: 'bg-sky-400/10' }
+                { icon: Trophy, title: 'Live Leaderboard', desc: 'Compete through genuine study hours and points. Real-time updates with zero fake entries.', color: 'text-purple-400', bg: 'bg-purple-500/10' },
+                { icon: Target, title: 'Self-Managed Hub', desc: 'Create your own daily study goals, manage subject targets, and earn points upon completion.', color: 'text-gold-400', bg: 'bg-gold-500/10' },
+                { icon: Clock, title: 'Study Timer', desc: 'Track real study sessions and subject-wise time with auto-saving to your profile.', color: 'text-emerald-400', bg: 'bg-emerald-500/10' },
+                { icon: FileText, title: 'Notes & Resources', desc: 'Access admin-controlled educational resources, study PDFs, and academic summaries.', color: 'text-purple-400', bg: 'bg-purple-500/10' },
+                { icon: HelpCircle, title: 'Academic Doubts', desc: 'Ask subject questions directly and receive verified admin and faculty answers.', color: 'text-amber-400', bg: 'bg-amber-500/10' },
+                { icon: TrendingUp, title: 'Progress Analytics', desc: 'Monitor your actual study performance, study streaks, and points history accurately.', color: 'text-sky-400', bg: 'bg-sky-500/10' }
               ].map((f, i) => (
                 <div key={i} className="p-6 rounded-2xl bg-navy-900 border border-white/5 hover:border-white/10 transition-colors group">
                   <div className={`w-12 h-12 rounded-xl flex items-center justify-center mb-4 ${f.bg} ${f.color}`}>
@@ -238,18 +239,19 @@ export default function Home() {
           <div className="absolute left-0 top-1/2 -translate-y-1/2 w-96 h-96 bg-royal-600/10 rounded-full blur-[100px] pointer-events-none" />
           
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
-            <div className="text-center mb-16">
-              <h2 className="text-3xl font-black text-white tracking-tight">How It Works</h2>
+            <div className="text-center max-w-3xl mx-auto mb-16 space-y-4">
+              <h2 className="text-xs font-bold tracking-widest text-royal-400 uppercase">Simple 3-Step Process</h2>
+              <h3 className="text-3xl sm:text-4xl font-black text-white">How CA/CMA Blueprint Works</h3>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8 relative">
               {/* Desktop Connecting Line */}
-              <div className="hidden md:block absolute top-8 left-[16%] right-[16%] h-px bg-gradient-to-r from-transparent via-royal-500/30 to-transparent"></div>
+              <div className="hidden md:block absolute top-16 left-[16%] right-[16%] h-px bg-gradient-to-r from-transparent via-royal-500/30 to-transparent"></div>
 
               {[
-                { step: '01', title: 'Create Your Account', desc: 'Sign up securely and access the productivity dashboard.' },
-                { step: '02', title: 'Choose Your Path', desc: 'Select your specific CA/CMA stream, level, and exam attempt.' },
-                { step: '03', title: 'Track • Practice • Improve', desc: 'Start the timer, complete syllabus targets, and build your streak.' }
+                { step: '01', title: 'Register Account', desc: 'Create your account, choose between CA Foundation or CMA, and select your exam attempt.' },
+                { step: '02', title: 'Build Your Blueprint', desc: 'Set daily study targets, organize your subjects, and plan your preparation schedule.' },
+                { step: '03', title: 'Study & Track', desc: 'Use the timer, complete targets, earn points, and monitor your rank on the live leaderboard.' }
               ].map((s, i) => (
                 <div key={i} className="relative z-10 text-center space-y-4">
                   <div className="w-16 h-16 mx-auto rounded-2xl bg-navy-950 border border-royal-500/20 text-royal-400 flex items-center justify-center text-xl font-black shadow-lg">
@@ -306,11 +308,11 @@ export default function Home() {
         {/* FINAL CTA */}
         <section className="py-24 bg-navy-900/30 border-t border-white/5">
           <div className="max-w-3xl mx-auto px-4 text-center space-y-8">
-            <h2 className="text-3xl md:text-4xl font-black text-white tracking-tight">
-              Start Building a Consistent Study Routine.
+            <h2 className="text-4xl sm:text-5xl font-extrabold text-white tracking-tight">
+              Your preparation deserves a blueprint.
             </h2>
-            <p className="text-lg text-slate-400">
-              Plan your preparation. Track your work. Keep moving forward.
+            <p className="text-slate-300 text-lg max-w-xl mx-auto">
+              Join our disciplined CA and CMA aspirant community today and stay ahead.
             </p>
             <Link 
               to="/register" 
@@ -328,7 +330,10 @@ export default function Home() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col md:flex-row items-center justify-between gap-6">
             <div className="space-y-2 text-center md:text-left">
-              <div className="text-xl font-bold text-white tracking-tight">CA/CMA Blueprint</div>
+              <div className="flex items-center justify-center md:justify-start gap-3">
+                <img src={`${import.meta.env.BASE_URL}logo.png`} alt="Logo" className="h-8 w-auto opacity-80" />
+                <span className="text-xl font-bold text-white tracking-tight">CA/CMA Blueprint</span>
+              </div>
               <div className="text-sm text-slate-500">Academic & Productivity Dashboard</div>
             </div>
             
