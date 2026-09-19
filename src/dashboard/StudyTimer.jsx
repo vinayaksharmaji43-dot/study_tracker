@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { collection, addDoc, doc, increment, onSnapshot, query, runTransaction, serverTimestamp, updateDoc, where } from 'firebase/firestore';
+import { collection, addDoc, doc, increment, onSnapshot, query, runTransaction, serverTimestamp, updateDoc, where, setDoc } from 'firebase/firestore';
 import { db } from '../config/firebase';
 import { useAuth } from '../contexts/AuthContext';
 import { formatTimerTime, formatDate, getDateKey, getMonthKey, calculateDailyPoints } from '../utils/helpers';
@@ -183,6 +183,53 @@ export default function StudyTimer() {
 
     return () => clearInterval(intervalRef.current);
   }, [isActive, startTimestamp, accumulatedSeconds, selectedSubject, storageKey]);
+
+  // Live Study Broadcast
+  const secondsRef = useRef(seconds);
+  useEffect(() => {
+    secondsRef.current = seconds;
+  }, [seconds]);
+
+  useEffect(() => {
+    if (!currentUser?.uid || !userProfile) return;
+
+    const sessionRef = doc(db, 'activeStudySessions', currentUser.uid);
+    let intervalId;
+
+    const broadcastPresence = async () => {
+      if (isActive) {
+        try {
+          const course = userProfile.course || 'CA';
+          const level = userProfile.level || 'Foundation';
+          const attempt = userProfile.attempt || '';
+          
+          await setDoc(sessionRef, {
+            studentId: currentUser.uid,
+            displayName: userProfile.name || currentUser.email,
+            course,
+            level,
+            attempt,
+            startedAt: Date.now() - (secondsRef.current * 1000),
+            lastUpdatedAt: Date.now(),
+            active: true
+          }, { merge: true });
+        } catch (e) {
+          console.warn("Failed to broadcast live session", e);
+        }
+      }
+    };
+
+    if (isActive) {
+      broadcastPresence();
+      intervalId = setInterval(broadcastPresence, 30000);
+    } else {
+      updateDoc(sessionRef, { active: false, lastUpdatedAt: Date.now() }).catch(() => {});
+    }
+
+    return () => {
+      if (intervalId) clearInterval(intervalId);
+    };
+  }, [isActive, currentUser, userProfile]);
 
   // Real-time listener for study sessions
   useEffect(() => {

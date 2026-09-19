@@ -6,6 +6,7 @@ import { formatHours } from '../utils/helpers';
 import { getStudentSyllabus } from '../data/syllabusData';
 import EmptyState from '../components/EmptyState';
 import LoadingSpinner from '../components/LoadingSpinner';
+import LiveStudyNow from '../components/LiveStudyNow';
 import { Trophy, Award, Flame, UserCheck, ShieldCheck, Sparkles, Calendar, BookOpenCheck, Filter, Star } from 'lucide-react';
 
 export default function Leaderboard() {
@@ -302,6 +303,11 @@ export default function Leaderboard() {
           </div>
         </div>
       )}
+
+      {/* Global Live Study Now Section */}
+      <div className="pt-4 border-t border-white/10">
+        <LiveStudyNow />
+      </div>
 
     </div>
   );
