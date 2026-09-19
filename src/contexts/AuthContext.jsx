@@ -11,6 +11,7 @@ import {
 } from 'firebase/auth';
 import { doc, getDoc, setDoc, updateDoc, onSnapshot, serverTimestamp } from 'firebase/firestore';
 import { auth, db } from '../config/firebase';
+import { generateRollNumber } from '../utils/rollNumberGenerator';
 import LoadingSpinner from '../components/LoadingSpinner';
 
 const AuthContext = createContext();
@@ -56,7 +57,7 @@ export function AuthProvider({ children }) {
             // 1. Check if account is banned by Admin
             if (data.banned && !isAuthorizedAdminEmail) {
               const reason = data.banReason || 'Account suspended by administrator.';
-              alert(`🚫 ACCOUNT SUSPENDED: ${reason}`);
+              alert(`⚠️ ACCOUNT SUSPENDED: ${reason}`);
               await signOut(auth);
               setUserProfile(null);
               setCurrentUser(null);
@@ -71,7 +72,7 @@ export function AuthProvider({ children }) {
               } catch (e) {
                 console.warn("Could not reset forceLogout flag:", e);
               }
-              alert('🚪 SESSION LOGGED OUT: Your session was remotely logged out by the Administrator.');
+              alert('⚠️ SESSION LOGGED OUT: Your session was remotely logged out by the Administrator.');
               await signOut(auth);
               setUserProfile(null);
               setCurrentUser(null);
@@ -84,7 +85,18 @@ export function AuthProvider({ children }) {
               try {
                 await setDoc(userDocRef, { role: 'admin' }, { merge: true });
               } catch (e) {
-                console.warn("Could not sync role to Firestore:", e);
+                console.error("Could not set admin role:", e);
+              }
+            }
+
+            // Backfill Roll Number if missing (for students)
+            if (!data.rollNumber && role !== 'admin') {
+              try {
+                const newRoll = await generateRollNumber(data.name, data.course || 'CA', data.level || 'Foundation');
+                await updateDoc(userDocRef, { rollNumber: newRoll });
+                data.rollNumber = newRoll; // Update local copy immediately
+              } catch (e) {
+                console.error("Could not backfill roll number:", e);
               }
             }
 
@@ -184,6 +196,9 @@ export function AuthProvider({ children }) {
       email.toLowerCase() === 'vaultstore27@gmail.com' ||
       email.toLowerCase() === 'thunderworld766@gmail.com';
 
+    // Generate Roll Number
+    const rollNumber = await generateRollNumber(name, course || 'CA', level || 'Foundation');
+
     // 2. Create user profile doc in Firestore
     const userDocData = {
       uid: user.uid,
@@ -193,6 +208,7 @@ export function AuthProvider({ children }) {
       course: course || 'CA',
       level: level || 'Foundation',
       attempt: attempt || 'Jan 27',
+      rollNumber: rollNumber,
       createdAt: serverTimestamp(),
       role: isAuthorizedAdmin ? 'admin' : 'student',
       studyHours: 0,

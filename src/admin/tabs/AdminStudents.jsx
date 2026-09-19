@@ -103,6 +103,7 @@ export default function AdminStudents() {
     const matchesSearch = 
       (student.name || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
       (student.email || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (student.rollNumber || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
       (student.phone || '').includes(searchQuery);
 
     const matchesCourse = courseFilter === 'all' || 
@@ -305,12 +306,12 @@ export default function AdminStudents() {
         
         {/* Search Input */}
         <div className="relative flex-1 max-w-md">
-          <Search className="w-5 h-5 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
-          <input
-            type="text"
-            placeholder="Search by student name or email..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
+            <Search className="w-5 h-5 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+            <input
+              type="text"
+              placeholder="Search by name, roll number, or email..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full pl-11 pr-4 py-3 rounded-2xl bg-navy-900 border border-white/10 text-white placeholder-slate-500 text-sm focus:outline-none focus:border-emerald-500"
           />
         </div>
@@ -636,7 +637,14 @@ export default function AdminStudents() {
                   </div>
                 </div>
                 <div>
-                  <h3 className="text-xl font-bold text-white">{selectedStudent.name}</h3>
+                  <h3 className="text-xl font-bold text-white flex items-center gap-2">
+                    {selectedStudent.name}
+                    {selectedStudent.rollNumber && (
+                      <span className="px-2 py-0.5 rounded-md bg-gold-500/20 text-gold-400 text-[10px] font-mono border border-gold-500/30">
+                        {selectedStudent.rollNumber}
+                      </span>
+                    )}
+                  </h3>
                   <p className="text-xs text-slate-400">{selectedStudent.email}</p>
                 </div>
               </div>

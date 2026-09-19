@@ -19,6 +19,7 @@ import AdminSettings from './tabs/AdminSettings';
 import AdminStudyGroups from './tabs/AdminStudyGroups';
 import AdminWritingPractice from './tabs/AdminWritingPractice';
 import AdminWeeklyMissions from './tabs/AdminWeeklyMissions';
+import AdminTimerSubjects from './tabs/AdminTimerSubjects';
 
 import { 
   LayoutDashboard, 
@@ -56,6 +57,7 @@ export default function AdminDashboard() {
     { id: 'writing_practice', label: 'Writing Practice', icon: PenLine },
     { id: 'missions', label: 'Weekly Missions', icon: Flag },
     { id: 'sessions', label: 'Study Sessions', icon: Clock },
+    { id: 'timer_subjects', label: 'Timer Subjects', icon: Clock },
     { id: 'notes', label: 'Notes', icon: FileText },
     { id: 'doubts', label: 'Doubts', icon: HelpCircle },
     { id: 'announcements', label: 'Announcements', icon: Megaphone },
@@ -164,9 +166,10 @@ export default function AdminDashboard() {
             {activeTab === 'leaderboard' && <AdminLeaderboard />}
             {activeTab === 'targets' && <AdminTargets />}
             {activeTab === 'writing_practice' && <AdminWritingPractice />}
-            {activeTab === 'missions' && <AdminWeeklyMissions />}
-            {activeTab === 'sessions' && <AdminSessions />}
-            {activeTab === 'notes' && <AdminNotes />}
+            { activeTab === 'missions' && <AdminWeeklyMissions /> }
+            { activeTab === 'sessions' && <AdminSessions /> }
+            { activeTab === 'timer_subjects' && <AdminTimerSubjects /> }
+            { activeTab === 'notes' && <AdminNotes /> }
             {activeTab === 'doubts' && <AdminDoubts />}
             {activeTab === 'announcements' && <AdminAnnouncements />}
             {activeTab === 'study_groups' && <AdminStudyGroups />}

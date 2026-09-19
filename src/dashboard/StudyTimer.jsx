@@ -6,26 +6,55 @@ import { formatTimerTime, formatDate, getDateKey, getMonthKey, calculateDailyPoi
 import EmptyState from '../components/EmptyState';
 import { Play, Pause, Square, Clock, BookOpen, CheckCircle, Calendar, ShieldCheck, X, Zap, AlertTriangle } from 'lucide-react';
 
-const CA_SUBJECTS = [
-  'Paper 1: Accounting',
-  'Paper 2: Business Laws',
-  'Paper 3: Quantitative Aptitude',
-  'Paper 4: Business Economics'
-];
-
-const CMA_SUBJECTS = [
-  'Financial Accounting',
-  'Cost Accounting',
-  'Laws & Ethics',
-  'Direct & Indirect Taxation'
-];
-
 export default function StudyTimer() {
   const { currentUser, userProfile } = useAuth();
   
-  const subjects = userProfile?.course === 'CMA' ? CMA_SUBJECTS : CA_SUBJECTS;
+  const [subjects, setSubjects] = useState([]);
+  const [selectedSubject, setSelectedSubject] = useState('');
+  const [loadingSubjects, setLoadingSubjects] = useState(true);
 
-  const [selectedSubject, setSelectedSubject] = useState(subjects[0]);
+  useEffect(() => {
+    if (!userProfile?.course || !userProfile?.level) {
+      setLoadingSubjects(false);
+      return;
+    }
+
+    const q = query(
+      collection(db, 'timerSubjects'),
+      where('course', '==', userProfile.course),
+      where('level', '==', userProfile.level),
+      where('active', '==', true)
+    );
+
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      
+      // Filter by attempt (All Attempts OR Specific Attempt)
+      const attemptFiltered = data.filter(sub => 
+        sub.allAttempts || sub.attempt === userProfile.attempt
+      );
+
+      // Sort by order if available, else by name
+      attemptFiltered.sort((a, b) => {
+        if (a.order !== undefined && b.order !== undefined) return a.order - b.order;
+        return a.subjectName.localeCompare(b.subjectName);
+      });
+
+      const subjectNames = attemptFiltered.map(sub => sub.subjectName);
+      setSubjects(subjectNames);
+      
+      if (subjectNames.length > 0) {
+        setSelectedSubject(prev => subjectNames.includes(prev) ? prev : subjectNames[0]);
+      } else {
+        setSelectedSubject('');
+      }
+      
+      setLoadingSubjects(false);
+    });
+
+    return () => unsubscribe();
+  }, [userProfile?.course, userProfile?.level, userProfile?.attempt]);
+
   const [seconds, setSeconds] = useState(0);
   const [isActive, setIsActive] = useState(false);
   const [accumulatedSeconds, setAccumulatedSeconds] = useState(0);
@@ -55,7 +84,7 @@ export default function StudyTimer() {
       const savedRaw = localStorage.getItem(storageKey);
       if (savedRaw) {
         const saved = JSON.parse(savedRaw);
-        if (saved.selectedSubject && subjects.includes(saved.selectedSubject)) {
+        if (saved.selectedSubject) {
           setSelectedSubject(saved.selectedSubject);
         }
 
@@ -72,7 +101,7 @@ export default function StudyTimer() {
             setStartTimestamp(null);
             setIsActive(false);
             localStorage.removeItem(storageKey);
-            triggerAutoStop5Hours(18000, saved.selectedSubject || subjects[0]);
+            triggerAutoStop5Hours(18000, saved.selectedSubject);
           } else {
             // Restore running timer
             setAccumulatedSeconds(savedAccumulated);
@@ -506,16 +535,26 @@ export default function StudyTimer() {
               <label className="block text-xs font-bold uppercase tracking-wider text-slate-400">
                 Select Subject for Timer Session
               </label>
-              <select
-                value={selectedSubject}
-                disabled={isActive}
-                onChange={(e) => handleSubjectChange(e.target.value)}
-                className="w-full py-3.5 px-4 rounded-2xl bg-navy-900 border border-white/15 text-white font-bold text-sm focus:outline-none focus:border-royal-500 cursor-pointer disabled:opacity-60"
-              >
-                {subjects.map((sub) => (
-                  <option key={sub} value={sub}>{sub}</option>
-                ))}
-              </select>
+              {loadingSubjects ? (
+                <div className="w-full py-3.5 px-4 rounded-2xl bg-navy-900 border border-white/15 text-slate-400 text-sm">
+                  Loading subjects...
+                </div>
+              ) : subjects.length > 0 ? (
+                <select
+                  value={selectedSubject}
+                  disabled={isActive}
+                  onChange={(e) => handleSubjectChange(e.target.value)}
+                  className="w-full py-3.5 px-4 rounded-2xl bg-navy-900 border border-white/15 text-white font-bold text-sm focus:outline-none focus:border-royal-500 cursor-pointer disabled:opacity-60"
+                >
+                  {subjects.map((sub) => (
+                    <option key={sub} value={sub}>{sub}</option>
+                  ))}
+                </select>
+              ) : (
+                <div className="w-full py-3.5 px-4 rounded-2xl bg-rose-500/10 border border-rose-500/30 text-rose-300 font-bold text-sm">
+                  No subjects are currently available for your stream.
+                </div>
+              )}
             </div>
 
             {/* Timer Clock Display */}
@@ -556,8 +595,8 @@ export default function StudyTimer() {
               {!isActive ? (
                 <button
                   onClick={handleStart}
-                  disabled={Boolean(todayDayOff)}
-                  className="px-8 py-4 rounded-2xl bg-gradient-to-r from-royal-600 to-royal-500 hover:from-royal-500 hover:to-royal-600 text-white font-black text-base shadow-glow-blue hover:scale-105 transition-all flex items-center gap-2"
+                  disabled={Boolean(todayDayOff) || subjects.length === 0}
+                  className="px-8 py-4 rounded-2xl bg-gradient-to-r from-royal-600 to-royal-500 hover:from-royal-500 hover:to-royal-600 text-white font-black text-base shadow-glow-blue hover:scale-105 transition-all flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <Play className="w-5 h-5 fill-white" />
                   <span>{seconds > 0 ? 'Resume Session' : 'Start Session'}</span>

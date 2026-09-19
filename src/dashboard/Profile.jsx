@@ -68,27 +68,47 @@ export default function Profile() {
       {/* Header Banner */}
       <div className="p-6 sm:p-8 rounded-3xl glass-card border border-royal-500/30 relative overflow-hidden shadow-2xl">
         <div className="absolute top-0 right-0 w-80 h-80 bg-royal-600/10 rounded-full blur-3xl pointer-events-none" />
-        <div className="relative z-10 flex flex-col sm:flex-row items-center gap-6">
-          <div className="w-20 h-20 rounded-3xl bg-gradient-to-tr from-royal-600 to-gold-500 p-1 shadow-glow-blue">
-            <div className="w-full h-full bg-navy-950 rounded-[22px] flex items-center justify-center text-white font-extrabold text-2xl">
-              {userProfile?.name ? userProfile.name.charAt(0).toUpperCase() : 'S'}
+          <div className="relative z-10 flex flex-col sm:flex-row items-center gap-6">
+            <div className="w-20 h-20 rounded-3xl bg-gradient-to-tr from-royal-600 to-gold-500 p-1 shadow-glow-blue">
+              <div className="w-full h-full bg-navy-950 rounded-[22px] flex items-center justify-center text-white font-extrabold text-2xl">
+                {userProfile?.name ? userProfile.name.charAt(0).toUpperCase() : 'S'}
+              </div>
             </div>
-          </div>
-          <div className="space-y-1 text-center sm:text-left">
-            <div className="flex items-center gap-2 justify-center sm:justify-start">
-              <h1 className="text-2xl font-extrabold text-white">{userProfile?.name || 'Student'}</h1>
-              {userProfile?.role === 'admin' && (
-                <span className="px-2.5 py-0.5 rounded-full bg-gold-500/20 text-gold-400 text-xs font-bold border border-gold-500/30">
-                  ADMIN
-                </span>
+            <div className="space-y-1 text-center sm:text-left">
+              <div className="flex items-center gap-2 justify-center sm:justify-start">
+                <h1 className="text-2xl font-extrabold text-white">{userProfile?.name || 'Student'}</h1>
+                {userProfile?.role === 'admin' && (
+                  <span className="px-2.5 py-0.5 rounded-full bg-gold-500/20 text-gold-400 text-xs font-bold border border-gold-500/30">
+                    ADMIN
+                  </span>
+                )}
+              </div>
+              <p className="text-sm text-slate-300">{userProfile?.email}</p>
+              
+              {userProfile?.rollNumber && (
+                <div className="mt-3 flex items-center justify-between px-4 py-2 bg-navy-950/50 rounded-xl border border-white/10 max-w-xs mx-auto sm:mx-0">
+                  <div className="text-left">
+                    <div className="text-[10px] font-bold text-slate-400 uppercase">Roll Number</div>
+                    <div className="text-sm font-mono font-bold text-gold-400">{userProfile.rollNumber}</div>
+                  </div>
+                  <button 
+                    type="button"
+                    onClick={() => {
+                      navigator.clipboard.writeText(userProfile.rollNumber);
+                      alert('Roll Number copied!');
+                    }}
+                    className="px-3 py-1.5 ml-4 bg-white/5 hover:bg-white/10 rounded-lg text-xs font-bold text-white transition-colors"
+                  >
+                    Copy
+                  </button>
+                </div>
               )}
+
+              <p className="text-xs font-semibold pt-1 text-emerald-400">
+                📚 {fullStreamTitle} • {attempt} Attempt
+              </p>
             </div>
-            <p className="text-sm text-slate-300">{userProfile?.email}</p>
-            <p className="text-xs font-semibold pt-1 text-emerald-400">
-              🎓 {fullStreamTitle} • {attempt} Attempt
-            </p>
           </div>
-        </div>
       </div>
 
       {/* Profile Form & Quick Stats */}

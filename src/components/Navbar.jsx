@@ -153,7 +153,9 @@ export default function Navbar() {
 
                   <div className="text-right hidden sm:block">
                     <div className="text-xs font-semibold text-white">{userProfile?.name || currentUser.email}</div>
-                    <div className="text-[11px] text-gold-400 font-medium">{isAdmin ? 'Administrator' : (userProfile?.course || 'Student')}</div>
+                    <div className="text-[11px] text-gold-400 font-medium font-mono">
+                      {isAdmin ? 'Administrator' : (userProfile?.rollNumber || userProfile?.course || 'Student')}
+                    </div>
                   </div>
                   <button
                     onClick={handleLogout}
