@@ -5,6 +5,10 @@ import { useAuth } from '../contexts/AuthContext';
 import { Video, Calendar, Clock, User, ExternalLink, PlayCircle } from 'lucide-react';
 import EmptyState from '../components/EmptyState';
 
+function normalizeAttempt(att) {
+  return (att || '').toLowerCase().replace(/\s+/g, '').replace('2027', '27');
+}
+
 export default function MentorSession() {
   const { userProfile } = useAuth();
   const [sessions, setSessions] = useState({ upcoming: [], live: [], past: [] });
@@ -16,36 +20,33 @@ export default function MentorSession() {
       return;
     }
 
-    // Two queries: All Streams & Specific Stream
-    const qAll = query(
+    const q = query(
       collection(db, 'mentorSessions'),
-      where('audienceType', '==', 'all'),
       where('published', '==', true)
     );
 
-    const qSpecific = query(
-      collection(db, 'mentorSessions'),
-      where('audienceType', '==', 'specific'),
-      where('course', '==', userProfile.course),
-      where('level', '==', userProfile.level),
-      where('attempt', '==', userProfile.attempt),
-      where('published', '==', true)
-    );
-
-    let allSessions = [];
-    let specificSessions = [];
+    let allFetched = [];
 
     const processSessions = () => {
-      const combined = [...allSessions, ...specificSessions];
-      // Deduplicate by ID just in case
-      const unique = Array.from(new Map(combined.map(item => [item.id, item])).values());
+      const myCourse = userProfile.course;
+      const myLevel = userProfile.level;
+      const myAttempt = normalizeAttempt(userProfile.attempt);
+
+      const filtered = allFetched.filter(sess => {
+        if (sess.audienceType !== 'specific') return true;
+        return (
+          sess.course === myCourse &&
+          sess.level === myLevel &&
+          normalizeAttempt(sess.attempt) === myAttempt
+        );
+      });
       
       const now = new Date();
       const upcoming = [];
       const live = [];
       const past = [];
 
-      unique.forEach(sess => {
+      filtered.forEach(sess => {
         const startDate = new Date(`${sess.date}T${sess.startTime || '00:00'}`);
         // If no end time, assume 1 hour duration
         const endDateTime = sess.endTime 
@@ -70,13 +71,8 @@ export default function MentorSession() {
       setLoading(false);
     };
 
-    const unsubAll = onSnapshot(qAll, (snapshot) => {
-      allSessions = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      processSessions();
-    });
-
-    const unsubSpecific = onSnapshot(qSpecific, (snapshot) => {
-      specificSessions = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    const unsub = onSnapshot(q, (snapshot) => {
+      allFetched = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
       processSessions();
     });
 
@@ -84,8 +80,7 @@ export default function MentorSession() {
     const intervalId = setInterval(processSessions, 60000);
 
     return () => {
-      unsubAll();
-      unsubSpecific();
+      unsub();
       clearInterval(intervalId);
     };
   }, [userProfile?.course, userProfile?.level, userProfile?.attempt]);

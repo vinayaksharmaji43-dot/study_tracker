@@ -4,6 +4,10 @@ import { db } from '../config/firebase';
 import { useAuth } from '../contexts/AuthContext';
 import { Video, Calendar, Clock, PlayCircle, ExternalLink } from 'lucide-react';
 
+function normalizeAttempt(att) {
+  return (att || '').toLowerCase().replace(/\s+/g, '').replace('2027', '27');
+}
+
 export default function NextMentorSessionWidget({ setActiveTab }) {
   const { userProfile } = useAuth();
   const [nextSession, setNextSession] = useState(null);
@@ -16,33 +20,32 @@ export default function NextMentorSessionWidget({ setActiveTab }) {
       return;
     }
 
-    const qAll = query(
+    const q = query(
       collection(db, 'mentorSessions'),
-      where('audienceType', '==', 'all'),
       where('published', '==', true)
     );
 
-    const qSpecific = query(
-      collection(db, 'mentorSessions'),
-      where('audienceType', '==', 'specific'),
-      where('course', '==', userProfile.course),
-      where('level', '==', userProfile.level),
-      where('attempt', '==', userProfile.attempt),
-      where('published', '==', true)
-    );
-
-    let allSessions = [];
-    let specificSessions = [];
+    let allFetched = [];
 
     const processSessions = () => {
-      const combined = [...allSessions, ...specificSessions];
-      const unique = Array.from(new Map(combined.map(item => [item.id, item])).values());
+      const myCourse = userProfile.course;
+      const myLevel = userProfile.level;
+      const myAttempt = normalizeAttempt(userProfile.attempt);
+
+      const filtered = allFetched.filter(sess => {
+        if (sess.audienceType !== 'specific') return true;
+        return (
+          sess.course === myCourse &&
+          sess.level === myLevel &&
+          normalizeAttempt(sess.attempt) === myAttempt
+        );
+      });
       
       const now = new Date();
       let liveSession = null;
       let closestUpcoming = null;
 
-      unique.forEach(sess => {
+      filtered.forEach(sess => {
         const startDate = new Date(`${sess.date}T${sess.startTime || '00:00'}`);
         const endDateTime = sess.endTime 
           ? new Date(`${sess.date}T${sess.endTime}`) 
@@ -72,21 +75,15 @@ export default function NextMentorSessionWidget({ setActiveTab }) {
       setLoading(false);
     };
 
-    const unsubAll = onSnapshot(qAll, (snapshot) => {
-      allSessions = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      processSessions();
-    });
-
-    const unsubSpecific = onSnapshot(qSpecific, (snapshot) => {
-      specificSessions = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    const unsub = onSnapshot(q, (snapshot) => {
+      allFetched = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
       processSessions();
     });
 
     const intervalId = setInterval(processSessions, 60000);
 
     return () => {
-      unsubAll();
-      unsubSpecific();
+      unsub();
       clearInterval(intervalId);
     };
   }, [userProfile?.course, userProfile?.level, userProfile?.attempt]);
