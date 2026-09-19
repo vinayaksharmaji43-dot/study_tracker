@@ -241,18 +241,27 @@ export default function Home() {
         </section>
 
         {/* TRUST STRIP */}
-        <section className="border-y border-white/5 bg-navy-900/30">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-            <div className="flex flex-wrap justify-center items-center gap-x-12 gap-y-6 text-sm font-semibold text-slate-400">
-              <span className="flex items-center gap-2"><BookOpenCheck className="w-4 h-4 text-royal-400" /> Structured Preparation</span>
-              <span className="hidden sm:inline text-white/10">•</span>
-              <span className="flex items-center gap-2"><Clock className="w-4 h-4 text-emerald-400" /> Study Time Tracking</span>
-              <span className="hidden md:inline text-white/10">•</span>
-              <span className="flex items-center gap-2"><Target className="w-4 h-4 text-rose-400" /> Daily Targets</span>
-              <span className="hidden lg:inline text-white/10">•</span>
-              <span className="flex items-center gap-2"><BarChart3 className="w-4 h-4 text-purple-400" /> Progress Analytics</span>
-              <span className="hidden sm:inline text-white/10">•</span>
-              <span className="flex items-center gap-2"><Trophy className="w-4 h-4 text-gold-400" /> Leaderboards</span>
+        <section className="border-y border-white/5 bg-gradient-to-r from-transparent via-navy-900/50 to-transparent py-8 relative overflow-hidden">
+          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-royal-900/20 via-transparent to-transparent pointer-events-none"></div>
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+            <div className="flex flex-wrap justify-center items-center gap-3 sm:gap-4">
+              {[
+                { label: 'Structured Preparation', icon: BookOpenCheck, color: 'text-royal-400', bg: 'bg-royal-500/10', border: 'border-royal-500/20', shadow: 'hover:shadow-royal-500/10' },
+                { label: 'Study Time Tracking', icon: Clock, color: 'text-emerald-400', bg: 'bg-emerald-500/10', border: 'border-emerald-500/20', shadow: 'hover:shadow-emerald-500/10' },
+                { label: 'Daily Targets', icon: Target, color: 'text-rose-400', bg: 'bg-rose-500/10', border: 'border-rose-500/20', shadow: 'hover:shadow-rose-500/10' },
+                { label: 'Progress Analytics', icon: BarChart3, color: 'text-purple-400', bg: 'bg-purple-500/10', border: 'border-purple-500/20', shadow: 'hover:shadow-purple-500/10' },
+                { label: 'Leaderboards', icon: Trophy, color: 'text-gold-400', bg: 'bg-gold-500/10', border: 'border-gold-500/20', shadow: 'hover:shadow-gold-500/10' }
+              ].map((item, i) => (
+                <div 
+                  key={i} 
+                  className={`flex items-center gap-2.5 px-4 sm:px-5 py-2 sm:py-2.5 rounded-2xl bg-navy-950/80 backdrop-blur-sm border ${item.border} hover:-translate-y-1 transition-all duration-300 cursor-default shadow-lg ${item.shadow}`}
+                >
+                  <div className={`p-1.5 rounded-xl ${item.bg}`}>
+                    <item.icon className={`w-4 h-4 sm:w-5 sm:h-5 ${item.color}`} />
+                  </div>
+                  <span className="text-xs sm:text-sm font-bold text-slate-200">{item.label}</span>
+                </div>
+              ))}
             </div>
           </div>
         </section>
