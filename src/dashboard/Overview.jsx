@@ -4,6 +4,7 @@ import { db } from '../config/firebase';
 import { useAuth } from '../contexts/AuthContext';
 import { formatHours, formatTimerTime, calculateStreak, formatDate, getDateKey } from '../utils/helpers';
 import EmptyState from '../components/EmptyState';
+import NextMentorSessionWidget from '../components/NextMentorSessionWidget';
 import { 
   Clock, 
   Trophy, 
@@ -268,6 +269,9 @@ export default function Overview({ setActiveTab }) {
           </div>
         </a>
       )}
+
+      {/* Mentor Session Widget */}
+      <NextMentorSessionWidget setActiveTab={setActiveTab} />
 
       {/* Daily Motivation Quote */}
       <div className="p-5 sm:p-6 rounded-3xl border border-gold-500/25 bg-gradient-to-r from-gold-500/10 via-amber-500/10 to-orange-500/10 shadow-[0_0_20px_rgba(245,158,11,0.18)]">

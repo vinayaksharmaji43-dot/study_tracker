@@ -12,6 +12,7 @@ import Doubts from '../dashboard/Doubts';
 import Profile from '../dashboard/Profile';
 import WritingPractice from '../dashboard/WritingPractice';
 import WeeklyMissions from '../dashboard/WeeklyMissions';
+import MentorSession from '../dashboard/MentorSession';
 
 import { 
   LayoutDashboard, 
@@ -26,7 +27,8 @@ import {
   LogOut,
   ChevronRight,
   Sparkles,
-  PenLine
+  PenLine,
+  Video
 } from 'lucide-react';
 
 import CountdownWidget from '../components/CountdownWidget';
@@ -40,6 +42,7 @@ export default function Dashboard() {
     { id: 'syllabus', label: 'Syllabus & Progress', icon: BookOpenCheck },
     { id: 'leaderboard', label: 'Live Leaderboard', icon: Trophy },
     { id: 'timer', label: 'Study Timer', icon: Clock },
+    { id: 'mentor', label: 'Mentor Session', icon: Video },
     { id: 'writing', label: 'Writing Practice', icon: PenLine },
     { id: 'missions', label: 'Weekly Mission', icon: Flag },
     { id: 'targets', label: 'Self-Managed Hub', icon: Target },
@@ -145,6 +148,7 @@ export default function Dashboard() {
             {activeTab === 'syllabus' && <Syllabus />}
             {activeTab === 'leaderboard' && <Leaderboard />}
             {activeTab === 'timer' && <StudyTimer />}
+            {activeTab === 'mentor' && <MentorSession />}
             {activeTab === 'writing' && <WritingPractice />}
             {activeTab === 'missions' && <WeeklyMissions />}
             {activeTab === 'targets' && <Targets />}

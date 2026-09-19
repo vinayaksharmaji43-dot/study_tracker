@@ -20,6 +20,7 @@ import AdminStudyGroups from './tabs/AdminStudyGroups';
 import AdminWritingPractice from './tabs/AdminWritingPractice';
 import AdminWeeklyMissions from './tabs/AdminWeeklyMissions';
 import AdminTimerSubjects from './tabs/AdminTimerSubjects';
+import AdminMentorSessions from './tabs/AdminMentorSessions';
 
 import { 
   LayoutDashboard, 
@@ -39,8 +40,10 @@ import {
   ChevronRight,
   ShieldCheck,
   PenLine,
-  Flag
+  Flag,
+  Video
 } from 'lucide-react';
+
 
 export default function AdminDashboard() {
   const { userProfile, currentUser, logout } = useAuth();
@@ -57,6 +60,7 @@ export default function AdminDashboard() {
     { id: 'writing_practice', label: 'Writing Practice', icon: PenLine },
     { id: 'missions', label: 'Weekly Missions', icon: Flag },
     { id: 'sessions', label: 'Study Sessions', icon: Clock },
+    { id: 'mentor_sessions', label: 'Mentor Sessions', icon: Video },
     { id: 'timer_subjects', label: 'Timer Subjects', icon: Clock },
     { id: 'notes', label: 'Notes', icon: FileText },
     { id: 'doubts', label: 'Doubts', icon: HelpCircle },
@@ -168,6 +172,7 @@ export default function AdminDashboard() {
             {activeTab === 'writing_practice' && <AdminWritingPractice />}
             { activeTab === 'missions' && <AdminWeeklyMissions /> }
             { activeTab === 'sessions' && <AdminSessions /> }
+            { activeTab === 'mentor_sessions' && <AdminMentorSessions /> }
             { activeTab === 'timer_subjects' && <AdminTimerSubjects /> }
             { activeTab === 'notes' && <AdminNotes /> }
             {activeTab === 'doubts' && <AdminDoubts />}
