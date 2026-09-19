@@ -1,5 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import { collection, addDoc, onSnapshot, query, orderBy, serverTimestamp } from 'firebase/firestore';
+import { db } from '../config/firebase';
 import { 
   BookOpenCheck, 
   Trophy, 
@@ -18,7 +20,12 @@ import {
   Award,
   FileText,
   HelpCircle,
-  TrendingUp
+  TrendingUp,
+  Star,
+  MessageSquare,
+  Mail,
+  Youtube,
+  Send
 } from 'lucide-react';
 
 // Custom Navbar for Public Home Page
@@ -43,6 +50,8 @@ function PublicNavbar() {
           <div className="hidden md:flex items-center gap-8">
             <a href="#features" className="text-sm font-semibold text-slate-300 hover:text-white transition-colors">Features</a>
             <a href="#how-it-works" className="text-sm font-semibold text-slate-300 hover:text-white transition-colors">How it Works</a>
+            <a href="#feedback" className="text-sm font-semibold text-slate-300 hover:text-white transition-colors">Reviews</a>
+            <a href="#contact" className="text-sm font-semibold text-slate-300 hover:text-white transition-colors">Contact</a>
             <Link to="/login" className="text-sm font-semibold text-slate-300 hover:text-white transition-colors">Log In</Link>
             <Link 
               to="/register" 
@@ -66,6 +75,8 @@ function PublicNavbar() {
         <div className="md:hidden bg-navy-900 border-b border-white/5 px-4 pt-2 pb-6 space-y-4 shadow-2xl absolute w-full">
           <a href="#features" onClick={() => setIsOpen(false)} className="block px-4 py-2 text-base font-medium text-slate-300 hover:text-white">Features</a>
           <a href="#how-it-works" onClick={() => setIsOpen(false)} className="block px-4 py-2 text-base font-medium text-slate-300 hover:text-white">How it Works</a>
+          <a href="#feedback" onClick={() => setIsOpen(false)} className="block px-4 py-2 text-base font-medium text-slate-300 hover:text-white">Reviews</a>
+          <a href="#contact" onClick={() => setIsOpen(false)} className="block px-4 py-2 text-base font-medium text-slate-300 hover:text-white">Contact</a>
           <div className="h-px bg-white/5 my-2"></div>
           <Link to="/login" className="block px-4 py-2 text-base font-medium text-slate-300 hover:text-white">Log In</Link>
           <Link to="/register" className="block w-full text-center mt-2 px-5 py-3 rounded-xl bg-royal-600 text-white font-bold">
@@ -78,6 +89,46 @@ function PublicNavbar() {
 }
 
 export default function Home() {
+  // Feedback State
+  const [feedbacks, setFeedbacks] = useState([]);
+  const [fbName, setFbName] = useState('');
+  const [fbRating, setFbRating] = useState(0);
+  const [fbHover, setFbHover] = useState(0);
+  const [fbText, setFbText] = useState('');
+  const [fbSubmitting, setFbSubmitting] = useState(false);
+  const [fbSuccess, setFbSuccess] = useState(false);
+
+  useEffect(() => {
+    const q = query(collection(db, 'feedbacks'), orderBy('createdAt', 'desc'));
+    const unsub = onSnapshot(q, (snap) => {
+      setFeedbacks(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+    });
+    return () => unsub();
+  }, []);
+
+  const handleFeedbackSubmit = async (e) => {
+    e.preventDefault();
+    if (!fbRating || !fbText.trim() || !fbName.trim()) {
+      alert('Please fill all fields and select a star rating.');
+      return;
+    }
+    try {
+      setFbSubmitting(true);
+      await addDoc(collection(db, 'feedbacks'), {
+        name: fbName.trim(),
+        rating: fbRating,
+        text: fbText.trim(),
+        createdAt: serverTimestamp()
+      });
+      setFbName(''); setFbRating(0); setFbText(''); setFbSuccess(true);
+      setTimeout(() => setFbSuccess(false), 3000);
+    } catch (err) {
+      alert('Failed to submit feedback. Please try again.');
+    } finally {
+      setFbSubmitting(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-navy-950 text-slate-100 font-sans selection:bg-royal-500/30 selection:text-white">
       <PublicNavbar />
@@ -96,9 +147,13 @@ export default function Home() {
               
               {/* Hero Text */}
               <div className="space-y-8 text-center lg:text-left">
-                <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-royal-500/10 border border-royal-500/20 text-royal-400 text-xs font-bold uppercase tracking-wider">
-                  <Sparkles className="w-3.5 h-3.5" />
-                  <span>Premium Productivity Engine</span>
+                <div className="inline-flex flex-col sm:flex-row items-center gap-2 sm:gap-3 px-4 py-2 sm:py-1.5 rounded-2xl sm:rounded-full bg-royal-500/10 border border-royal-500/20 text-royal-400 text-xs font-bold tracking-wider">
+                  <div className="flex items-center gap-2">
+                    <Sparkles className="w-3.5 h-3.5" />
+                    <span className="uppercase">Premium Productivity Engine</span>
+                  </div>
+                  <span className="hidden sm:block text-royal-400/30">•</span>
+                  <span className="text-[10px] sm:text-xs">CA FOUNDATION & INTERMEDIATE | CMA FOUNDATION & INTERMEDIATE</span>
                 </div>
                 
                 <h1 className="text-4xl sm:text-5xl lg:text-6xl font-black text-white leading-[1.1] tracking-tight">
@@ -265,48 +320,183 @@ export default function Home() {
           </div>
         </section>
 
-        {/* GAMIFICATION PREVIEW */}
-        <section className="py-24 bg-navy-950 relative">
+        {/* FEEDBACK SECTION */}
+        <section id="feedback" className="py-24 bg-navy-950 border-t border-white/5 relative overflow-hidden">
+          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[300px] bg-royal-600/5 rounded-full blur-3xl pointer-events-none" />
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
-            
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
-              <div className="space-y-6">
-                <h2 className="text-3xl md:text-4xl font-black text-white tracking-tight leading-[1.15]">
-                  Turn Consistency Into A Rewarding Habit
-                </h2>
-                <p className="text-lg text-slate-400 leading-relaxed">
-                  The platform utilizes a structured point and streak system to keep you motivated. As you study and complete tasks, you naturally progress and rank up.
-                </p>
-                <div className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
-                  UI PREVIEW EXAMPLES ONLY
-                </div>
+            <div className="text-center mb-14 space-y-3">
+              <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-royal-500/10 border border-royal-500/30 text-royal-300 text-xs font-bold">
+                <Star className="w-4 h-4 fill-royal-400 text-royal-400" /> Student Feedback
               </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div className="p-5 rounded-2xl bg-navy-900 border border-white/5 flex flex-col gap-2">
-                  <div className="text-xs font-bold text-slate-400 uppercase">🔥 Streak</div>
-                  <div className="text-2xl font-black text-white">12 Days</div>
-                </div>
-                <div className="p-5 rounded-2xl bg-navy-900 border border-white/5 flex flex-col gap-2">
-                  <div className="text-xs font-bold text-slate-400 uppercase">⚡ Level</div>
-                  <div className="text-2xl font-black text-white">Focused</div>
-                </div>
-                <div className="p-5 rounded-2xl bg-navy-900 border border-white/5 flex flex-col gap-2">
-                  <div className="text-xs font-bold text-slate-400 uppercase">🏆 Points</div>
-                  <div className="text-2xl font-black text-white">1,240</div>
-                </div>
-                <div className="p-5 rounded-2xl bg-navy-900 border border-white/5 flex flex-col gap-2">
-                  <div className="text-xs font-bold text-slate-400 uppercase">📈 Progress</div>
-                  <div className="text-2xl font-black text-white">68%</div>
-                </div>
-              </div>
+              <h2 className="text-3xl sm:text-4xl font-extrabold text-white">What Students Say</h2>
+              <p className="text-slate-400 text-base max-w-xl mx-auto">Real reviews from CA & CMA aspirants using this platform daily.</p>
             </div>
 
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-start">
+              {/* Submit Feedback Form */}
+              <div className="p-8 rounded-3xl bg-navy-900 border border-white/5 shadow-xl space-y-6">
+                <h3 className="text-xl font-bold text-white flex items-center gap-2">
+                  <MessageSquare className="w-5 h-5 text-royal-400" /> Leave Your Feedback
+                </h3>
+                {fbSuccess && (
+                  <div className="p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-sm font-bold text-center">
+                    ✅ Thank you! Your feedback has been submitted.
+                  </div>
+                )}
+                <form onSubmit={handleFeedbackSubmit} className="space-y-5">
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Your Name</label>
+                    <input
+                      type="text"
+                      required
+                      value={fbName}
+                      onChange={e => setFbName(e.target.value)}
+                      placeholder="e.g. Rahul Sharma"
+                      className="w-full px-4 py-3 rounded-xl bg-navy-950 border border-white/10 text-white text-sm focus:outline-none focus:border-royal-500/50"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">Your Rating</label>
+                    <div className="flex items-center gap-2">
+                      {[1,2,3,4,5].map(star => (
+                        <button
+                          key={star}
+                          type="button"
+                          onClick={() => setFbRating(star)}
+                          onMouseEnter={() => setFbHover(star)}
+                          onMouseLeave={() => setFbHover(0)}
+                          className="transition-transform hover:scale-110"
+                        >
+                          <Star
+                            className={`w-8 h-8 transition-colors ${(fbHover || fbRating) >= star ? 'fill-gold-400 text-gold-400' : 'text-slate-600'}`}
+                          />
+                        </button>
+                      ))}
+                      <span className="ml-2 text-sm font-bold text-slate-300">
+                        {(fbHover || fbRating) > 0 ? ['', 'Poor', 'Fair', 'Good', 'Very Good', 'Excellent!'][(fbHover || fbRating)] : 'Select rating'}
+                      </span>
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Your Review</label>
+                    <textarea
+                      rows="4"
+                      required
+                      value={fbText}
+                      onChange={e => setFbText(e.target.value)}
+                      placeholder="Share your experience with CA/CMA Blueprint..."
+                      className="w-full px-4 py-3 rounded-xl bg-navy-950 border border-white/10 text-white text-sm resize-none focus:outline-none focus:border-royal-500/50"
+                    />
+                  </div>
+                  <button
+                    type="submit"
+                    disabled={fbSubmitting}
+                    className="w-full py-3.5 rounded-xl bg-royal-600 hover:bg-royal-500 text-white font-black text-sm shadow-lg disabled:opacity-50 transition-all hover:scale-[1.02]"
+                  >
+                    {fbSubmitting ? 'Submitting...' : '⭐ Submit Feedback'}
+                  </button>
+                </form>
+              </div>
+
+              {/* Live Feedback Cards */}
+              <div className="space-y-4 max-h-[600px] overflow-y-auto pr-1">
+                {feedbacks.length === 0 ? (
+                  <div className="p-8 rounded-3xl bg-navy-900 border border-white/5 text-center text-slate-400 text-sm">
+                    No reviews yet. Be the first to share your feedback!
+                  </div>
+                ) : (
+                  feedbacks.map(f => (
+                    <div key={f.id} className="p-5 rounded-2xl bg-navy-900 border border-white/10 hover:border-royal-500/20 transition-all space-y-3">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-full bg-royal-500/20 flex items-center justify-center text-royal-400 font-bold">
+                            {f.name.charAt(0).toUpperCase()}
+                          </div>
+                          <div>
+                            <div className="text-sm font-bold text-white">{f.name}</div>
+                            <div className="text-[10px] text-slate-400">
+                              {f.createdAt?.toDate ? f.createdAt.toDate().toLocaleDateString() : 'Recent'}
+                            </div>
+                          </div>
+                        </div>
+                        <div className="flex gap-0.5">
+                          {[...Array(5)].map((_, i) => (
+                            <Star key={i} className={`w-3.5 h-3.5 ${i < f.rating ? 'fill-gold-400 text-gold-400' : 'text-slate-600'}`} />
+                          ))}
+                        </div>
+                      </div>
+                      <p className="text-sm text-slate-300 leading-relaxed italic">"{f.text}"</p>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* CONTACT US SECTION */}
+        <section id="contact" className="py-20 bg-navy-900/30 border-t border-white/5 relative">
+          <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center space-y-8">
+            <div className="space-y-3">
+              <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-cyan-500/10 border border-cyan-500/30 text-cyan-300 text-xs font-bold">
+                <Mail className="w-3.5 h-3.5" /> Contact & Socials
+              </div>
+              <h2 className="text-3xl sm:text-4xl font-extrabold text-white">Get In Touch</h2>
+              <p className="text-slate-400 text-base">Have a question or need support? Reach out to us or join our community.</p>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+              {/* Gmail */}
+              <a
+                href="mailto:casuccessblueprint@gmail.com"
+                className="group flex flex-col items-center gap-4 p-6 rounded-2xl bg-navy-950 border border-white/10 hover:border-red-500/40 hover:bg-red-500/5 transition-all text-center"
+              >
+                <div className="w-12 h-12 rounded-xl bg-red-500/20 text-red-400 flex items-center justify-center border border-red-500/20 group-hover:scale-110 transition-transform">
+                  <Mail className="w-6 h-6" />
+                </div>
+                <div>
+                  <div className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Email Us</div>
+                  <div className="text-sm font-bold text-white group-hover:text-red-300 transition-colors break-all">casuccessblueprint<br/>@gmail.com</div>
+                </div>
+              </a>
+
+              {/* Telegram */}
+              <a
+                href="https://t.me/casuccessblueprint"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="group flex flex-col items-center gap-4 p-6 rounded-2xl bg-navy-950 border border-white/10 hover:border-sky-500/40 hover:bg-sky-500/5 transition-all text-center"
+              >
+                <div className="w-12 h-12 rounded-xl bg-sky-500/20 text-sky-400 flex items-center justify-center border border-sky-500/20 group-hover:scale-110 transition-transform">
+                  <Send className="w-6 h-6" />
+                </div>
+                <div>
+                  <div className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Telegram</div>
+                  <div className="text-sm font-bold text-white group-hover:text-sky-300 transition-colors">Join Our Channel</div>
+                </div>
+              </a>
+
+              {/* YouTube */}
+              <a
+                href="https://youtube.com/@casuccessblueprint"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="group flex flex-col items-center gap-4 p-6 rounded-2xl bg-navy-950 border border-white/10 hover:border-red-600/40 hover:bg-red-600/5 transition-all text-center sm:col-span-2 lg:col-span-1"
+              >
+                <div className="w-12 h-12 rounded-xl bg-red-600/20 text-red-500 flex items-center justify-center border border-red-600/20 group-hover:scale-110 transition-transform">
+                  <Youtube className="w-6 h-6" />
+                </div>
+                <div>
+                  <div className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">YouTube</div>
+                  <div className="text-sm font-bold text-white group-hover:text-red-400 transition-colors">Watch Tutorials</div>
+                </div>
+              </a>
+            </div>
           </div>
         </section>
 
         {/* FINAL CTA */}
-        <section className="py-24 bg-navy-900/30 border-t border-white/5">
+        <section className="py-24 bg-navy-950 border-t border-white/5">
           <div className="max-w-3xl mx-auto px-4 text-center space-y-8">
             <h2 className="text-4xl sm:text-5xl font-extrabold text-white tracking-tight">
               Your preparation deserves a blueprint.
