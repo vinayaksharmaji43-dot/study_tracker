@@ -6,6 +6,24 @@ import { formatTimerTime, formatDate, getDateKey, getMonthKey, calculateDailyPoi
 import EmptyState from '../components/EmptyState';
 import { Play, Pause, Square, Clock, BookOpen, CheckCircle, Calendar, ShieldCheck, X, Zap, AlertTriangle } from 'lucide-react';
 
+function normalizeAttempt(att) {
+  return (att || '').toLowerCase().replace(/\s+/g, '').replace('2027', '27');
+}
+
+function parseStream(userProfile) {
+  if (!userProfile) return { course: 'CA', level: 'Foundation', attempt: '' };
+  const rawCourse = userProfile.course || 'CA Foundation';
+  let course = 'CA';
+  let level = 'Foundation';
+  
+  if (rawCourse.toUpperCase().includes('CMA')) course = 'CMA';
+  if (rawCourse.toUpperCase().includes('INTER')) level = 'Intermediate';
+  else if (userProfile.level) level = userProfile.level; 
+  
+  const attempt = userProfile?.attempt || '';
+  return { course, level, attempt };
+}
+
 export default function StudyTimer() {
   const { currentUser, userProfile } = useAuth();
   
@@ -14,15 +32,18 @@ export default function StudyTimer() {
   const [loadingSubjects, setLoadingSubjects] = useState(true);
 
   useEffect(() => {
-    if (!userProfile?.course || !userProfile?.level) {
+    if (!userProfile) {
       setLoadingSubjects(false);
       return;
     }
+    
+    const { course: myCourse, level: myLevel, attempt: myAttemptRaw } = parseStream(userProfile);
+    const myAttempt = normalizeAttempt(myAttemptRaw);
 
     const q = query(
       collection(db, 'timerSubjects'),
-      where('course', '==', userProfile.course),
-      where('level', '==', userProfile.level),
+      where('course', '==', myCourse),
+      where('level', '==', myLevel),
       where('active', '==', true)
     );
 
@@ -31,7 +52,7 @@ export default function StudyTimer() {
       
       // Filter by attempt (All Attempts OR Specific Attempt)
       const attemptFiltered = data.filter(sub => 
-        sub.allAttempts || sub.attempt === userProfile.attempt
+        sub.allAttempts || normalizeAttempt(sub.attempt) === myAttempt
       );
 
       // Sort by order if available, else by name

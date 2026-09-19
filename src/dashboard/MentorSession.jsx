@@ -9,13 +9,27 @@ function normalizeAttempt(att) {
   return (att || '').toLowerCase().replace(/\s+/g, '').replace('2027', '27');
 }
 
+function parseStream(userProfile) {
+  if (!userProfile) return { course: 'CA', level: 'Foundation', attempt: '' };
+  const rawCourse = userProfile.course || 'CA Foundation';
+  let course = 'CA';
+  let level = 'Foundation';
+  
+  if (rawCourse.toUpperCase().includes('CMA')) course = 'CMA';
+  if (rawCourse.toUpperCase().includes('INTER')) level = 'Intermediate';
+  else if (userProfile.level) level = userProfile.level; // In case they do have a level field
+  
+  const attempt = userProfile?.attempt || '';
+  return { course, level, attempt };
+}
+
 export default function MentorSession() {
   const { userProfile } = useAuth();
   const [sessions, setSessions] = useState({ upcoming: [], live: [], past: [] });
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!userProfile?.course || !userProfile?.level) {
+    if (!userProfile) {
       setLoading(false);
       return;
     }
@@ -28,9 +42,8 @@ export default function MentorSession() {
     let allFetched = [];
 
     const processSessions = () => {
-      const myCourse = userProfile.course;
-      const myLevel = userProfile.level;
-      const myAttempt = normalizeAttempt(userProfile.attempt);
+      const { course: myCourse, level: myLevel, attempt: myAttemptRaw } = parseStream(userProfile);
+      const myAttempt = normalizeAttempt(myAttemptRaw);
 
       const filtered = allFetched.filter(sess => {
         if (sess.audienceType !== 'specific') return true;
