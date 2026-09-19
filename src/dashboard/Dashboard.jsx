@@ -34,6 +34,7 @@ import {
 import CountdownWidget from '../components/CountdownWidget';
 import GlobalAnnouncementPopup from '../components/GlobalAnnouncementPopup';
 import useDailyEvaluator from '../hooks/useDailyEvaluator';
+import MobileMenuFAB from '../components/MobileMenuFAB';
 
 export default function Dashboard() {
   const { userProfile, currentUser, logout } = useAuth();
@@ -127,28 +128,8 @@ export default function Dashboard() {
             </div>
           </aside>
 
-          {/* Mobile Tab Bar */}
-          <div className="lg:hidden col-span-1 glass-card p-2 rounded-2xl border border-white/10 flex overflow-x-auto space-x-2 scrollbar-none">
-            {navItems.map((item) => {
-              const Icon = item.icon;
-              const isActive = activeTab === item.id;
-
-              return (
-                <button
-                  key={item.id}
-                  onClick={() => setActiveTab(item.id)}
-                  className={`flex items-center space-x-2 px-4 py-2.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all ${
-                    isActive
-                      ? 'bg-emerald-600 text-white shadow-glow-emerald'
-                      : 'text-slate-400 hover:text-white hover:bg-white/5'
-                  }`}
-                >
-                  <Icon className="w-4 h-4" />
-                  <span>{item.label}</span>
-                </button>
-              );
-            })}
-          </div>
+          {/* Mobile Menu FAB (Replaces old horizontal scrolling bar) */}
+          <MobileMenuFAB activeTab={activeTab} setActiveTab={setActiveTab} />
 
           {/* Main Dashboard Workspace View */}
           <main className="col-span-1 lg:col-span-9 space-y-6">

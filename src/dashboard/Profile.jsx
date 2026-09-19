@@ -14,6 +14,7 @@ export default function Profile() {
   const [attempt, setAttempt] = useState('Jan 27');
   const [updating, setUpdating] = useState(false);
   const [successMsg, setSuccessMsg] = useState('');
+  const [deviceSlots, setDeviceSlots] = useState({ desktop: null, mobile: null });
 
   useEffect(() => {
     if (userProfile) {
@@ -24,6 +25,18 @@ export default function Profile() {
       setAttempt(userProfile.attempt || 'Jan 27');
     }
   }, [userProfile]);
+
+  useEffect(() => {
+    if (!currentUser?.uid) return;
+    import('firebase/firestore').then(({ onSnapshot, doc }) => {
+      const unsub = onSnapshot(doc(db, 'userDeviceSlots', currentUser.uid), (docSnap) => {
+        if (docSnap.exists()) {
+          setDeviceSlots(docSnap.data());
+        }
+      });
+      return () => unsub();
+    });
+  }, [currentUser]);
 
   const handleCourseChange = (newCourse) => {
     setCourse(newCourse);
@@ -318,6 +331,29 @@ export default function Profile() {
                     <div className="text-xs text-slate-400">Member Since</div>
                     <div className="text-sm font-bold text-white">{formatDate(userProfile?.createdAt)}</div>
                   </div>
+                </div>
+              </div>
+            </div>
+
+            {/* My Devices Panel */}
+            <div className="pt-4 border-t border-white/10">
+              <h3 className="text-sm font-bold text-white mb-3">My Devices</h3>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="p-3 rounded-xl bg-navy-900/60 border border-white/5 flex flex-col items-center justify-center gap-1">
+                  <div className="text-xs text-slate-400">PC / Desktop</div>
+                  {deviceSlots.desktop ? (
+                    <div className="text-xs font-bold text-emerald-400 flex items-center gap-1"><CheckCircle className="w-3 h-3" /> Registered</div>
+                  ) : (
+                    <div className="text-xs font-bold text-slate-500">Unregistered</div>
+                  )}
+                </div>
+                <div className="p-3 rounded-xl bg-navy-900/60 border border-white/5 flex flex-col items-center justify-center gap-1">
+                  <div className="text-xs text-slate-400">Mobile / Phone</div>
+                  {deviceSlots.mobile ? (
+                    <div className="text-xs font-bold text-emerald-400 flex items-center gap-1"><CheckCircle className="w-3 h-3" /> Registered</div>
+                  ) : (
+                    <div className="text-xs font-bold text-slate-500">Unregistered</div>
+                  )}
                 </div>
               </div>
             </div>

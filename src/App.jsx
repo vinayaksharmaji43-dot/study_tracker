@@ -3,6 +3,7 @@ import { Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
 import ProtectedRoute from './components/ProtectedRoute';
 import AdminRoute from './components/AdminRoute';
+import DeviceGate from './components/DeviceGate';
 
 import Home from './pages/Home';
 import Login from './pages/Login';
@@ -26,7 +27,9 @@ export default function App() {
           path="/dashboard/*"
           element={
             <ProtectedRoute>
-              <Dashboard />
+              <DeviceGate>
+                <Dashboard />
+              </DeviceGate>
             </ProtectedRoute>
           }
         />

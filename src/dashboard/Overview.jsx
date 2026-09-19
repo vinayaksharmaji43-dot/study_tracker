@@ -565,6 +565,39 @@ export default function Overview({ setActiveTab }) {
           </div>
         </div>
 
+        {/* Premium Coming Soon Section */}
+        <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-gold-500/20 to-amber-600/10 border border-gold-500/30 p-6 sm:p-8">
+          <div className="absolute top-0 right-0 w-64 h-64 bg-gold-500/10 rounded-full blur-3xl pointer-events-none" />
+          <div className="absolute bottom-0 left-0 w-48 h-48 bg-amber-500/10 rounded-full blur-2xl pointer-events-none" />
+          
+          <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-6">
+            <div className="flex items-start gap-4">
+              <div className="p-4 rounded-2xl bg-gold-500/20 text-gold-400 shadow-[0_0_15px_rgba(250,204,21,0.2)]">
+                <span className="text-3xl">👑</span>
+              </div>
+              <div className="space-y-1">
+                <div className="flex items-center gap-2">
+                  <h3 className="text-xl font-black text-white">Premium</h3>
+                  <span className="px-2 py-0.5 rounded-full bg-gold-500/20 text-gold-300 text-[10px] font-bold uppercase tracking-wider border border-gold-500/30">
+                    Coming Soon
+                  </span>
+                </div>
+                <p className="text-sm text-slate-300 max-w-md leading-relaxed">
+                  Exclusive premium features are on the way. We're building advanced analytics, personalized insights, and priority access to boost your study performance to the next level.
+                </p>
+              </div>
+            </div>
+            <div className="w-full md:w-auto">
+              <button 
+                disabled
+                className="w-full md:w-auto px-6 py-3 rounded-xl bg-navy-900 border border-gold-500/20 text-gold-400 text-sm font-bold opacity-70 cursor-not-allowed"
+              >
+                Stay Tuned
+              </button>
+            </div>
+          </div>
+        </div>
+
       </div>
 
     </div>

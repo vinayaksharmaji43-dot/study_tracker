@@ -21,9 +21,10 @@ import AdminWritingPractice from './tabs/AdminWritingPractice';
 import AdminWeeklyMissions from './tabs/AdminWeeklyMissions';
 import AdminTimerSubjects from './tabs/AdminTimerSubjects';
 import AdminMentorSessions from './tabs/AdminMentorSessions';
+import AdminDevices from './tabs/AdminDevices';
 
 import { 
-  LayoutDashboard, 
+  LayoutDashboard,  
   Users, 
   BookOpenCheck,
   Layers,
@@ -41,7 +42,8 @@ import {
   ShieldCheck,
   PenLine,
   Flag,
-  Video
+  Video,
+  MonitorSmartphone
 } from 'lucide-react';
 
 
@@ -67,6 +69,7 @@ export default function AdminDashboard() {
     { id: 'announcements', label: 'Announcements', icon: Megaphone },
     { id: 'study_groups', label: 'Study Groups', icon: Users },
     { id: 'courses', label: 'Courses & Attempts', icon: Calendar },
+    { id: 'devices', label: 'Device Activity', icon: MonitorSmartphone },
     { id: 'settings', label: 'Settings', icon: Settings },
   ];
 
@@ -179,6 +182,7 @@ export default function AdminDashboard() {
             {activeTab === 'announcements' && <AdminAnnouncements />}
             {activeTab === 'study_groups' && <AdminStudyGroups />}
             {activeTab === 'courses' && <AdminCourses />}
+            {activeTab === 'devices' && <AdminDevices />}
             {activeTab === 'settings' && <AdminSettings />}
           </main>
 
