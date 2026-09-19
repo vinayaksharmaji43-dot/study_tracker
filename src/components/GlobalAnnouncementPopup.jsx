@@ -32,7 +32,7 @@ export default function GlobalAnnouncementPopup() {
   const [unreadAnnouncement, setUnreadAnnouncement] = useState(null);
   const [loading, setLoading] = useState(true);
   const [markingRead, setMarkingRead] = useState(false);
-  const [isDismissed, setIsDismissed] = useState(false);
+  const [isAnnouncementPopupOpen, setIsAnnouncementPopupOpen] = useState(true);
 
   useEffect(() => {
     if (!currentUser?.uid || !userProfile) {
@@ -73,6 +73,7 @@ export default function GlobalAnnouncementPopup() {
         setUnreadAnnouncement(unread[0]);
       } else {
         setUnreadAnnouncement(null);
+        setIsAnnouncementPopupOpen(false); // No unread announcement found
       }
       setLoading(false);
     };
@@ -98,7 +99,7 @@ export default function GlobalAnnouncementPopup() {
     if (!unreadAnnouncement || !currentUser || markingRead) return;
     
     // Close the UI immediately!
-    setIsDismissed(true);
+    setIsAnnouncementPopupOpen(false);
     setMarkingRead(true);
 
     if (withLink && unreadAnnouncement.link) {
@@ -121,7 +122,7 @@ export default function GlobalAnnouncementPopup() {
   };
 
   // If loading, no unread announcement, or user dismissed it locally -> render nothing
-  if (loading || !unreadAnnouncement || isDismissed) return null;
+  if (loading || !unreadAnnouncement || !isAnnouncementPopupOpen) return null;
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-navy-950/90 backdrop-blur-md transition-opacity">
