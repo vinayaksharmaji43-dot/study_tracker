@@ -566,7 +566,7 @@ export default function Overview({ setActiveTab }) {
         </div>
 
         {/* Premium Coming Soon Section */}
-        <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-gold-500/20 to-amber-600/10 border border-gold-500/30 p-6 sm:p-8">
+        <div className="col-span-1 lg:col-span-12 relative overflow-hidden rounded-3xl bg-gradient-to-br from-gold-500/20 to-amber-600/10 border border-gold-500/30 p-6 sm:p-8 mt-4">
           <div className="absolute top-0 right-0 w-64 h-64 bg-gold-500/10 rounded-full blur-3xl pointer-events-none" />
           <div className="absolute bottom-0 left-0 w-48 h-48 bg-amber-500/10 rounded-full blur-2xl pointer-events-none" />
           
