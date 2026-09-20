@@ -883,6 +883,76 @@ export default function StudyTimer() {
 
       </div>
 
+      {/* Rules Section */}
+      <div className="mt-8 p-6 sm:p-8 rounded-3xl bg-navy-900 border border-white/5 space-y-6">
+        <h2 className="text-xl font-extrabold text-white flex items-center gap-2">
+          <ShieldCheck className="w-6 h-6 text-royal-400" />
+          Study Timer Rules & Points System
+        </h2>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {/* Rewards */}
+          <div className="space-y-4">
+            <h3 className="text-sm font-bold text-emerald-400 flex items-center gap-2">
+              <CheckCircle className="w-4 h-4" />
+              Positive Points (Rewards)
+            </h3>
+            <ul className="space-y-3 text-sm text-slate-300">
+              <li className="flex items-start gap-2">
+                <span className="text-emerald-400 mt-0.5">•</span>
+                <span><strong>6 Hours Complete:</strong> +10 Points (One-time daily milestone)</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="text-emerald-400 mt-0.5">•</span>
+                <span><strong>7+ Hours:</strong> +3 Points per additional hour</span>
+              </li>
+              <li className="flex items-start gap-2 text-xs text-slate-400 mt-2">
+                Note: Milestones (1-5 hours) give no points, only messages. The timer auto-stops and saves at 5 hours.
+              </li>
+            </ul>
+          </div>
+          
+          {/* Penalties */}
+          <div className="space-y-4">
+            <h3 className="text-sm font-bold text-rose-400 flex items-center gap-2">
+              <AlertTriangle className="w-4 h-4" />
+              Negative Points (Penalties)
+            </h3>
+            <ul className="space-y-3 text-sm text-slate-300">
+              <li className="flex items-start gap-2">
+                <span className="text-rose-400 mt-0.5">•</span>
+                <span><strong>Missed Target:</strong> -3 Points per incomplete past target</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="text-rose-400 mt-0.5">•</span>
+                <span><strong>Low Study Day:</strong> -3 Points if you study less than 4 hours in a day</span>
+              </li>
+              <li className="flex items-start gap-2 text-xs text-slate-400 mt-2">
+                Note: Penalties are checked and applied automatically when you log in the next day.
+              </li>
+            </ul>
+          </div>
+
+          {/* Exemptions */}
+          <div className="space-y-4">
+            <h3 className="text-sm font-bold text-amber-400 flex items-center gap-2">
+              <ShieldCheck className="w-4 h-4" />
+              Exemptions (Day Off)
+            </h3>
+            <ul className="space-y-3 text-sm text-slate-300">
+              <li className="flex items-start gap-2">
+                <span className="text-amber-400 mt-0.5">•</span>
+                <span><strong>No Penalty:</strong> If you mark a Day Off, you will not receive penalties for missed targets or low study hours.</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="text-amber-400 mt-0.5">•</span>
+                <span><strong>Monthly Limit:</strong> You are allowed a maximum of 7 Day Offs per month.</span>
+              </li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+
       {showDayOffModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-navy-950/85 backdrop-blur-md">
           <div className="glass-card p-6 sm:p-8 rounded-3xl border border-amber-500/30 max-w-md w-full shadow-2xl space-y-6">

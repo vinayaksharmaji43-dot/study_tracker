@@ -85,13 +85,13 @@ export default function useDailyEvaluator(currentUser) {
           const totalSeconds = sData.totalStudySeconds || 0;
           if (totalSeconds < 14400) { // less than 4 hours
             if (!exemptDates.has(sData.date)) {
-              pointsToDeduct -= 5;
+              pointsToDeduct -= 3;
               
               // Record transaction
               const txRef = doc(collection(db, 'pointTransactions'));
               batch.set(txRef, {
                 studentId: uid,
-                amount: -5,
+                amount: -3,
                 type: 'penalty',
                 reason: 'Less Than 4 Hours Daily Study',
                 sourceId: statDoc.id,
