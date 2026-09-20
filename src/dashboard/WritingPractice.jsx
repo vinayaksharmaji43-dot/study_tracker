@@ -66,7 +66,7 @@ export default function WritingPractice() {
 
   // Load admin-assigned targets for this stream
   useEffect(() => {
-    if (!course || !level) return;
+    if (!currentUser?.uid || !course || !level) return;
     const q = query(
       collection(db, 'writingPracticeTargets'),
       where('course', '==', course),
@@ -77,7 +77,7 @@ export default function WritingPractice() {
       const filtered = all.filter(t => !t.attempt || normalizeAttempt(t.attempt) === normalizeAttempt(attempt));
       setAdminTargets(filtered);
     });
-  }, [course, level, attempt]);
+  }, [currentUser, course, level, attempt]);
 
   // Load my submissions
   useEffect(() => {
