@@ -4,7 +4,7 @@ import { db } from '../../config/firebase';
 import { useAuth } from '../../contexts/AuthContext';
 import { formatDate } from '../../utils/helpers';
 import EmptyState from '../../components/EmptyState';
-import { HelpCircle, MessageSquare, CheckCircle, Clock, Trash2, Send, AlertCircle, ShieldCheck } from 'lucide-react';
+import { HelpCircle, MessageSquare, CheckCircle, Clock, Trash2, Send, AlertCircle, ShieldCheck, Eye, Image as ImageIcon } from 'lucide-react';
 
 export default function AdminDoubts() {
   const { userProfile } = useAuth();
@@ -18,6 +18,9 @@ export default function AdminDoubts() {
 
   // Delete confirmation state
   const [deletingId, setDeletingId] = useState(null);
+
+  // Image viewer modal
+  const [viewImagesModal, setViewImagesModal] = useState(null);
 
   useEffect(() => {
     const q = query(collection(db, 'doubts'), orderBy('createdAt', 'desc'));
@@ -84,7 +87,7 @@ export default function AdminDoubts() {
             Academic Doubts <span className="gold-gradient-text">Management</span>
           </h1>
           <p className="text-slate-300 text-sm max-w-xl">
-            Review student questions, post faculty answers, and maintain academic doubt threads.
+            Review student questions & attached photos, post official faculty answers, and manage academic doubt threads.
           </p>
         </div>
       </div>
@@ -164,9 +167,29 @@ export default function AdminDoubts() {
               </div>
 
               {/* Question Body */}
-              <p className="text-sm text-slate-300 bg-navy-950/60 p-4 rounded-2xl border border-white/5 leading-relaxed">
+              <p className="text-sm text-slate-300 bg-navy-950/60 p-4 rounded-2xl border border-white/5 leading-relaxed whitespace-pre-wrap">
                 {doubt.description}
               </p>
+
+              {/* Attached Photos */}
+              {doubt.uploadedImages?.length > 0 && (
+                <div className="space-y-2">
+                  <div className="text-xs font-bold text-slate-400 flex items-center gap-1">
+                    <ImageIcon className="w-3.5 h-3.5 text-amber-400" /> Attached Photos from Student:
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {doubt.uploadedImages.map((url, idx) => (
+                      <img
+                        key={idx}
+                        src={url}
+                        alt={`Attachment ${idx + 1}`}
+                        onClick={() => setViewImagesModal(doubt.uploadedImages)}
+                        className="w-24 h-24 object-cover rounded-xl border border-white/10 cursor-pointer hover:opacity-80 transition-opacity"
+                      />
+                    ))}
+                  </div>
+                </div>
+              )}
 
               {/* Answer Thread / Reply Form */}
               {doubt.reply ? (
@@ -178,7 +201,7 @@ export default function AdminDoubts() {
                     </span>
                     <span className="text-slate-400 font-normal">{formatDate(doubt.repliedAt)}</span>
                   </div>
-                  <p className="text-sm text-slate-100 font-medium leading-relaxed">
+                  <p className="text-sm text-slate-100 font-medium leading-relaxed whitespace-pre-wrap">
                     {doubt.reply}
                   </p>
                   <div className="pt-2 text-right">
@@ -193,7 +216,22 @@ export default function AdminDoubts() {
                     </button>
                   </div>
                 </div>
-              ) : null}
+              ) : (
+                replyingId !== doubt.id && (
+                  <div className="pt-2">
+                    <button
+                      onClick={() => {
+                        setReplyingId(doubt.id);
+                        setReplyText('');
+                      }}
+                      className="px-4 py-2 rounded-xl bg-amber-500/20 text-amber-300 border border-amber-500/30 hover:bg-amber-500/30 text-xs font-bold flex items-center gap-1.5 transition-all"
+                    >
+                      <MessageSquare className="w-4 h-4" />
+                      <span>Post Faculty Answer</span>
+                    </button>
+                  </div>
+                )
+              )}
 
               {replyingId === doubt.id && (
                 <div className="space-y-3 p-4 rounded-2xl bg-navy-900 border border-white/15 animate-in fade-in duration-200">
@@ -220,24 +258,9 @@ export default function AdminDoubts() {
                       className="px-5 py-2 rounded-xl bg-amber-500 text-navy-950 text-xs font-black shadow-glow-gold hover:bg-amber-400 flex items-center gap-1.5 disabled:opacity-50"
                     >
                       <Send className="w-3.5 h-3.5" />
-                      <span>{submitting ? 'Posting...' : 'Publish Answer'}</span>
+                      <span>{submitting ? 'Posting...' : 'Save & Publish Solution'}</span>
                     </button>
                   </div>
-                </div>
-              )}
-
-              {!doubt.reply && replyingId !== doubt.id && (
-                <div>
-                  <button
-                    onClick={() => {
-                      setReplyingId(doubt.id);
-                      setReplyText('');
-                    }}
-                    className="px-4 py-2 rounded-xl bg-amber-500/20 text-amber-300 border border-amber-500/30 hover:bg-amber-500 hover:text-navy-950 text-xs font-bold transition-all flex items-center gap-1.5"
-                  >
-                    <MessageSquare className="w-3.5 h-3.5" />
-                    <span>Reply to Doubt</span>
-                  </button>
                 </div>
               )}
 
@@ -248,28 +271,31 @@ export default function AdminDoubts() {
 
       {/* Delete Confirmation Modal */}
       {deletingId && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-navy-950/85 backdrop-blur-md">
-          <div className="glass-card p-6 rounded-3xl border border-red-500/30 max-w-sm w-full space-y-4 text-center">
-            <div className="w-12 h-12 rounded-2xl bg-red-500/20 text-red-400 flex items-center justify-center mx-auto">
-              <AlertCircle className="w-6 h-6" />
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-navy-950/80 backdrop-blur-md">
+          <div className="glass-card p-6 rounded-3xl border border-red-500/30 max-w-sm w-full space-y-4">
+            <h3 className="text-lg font-bold text-white flex items-center gap-2">
+              <AlertCircle className="w-5 h-5 text-red-400" /> Delete Doubt Thread?
+            </h3>
+            <p className="text-xs text-slate-300">Are you sure you want to permanently delete this doubt question and its solution?</p>
+            <div className="flex gap-2 pt-2">
+              <button onClick={() => setDeletingId(null)} className="w-full py-2.5 rounded-xl border border-white/10 text-slate-300 text-xs font-bold">Cancel</button>
+              <button onClick={confirmDeleteDoubt} className="w-full py-2.5 rounded-xl bg-red-600 hover:bg-red-500 text-white text-xs font-bold">Delete</button>
             </div>
-            <h3 className="text-lg font-bold text-white">Delete Academic Doubt?</h3>
-            <p className="text-xs text-slate-400">Are you sure you want to remove this doubt entry?</p>
-            
-            <div className="flex gap-3 pt-2">
-              <button
-                onClick={() => setDeletingId(null)}
-                className="w-full py-2.5 rounded-xl border border-white/10 text-slate-300 text-xs font-semibold hover:bg-white/5"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={confirmDeleteDoubt}
-                className="w-full py-2.5 rounded-xl bg-red-600 hover:bg-red-500 text-white text-xs font-bold"
-              >
-                Yes, Delete
-              </button>
+          </div>
+        </div>
+      )}
+
+      {/* View Images Modal */}
+      {viewImagesModal && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-navy-950/95 backdrop-blur-md" onClick={() => setViewImagesModal(null)}>
+          <div className="max-w-3xl w-full space-y-3 max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-2">
+              <h3 className="text-white font-bold">Student Question Attached Photos ({viewImagesModal.length})</h3>
+              <button onClick={() => setViewImagesModal(null)} className="text-slate-400 hover:text-white font-bold text-2xl">✕</button>
             </div>
+            {viewImagesModal.map((url, i) => (
+              <img key={i} src={url} alt={`Attachment ${i + 1}`} className="w-full rounded-2xl border border-white/10 shadow-2xl" />
+            ))}
           </div>
         </div>
       )}

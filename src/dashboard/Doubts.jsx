@@ -1,10 +1,22 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { collection, addDoc, doc, updateDoc, serverTimestamp, query, orderBy, onSnapshot } from 'firebase/firestore';
 import { db } from '../config/firebase';
 import { useAuth } from '../contexts/AuthContext';
 import { formatDate } from '../utils/helpers';
 import EmptyState from '../components/EmptyState';
-import { HelpCircle, Plus, MessageSquare, CheckCircle, Clock, ShieldCheck, Send } from 'lucide-react';
+import { HelpCircle, Plus, MessageSquare, CheckCircle, Clock, ShieldCheck, Send, Upload, Eye, X, Image as ImageIcon } from 'lucide-react';
+
+const IMGBB_KEY = 'f43ca36cbb4a3e5de80d145fb53cbfff';
+
+async function uploadToImgBB(file) {
+  const formData = new FormData();
+  formData.append('key', IMGBB_KEY);
+  formData.append('image', file);
+  const res = await fetch('https://api.imgbb.com/1/upload', { method: 'POST', body: formData });
+  const data = await res.json();
+  if (data.success) return data.data.url;
+  throw new Error('Image upload failed');
+}
 
 const CA_SUBJECTS = [
   'Paper 1: Accounting',
@@ -34,12 +46,18 @@ export default function Doubts() {
   const [description, setDescription] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
-  // Reply Form Modal / Inline State
+  // File uploads
+  const fileInputRef = useRef(null);
+  const [selectedFiles, setSelectedFiles] = useState([]);
+  const [previewUrls, setPreviewUrls] = useState([]);
+  const [viewImagesModal, setViewImagesModal] = useState(null);
+
+  // Reply Form Modal / Inline State (Admin Only)
   const [replyingDoubtId, setReplyingDoubtId] = useState(null);
   const [replyText, setReplyText] = useState('');
   const [replying, setReplying] = useState(false);
 
-  const isAdmin = userProfile?.role === 'admin';
+  const isAdmin = userProfile?.role === 'admin' || currentUser?.email === 'vaultstore27@gmail.com' || currentUser?.email === 'thunderworld766@gmail.com';
 
   useEffect(() => {
     const q = query(collection(db, 'doubts'), orderBy('createdAt', 'desc'));
@@ -54,18 +72,52 @@ export default function Doubts() {
     return () => unsubscribe();
   }, []);
 
+  const handleFileSelect = (e) => {
+    const files = Array.from(e.target.files);
+    setSelectedFiles(p => [...p, ...files]);
+    files.forEach(file => {
+      const reader = new FileReader();
+      reader.onloadend = () => setPreviewUrls(p => [...p, { url: reader.result, name: file.name }]);
+      reader.readAsDataURL(file);
+    });
+  };
+
+  const removeImage = (i) => {
+    setSelectedFiles(p => p.filter((_, idx) => idx !== i));
+    setPreviewUrls(p => p.filter((_, idx) => idx !== i));
+  };
+
+  const resetAskModal = () => {
+    setTitle('');
+    setDescription('');
+    setSelectedFiles([]);
+    setPreviewUrls([]);
+    setShowAskModal(false);
+  };
+
   const handleAskDoubt = async (e) => {
     e.preventDefault();
     if (!title.trim() || !description.trim()) return;
 
     try {
       setSubmitting(true);
+
+      // Upload attached images if any
+      let imageUrls = [];
+      if (selectedFiles.length > 0) {
+        for (const file of selectedFiles) {
+          const url = await uploadToImgBB(file);
+          imageUrls.push(url);
+        }
+      }
+
       await addDoc(collection(db, 'doubts'), {
         uid: currentUser.uid,
-        studentName: userProfile?.name || 'Student',
+        studentName: userProfile?.name || currentUser?.email || 'Student',
         title: title.trim(),
         subject,
         description: description.trim(),
+        uploadedImages: imageUrls,
         status: 'open',
         reply: null,
         repliedBy: null,
@@ -74,12 +126,10 @@ export default function Doubts() {
         course: userProfile?.course || 'CA Foundation'
       });
 
-      setTitle('');
-      setDescription('');
-      setShowAskModal(false);
+      resetAskModal();
     } catch (err) {
       console.error("Error asking doubt:", err);
-      alert("Failed to submit doubt. Please try again.");
+      alert("Failed to submit doubt. Please check your network connection and try again.");
     } finally {
       setSubmitting(false);
     }
@@ -130,7 +180,7 @@ export default function Doubts() {
               Academic <span className="gold-gradient-text">Doubts & Solutions</span>
             </h1>
             <p className="text-slate-300 text-sm max-w-xl">
-              Post your subject doubts and get verified solutions from faculty and subject experts.
+              Post your subject doubts with photos and get verified solutions directly from faculty & admin.
             </p>
           </div>
 
@@ -169,7 +219,7 @@ export default function Doubts() {
               filter === 'unanswered' ? 'bg-royal-600 text-white shadow-glow-blue' : 'text-slate-400 hover:text-white'
             }`}
           >
-            Pending Reply ({doubts.filter(d => d.status === 'open').length})
+            Pending Faculty Reply ({doubts.filter(d => d.status === 'open').length})
           </button>
         </div>
       </div>
@@ -179,7 +229,7 @@ export default function Doubts() {
         <EmptyState
           icon={HelpCircle}
           title="No doubts found"
-          description="Have a question about Accounting, Laws, or Economics? Submit your doubt now."
+          description="Have a question about Accounting, Laws, or Economics? Submit your doubt now with optional photos."
           actionText="Ask a Doubt"
           onAction={() => setShowAskModal(true)}
         />
@@ -206,7 +256,7 @@ export default function Doubts() {
                   {doubt.status === 'answered' ? (
                     <span className="px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-300 text-xs font-bold border border-emerald-500/40 flex items-center gap-1">
                       <CheckCircle className="w-3.5 h-3.5 text-emerald-400" />
-                      Answered
+                      Answered by Faculty
                     </span>
                   ) : (
                     <span className="px-3 py-1 rounded-full bg-amber-500/20 text-amber-300 text-xs font-bold border border-amber-500/40 flex items-center gap-1">
@@ -218,9 +268,29 @@ export default function Doubts() {
               </div>
 
               {/* Question Description */}
-              <p className="text-sm text-slate-300 bg-navy-950/60 p-4 rounded-2xl border border-white/5 leading-relaxed">
+              <p className="text-sm text-slate-300 bg-navy-950/60 p-4 rounded-2xl border border-white/5 leading-relaxed whitespace-pre-wrap">
                 {doubt.description}
               </p>
+
+              {/* Uploaded Photos (If Any) */}
+              {doubt.uploadedImages?.length > 0 && (
+                <div className="space-y-2">
+                  <div className="text-xs font-bold text-slate-400 flex items-center gap-1">
+                    <ImageIcon className="w-3.5 h-3.5 text-amber-400" /> Attached Photo Question:
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {doubt.uploadedImages.map((url, idx) => (
+                      <img
+                        key={idx}
+                        src={url}
+                        alt={`Doubt Attachment ${idx + 1}`}
+                        onClick={() => setViewImagesModal(doubt.uploadedImages)}
+                        className="w-24 h-24 object-cover rounded-xl border border-white/10 cursor-pointer hover:opacity-80 transition-opacity"
+                      />
+                    ))}
+                  </div>
+                </div>
+              )}
 
               {/* Answer Thread */}
               {doubt.reply ? (
@@ -228,55 +298,58 @@ export default function Doubts() {
                   <div className="flex items-center justify-between text-xs text-royal-300 font-bold">
                     <span className="flex items-center gap-1.5">
                       <ShieldCheck className="w-4 h-4 text-gold-400" />
-                      Faculty Reply by {doubt.repliedBy}
+                      Official Faculty Solution by {doubt.repliedBy}
                     </span>
                     <span className="text-slate-400 font-normal">{formatDate(doubt.repliedAt)}</span>
                   </div>
-                  <p className="text-sm text-slate-100 font-medium leading-relaxed">
+                  <p className="text-sm text-slate-100 font-medium leading-relaxed whitespace-pre-wrap">
                     {doubt.reply}
                   </p>
                 </div>
               ) : (
-                <div className="pt-2">
-                  {replyingDoubtId === doubt.id ? (
-                    <div className="space-y-3 p-4 rounded-2xl bg-navy-900 border border-white/15">
-                      <textarea
-                        rows="3"
-                        placeholder="Write official faculty answer..."
-                        value={replyText}
-                        onChange={(e) => setReplyText(e.target.value)}
-                        className="w-full p-3 rounded-xl bg-navy-950 border border-white/10 text-white text-sm focus:outline-none focus:border-royal-500"
-                      />
-                      <div className="flex justify-end gap-2">
-                        <button
-                          onClick={() => setReplyingDoubtId(null)}
-                          className="px-4 py-2 rounded-xl text-xs font-bold text-slate-400 hover:text-white"
-                        >
-                          Cancel
-                        </button>
-                        <button
-                          onClick={() => handleSubmitReply(doubt.id)}
-                          disabled={replying}
-                          className="px-5 py-2 rounded-xl bg-royal-600 hover:bg-royal-500 text-white text-xs font-bold flex items-center gap-1.5 shadow-glow-blue"
-                        >
-                          <Send className="w-3.5 h-3.5" />
-                          <span>{replying ? 'Posting...' : 'Post Reply'}</span>
-                        </button>
+                /* Only Admin can post reply */
+                isAdmin && (
+                  <div className="pt-2">
+                    {replyingDoubtId === doubt.id ? (
+                      <div className="space-y-3 p-4 rounded-2xl bg-navy-900 border border-white/15">
+                        <textarea
+                          rows="3"
+                          placeholder="Write official faculty answer..."
+                          value={replyText}
+                          onChange={(e) => setReplyText(e.target.value)}
+                          className="w-full p-3 rounded-xl bg-navy-950 border border-white/10 text-white text-sm focus:outline-none focus:border-royal-500"
+                        />
+                        <div className="flex justify-end gap-2">
+                          <button
+                            onClick={() => setReplyingDoubtId(null)}
+                            className="px-4 py-2 rounded-xl text-xs font-bold text-slate-400 hover:text-white"
+                          >
+                            Cancel
+                          </button>
+                          <button
+                            onClick={() => handleSubmitReply(doubt.id)}
+                            disabled={replying}
+                            className="px-5 py-2 rounded-xl bg-royal-600 hover:bg-royal-500 text-white text-xs font-bold flex items-center gap-1.5 shadow-glow-blue"
+                          >
+                            <Send className="w-3.5 h-3.5" />
+                            <span>{replying ? 'Posting...' : 'Post Reply'}</span>
+                          </button>
+                        </div>
                       </div>
-                    </div>
-                  ) : (
-                    <button
-                      onClick={() => {
-                        setReplyingDoubtId(doubt.id);
-                        setReplyText('');
-                      }}
-                      className="text-xs font-bold text-royal-400 hover:text-royal-300 flex items-center gap-1.5"
-                    >
-                      <MessageSquare className="w-4 h-4" />
-                      <span>{isAdmin ? 'Reply as Faculty / Admin' : 'Post Answer'}</span>
-                    </button>
-                  )}
-                </div>
+                    ) : (
+                      <button
+                        onClick={() => {
+                          setReplyingDoubtId(doubt.id);
+                          setReplyText('');
+                        }}
+                        className="text-xs font-bold text-amber-400 hover:text-amber-300 flex items-center gap-1.5"
+                      >
+                        <MessageSquare className="w-4 h-4" />
+                        <span>Reply as Faculty / Admin</span>
+                      </button>
+                    )}
+                  </div>
+                )
               )}
 
             </div>
@@ -287,14 +360,14 @@ export default function Doubts() {
       {/* Ask Doubt Modal */}
       {showAskModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-navy-950/80 backdrop-blur-md">
-          <div className="glass-card p-6 sm:p-8 rounded-3xl border border-white/15 max-w-md w-full shadow-2xl space-y-6">
+          <div className="glass-card p-6 sm:p-8 rounded-3xl border border-white/15 max-w-md w-full shadow-2xl space-y-6 max-h-[90vh] overflow-y-auto">
             
             <div className="flex items-center justify-between border-b border-white/10 pb-4">
               <h3 className="text-xl font-bold text-white flex items-center gap-2">
                 <HelpCircle className="w-5 h-5 text-amber-400" />
                 <span>Submit Academic Question</span>
               </h3>
-              <button onClick={() => setShowAskModal(false)} className="text-slate-400 hover:text-white font-bold">
+              <button onClick={resetAskModal} className="text-slate-400 hover:text-white font-bold">
                 ✕
               </button>
             </div>
@@ -302,7 +375,7 @@ export default function Doubts() {
             <form onSubmit={handleAskDoubt} className="space-y-4">
               <div>
                 <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-2">
-                  Question Title / Topic
+                  Question Title / Topic *
                 </label>
                 <input
                   type="text"
@@ -316,7 +389,7 @@ export default function Doubts() {
 
               <div>
                 <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-2">
-                  Subject
+                  Subject *
                 </label>
                 <select
                   value={subject}
@@ -331,7 +404,7 @@ export default function Doubts() {
 
               <div>
                 <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-2">
-                  Detailed Explanation of Doubt
+                  Detailed Explanation of Doubt *
                 </label>
                 <textarea
                   rows="4"
@@ -343,10 +416,54 @@ export default function Doubts() {
                 ></textarea>
               </div>
 
+              {/* Photo Upload Input */}
+              <div>
+                <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-2">
+                  Attach Photo / Screenshot (Optional)
+                </label>
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="w-full py-3 rounded-xl border-2 border-dashed border-amber-500/40 text-amber-400 hover:bg-amber-500/10 text-sm font-bold flex items-center justify-center gap-2 transition-colors"
+                >
+                  <Upload className="w-4 h-4" />
+                  <span>Attach Question Photo</span>
+                </button>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  onChange={handleFileSelect}
+                  className="hidden"
+                />
+
+                {previewUrls.length > 0 && (
+                  <div className="grid grid-cols-3 gap-2 mt-3">
+                    {previewUrls.map((item, idx) => (
+                      <div key={idx} className="relative group aspect-square">
+                        <img
+                          src={item.url}
+                          alt="Preview"
+                          className="w-full h-full object-cover rounded-xl border border-white/10"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => removeImage(idx)}
+                          className="absolute top-1 right-1 bg-rose-600 text-white rounded-full p-1 opacity-90 hover:opacity-100"
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
               <div className="pt-4 flex gap-3">
                 <button
                   type="button"
-                  onClick={() => setShowAskModal(false)}
+                  onClick={resetAskModal}
                   className="w-full py-3 rounded-xl border border-white/10 text-slate-300 text-sm font-semibold hover:bg-white/5"
                 >
                   Cancel
@@ -356,11 +473,26 @@ export default function Doubts() {
                   disabled={submitting}
                   className="w-full py-3 rounded-xl bg-amber-500 text-navy-950 text-sm font-black shadow-glow-gold hover:bg-amber-400 disabled:opacity-50"
                 >
-                  {submitting ? 'Submitting...' : 'Post Doubt'}
+                  {submitting ? 'Uploading & Posting...' : 'Post Doubt'}
                 </button>
               </div>
             </form>
 
+          </div>
+        </div>
+      )}
+
+      {/* View Images Modal */}
+      {viewImagesModal && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-navy-950/95 backdrop-blur-md" onClick={() => setViewImagesModal(null)}>
+          <div className="max-w-3xl w-full space-y-3 max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-2">
+              <h3 className="text-white font-bold">Doubt Attachment Photos ({viewImagesModal.length})</h3>
+              <button onClick={() => setViewImagesModal(null)} className="text-slate-400 hover:text-white font-bold text-2xl">✕</button>
+            </div>
+            {viewImagesModal.map((url, i) => (
+              <img key={i} src={url} alt={`Doubt Attachment ${i + 1}`} className="w-full rounded-2xl border border-white/10 shadow-2xl" />
+            ))}
           </div>
         </div>
       )}
