@@ -14,7 +14,8 @@ import {
   HelpCircle,
   User,
   Crown,
-  Headphones
+  Headphones,
+  Calendar as CalendarIcon
 } from 'lucide-react';
 import SupportModal from './SupportModal';
 
@@ -24,6 +25,7 @@ export default function MobileMenuFAB({ activeTab, setActiveTab }) {
 
   const navItems = [
     { id: 'overview', label: 'Home', icon: LayoutDashboard },
+    { id: 'calendar', label: 'Calendar', icon: CalendarIcon },
     { id: 'syllabus', label: 'Syllabus', icon: BookOpenCheck },
     { id: 'timer', label: 'Study Timer', icon: Clock },
     { id: 'writing', label: 'Writing Practice', icon: PenLine },
@@ -37,9 +39,9 @@ export default function MobileMenuFAB({ activeTab, setActiveTab }) {
   ];
 
   const quickJoinItems = [
+    { id: 'calendar', label: 'Calendar', icon: CalendarIcon, color: 'text-emerald-400', bg: 'bg-emerald-400/20' },
     { id: 'timer', label: 'Study Timer', icon: Clock, color: 'text-amber-400', bg: 'bg-amber-400/20' },
     { id: 'writing', label: 'Writing Practice', icon: PenLine, color: 'text-purple-400', bg: 'bg-purple-400/20' },
-    { id: 'missions', label: 'Weekly Mission', icon: Flag, color: 'text-rose-400', bg: 'bg-rose-400/20' },
     { id: 'mentor', label: 'Mentor Session', icon: Video, color: 'text-sky-400', bg: 'bg-sky-400/20' }
   ];
 

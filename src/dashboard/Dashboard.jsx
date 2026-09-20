@@ -13,6 +13,7 @@ import Profile from '../dashboard/Profile';
 import WritingPractice from '../dashboard/WritingPractice';
 import WeeklyMissions from '../dashboard/WeeklyMissions';
 import MentorSession from '../dashboard/MentorSession';
+import Calendar from '../dashboard/Calendar';
 
 import { 
   LayoutDashboard, 
@@ -29,7 +30,8 @@ import {
   Sparkles,
   PenLine,
   Video,
-  Headphones
+  Headphones,
+  Calendar as CalendarIcon
 } from 'lucide-react';
 import SupportModal from '../components/SupportModal';
 
@@ -48,6 +50,7 @@ export default function Dashboard() {
 
   const navItems = [
     { id: 'overview', label: 'Overview', icon: LayoutDashboard },
+    { id: 'calendar', label: 'Calendar', icon: CalendarIcon },
     { id: 'syllabus', label: 'Syllabus & Progress', icon: BookOpenCheck },
     { id: 'leaderboard', label: 'Live Leaderboard', icon: Trophy },
     { id: 'timer', label: 'Study Timer', icon: Clock },
@@ -148,6 +151,7 @@ export default function Dashboard() {
           {/* Main Dashboard Workspace View */}
           <main className="col-span-1 lg:col-span-9 space-y-6">
             {activeTab === 'overview' && <Overview setActiveTab={setActiveTab} />}
+            {activeTab === 'calendar' && <Calendar />}
             {activeTab === 'syllabus' && <Syllabus />}
             {activeTab === 'leaderboard' && <Leaderboard />}
             {activeTab === 'timer' && <StudyTimer />}
