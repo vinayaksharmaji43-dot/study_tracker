@@ -28,8 +28,10 @@ import {
   ChevronRight,
   Sparkles,
   PenLine,
-  Video
+  Video,
+  Headphones
 } from 'lucide-react';
+import SupportModal from '../components/SupportModal';
 
 import CountdownWidget from '../components/CountdownWidget';
 import GlobalAnnouncementPopup from '../components/GlobalAnnouncementPopup';
@@ -39,6 +41,7 @@ import MobileMenuFAB from '../components/MobileMenuFAB';
 export default function Dashboard() {
   const { userProfile, currentUser, logout } = useAuth();
   const [activeTab, setActiveTab] = useState('overview');
+  const [showSupportModal, setShowSupportModal] = useState(false);
 
   // Run the daily evaluator when Dashboard mounts
   useDailyEvaluator(currentUser);
@@ -114,8 +117,19 @@ export default function Dashboard() {
                 })}
               </nav>
 
-              {/* Logout Button */}
-              <div className="pt-2 border-t border-white/10">
+              {/* Support & Logout Buttons */}
+              <div className="pt-2 border-t border-white/10 space-y-1">
+                <button
+                  onClick={() => setShowSupportModal(true)}
+                  className="w-full flex items-center justify-between px-4 py-3 rounded-2xl text-sm font-bold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 hover:bg-emerald-500/20 transition-all"
+                >
+                  <div className="flex items-center space-x-3">
+                    <Headphones className="w-5 h-5 text-emerald-400" />
+                    <span>Help & Support</span>
+                  </div>
+                  <span className="text-[10px] font-black uppercase bg-emerald-500 text-navy-950 px-2 py-0.5 rounded-md">24/7</span>
+                </button>
+
                 <button
                   onClick={logout}
                   className="w-full flex items-center space-x-3 px-4 py-3 rounded-2xl text-sm font-semibold text-red-400 hover:bg-red-500/10 transition-colors"
@@ -151,6 +165,9 @@ export default function Dashboard() {
       </div>
 
       <Footer />
+
+      {/* Global Support Modal */}
+      <SupportModal isOpen={showSupportModal} onClose={() => setShowSupportModal(false)} />
     </div>
   );
 }

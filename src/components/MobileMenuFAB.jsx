@@ -13,11 +13,14 @@ import {
   FileText,
   HelpCircle,
   User,
-  Crown
+  Crown,
+  Headphones
 } from 'lucide-react';
+import SupportModal from './SupportModal';
 
 export default function MobileMenuFAB({ activeTab, setActiveTab }) {
   const [isOpen, setIsOpen] = useState(false);
+  const [showSupportModal, setShowSupportModal] = useState(false);
 
   const navItems = [
     { id: 'overview', label: 'Home', icon: LayoutDashboard },
@@ -130,6 +133,18 @@ export default function MobileMenuFAB({ activeTab, setActiveTab }) {
               })}
               
               <button
+                onClick={() => {
+                  setIsOpen(false);
+                  setShowSupportModal(true);
+                }}
+                className="flex items-center gap-3 w-full p-3.5 rounded-xl bg-gradient-to-r from-emerald-500/20 to-sky-500/20 text-emerald-400 border border-emerald-500/30 text-sm font-bold shadow-sm hover:opacity-95"
+              >
+                <Headphones className="w-5 h-5 text-emerald-400" />
+                <div className="flex-1 text-left">Help & Student Support</div>
+                <span className="text-[10px] font-black uppercase bg-emerald-500 text-navy-950 px-2 py-0.5 rounded-md">24/7</span>
+              </button>
+
+              <button
                 disabled
                 className="flex items-center gap-3 w-full p-3 rounded-xl bg-transparent text-gold-400/70 border border-gold-500/10 text-sm font-semibold"
               >
@@ -141,6 +156,9 @@ export default function MobileMenuFAB({ activeTab, setActiveTab }) {
           </div>
         </div>
       </div>
+
+      {/* Support Modal */}
+      <SupportModal isOpen={showSupportModal} onClose={() => setShowSupportModal(false)} />
     </>
   );
 }

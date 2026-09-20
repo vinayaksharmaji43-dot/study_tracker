@@ -2,8 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { collection, query, onSnapshot, where, orderBy, doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../config/firebase';
-import { BookOpen, Menu, X, LayoutDashboard, LogOut, User, ChevronRight, ShieldCheck, Bell, Megaphone, Check } from 'lucide-react';
+import { BookOpen, Menu, X, LayoutDashboard, LogOut, User, ChevronRight, ShieldCheck, Bell, Megaphone, Check, Headphones } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
+import SupportModal from './SupportModal';
 
 function parseStream(userProfile) {
   const raw = (userProfile?.course || '').toUpperCase();
@@ -21,6 +22,7 @@ function normalizeAttempt(att) {
 export default function Navbar() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [showAnnouncements, setShowAnnouncements] = useState(false);
+  const [showSupportModal, setShowSupportModal] = useState(false);
   const [announcements, setAnnouncements] = useState([]);
   const [readIds, setReadIds] = useState(new Set());
   
@@ -138,6 +140,16 @@ export default function Navbar() {
                 </Link>
                 
                 <div className="flex items-center space-x-3 pl-2 border-l border-white/10">
+                  {/* Support Button */}
+                  <button
+                    onClick={() => setShowSupportModal(true)}
+                    title="Student Support & Help"
+                    className="p-2 rounded-xl text-emerald-400 hover:text-emerald-300 hover:bg-emerald-500/10 transition-colors flex items-center gap-1.5 text-xs font-bold border border-emerald-500/20 bg-emerald-500/5"
+                  >
+                    <Headphones className="w-4 h-4" />
+                    <span>Support</span>
+                  </button>
+
                   {/* Announcement Bell (Students Only) */}
                   {!isAdmin && isDashboardRoute && (
                     <button
@@ -385,6 +397,9 @@ export default function Navbar() {
           </div>
         </div>
       )}
+
+      {/* Support Modal */}
+      <SupportModal isOpen={showSupportModal} onClose={() => setShowSupportModal(false)} />
     </nav>
   );
 }
