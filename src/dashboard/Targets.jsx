@@ -4,7 +4,8 @@ import { db } from '../config/firebase';
 import { useAuth } from '../contexts/AuthContext';
 import { getDateKey, formatDate } from '../utils/helpers';
 import EmptyState from '../components/EmptyState';
-import { Target, Plus, CheckCircle2, Circle, Trash2, Calendar, Award, Filter, Sparkles, AlertTriangle, Lock } from 'lucide-react';
+import { Target, Plus, CheckCircle2, Circle, Trash2, Calendar, Award, Filter, Sparkles, AlertTriangle, Lock, FileText } from 'lucide-react';
+import TestTracker from './TestTracker';
 
 const CA_SUBJECTS = [
   'Paper 1: Accounting',
@@ -24,6 +25,9 @@ export default function Targets() {
   const { currentUser, userProfile } = useAuth();
   const subjects = userProfile?.course === 'CMA' ? CMA_SUBJECTS : CA_SUBJECTS;
 
+  const [hubTab, setHubTab] = useState('targets'); // 'targets', 'test_tracker'
+  const [testSummary, setTestSummary] = useState({ attempted: 0, avgScore: 0, bestScore: 0 });
+
   const [targets, setTargets] = useState([]);
   const [filter, setFilter] = useState('all'); // 'all', 'pending', 'completed'
   const [showAddModal, setShowAddModal] = useState(false);
@@ -34,6 +38,28 @@ export default function Targets() {
   const [subject, setSubject] = useState(subjects[0]);
   const [targetHours, setTargetHours] = useState('2.0');
   const [submitting, setSubmitting] = useState(false);
+
+  // Listen to studentTests for compact summary widget
+  useEffect(() => {
+    if (!currentUser?.uid) return;
+    const qTest = query(collection(db, 'studentTests'), where('studentId', '==', currentUser.uid));
+    const unsubTest = onSnapshot(qTest, (snap) => {
+      const docs = snap.docs.map(d => d.data());
+      const completed = docs.filter(t => t.status === 'Completed');
+      const attempted = docs.length;
+      let avgScore = 0;
+      let bestScore = 0;
+      if (completed.length > 0) {
+        const totalObt = completed.reduce((s, t) => s + (t.marksObtained || 0), 0);
+        const totalTot = completed.reduce((s, t) => s + (t.totalMarks || 0), 0);
+        avgScore = totalTot > 0 ? (totalObt / totalTot) * 100 : 0;
+        const pcts = completed.map(t => t.percentage).filter(p => !isNaN(p));
+        if (pcts.length > 0) bestScore = Math.max(...pcts);
+      }
+      setTestSummary({ attempted, avgScore, bestScore });
+    });
+    return () => unsubTest();
+  }, [currentUser]);
 
   // Listen to Firestore targets
   useEffect(() => {
@@ -145,24 +171,75 @@ export default function Targets() {
 
   return (
     <div className="space-y-6">
-      {/* Header Section */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-black text-white flex items-center gap-2">
-            <Target className="w-7 h-7 text-emerald-400" />
-            Daily Targets
-          </h1>
-          <p className="text-sm text-slate-400 mt-1">Set and lock your daily goals. Complete them for points!</p>
+      {/* Self Manage Hub Section Switcher */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-white/10 pb-4">
+        <div className="flex items-center gap-2 p-1.5 rounded-2xl glass-card border border-white/10">
+          <button
+            onClick={() => setHubTab('targets')}
+            className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-bold transition-all ${
+              hubTab === 'targets'
+                ? 'bg-emerald-500 text-navy-950 font-black shadow-glow-emerald'
+                : 'text-slate-400 hover:text-white hover:bg-white/5'
+            }`}
+          >
+            <Target className="w-4 h-4" />
+            <span>🎯 Daily Targets</span>
+          </button>
+          
+          <button
+            onClick={() => setHubTab('test_tracker')}
+            className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-bold transition-all ${
+              hubTab === 'test_tracker'
+                ? 'bg-purple-600 text-white font-black shadow-glow-purple'
+                : 'text-slate-400 hover:text-white hover:bg-white/5'
+            }`}
+          >
+            <FileText className="w-4 h-4" />
+            <span>📝 Test Tracker</span>
+          </button>
         </div>
-        
-        <button
-          onClick={() => setShowAddModal(true)}
-          className="px-5 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-navy-950 text-sm font-black flex items-center justify-center gap-2 transition-all shadow-glow-emerald"
-        >
-          <Plus className="w-4 h-4" />
-          <span>New Target</span>
-        </button>
+
+        {/* Compact Test Summary Box (Section 22) */}
+        {hubTab === 'targets' && (
+          <div className="flex items-center gap-3 p-3 rounded-2xl glass-card border border-purple-500/20 text-xs">
+            <div className="flex items-center gap-3 text-slate-300">
+              <div>Attempted: <strong className="text-white">{testSummary.attempted}</strong></div>
+              <div>Avg: <strong className="text-purple-300">{testSummary.avgScore.toFixed(0)}%</strong></div>
+              <div>Best: <strong className="text-emerald-400">{testSummary.bestScore.toFixed(0)}%</strong></div>
+            </div>
+            <button
+              onClick={() => setHubTab('test_tracker')}
+              className="px-3 py-1.5 rounded-xl bg-purple-600 hover:bg-purple-500 text-white text-[11px] font-bold transition-all shadow-glow-purple"
+            >
+              View Tests →
+            </button>
+          </div>
+        )}
       </div>
+
+      {/* RENDER TEST TRACKER TAB */}
+      {hubTab === 'test_tracker' ? (
+        <TestTracker />
+      ) : (
+        <>
+          {/* Header Section */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+              <h1 className="text-2xl font-black text-white flex items-center gap-2">
+                <Target className="w-7 h-7 text-emerald-400" />
+                Daily Targets
+              </h1>
+              <p className="text-sm text-slate-400 mt-1">Set and lock your daily goals. Complete them for points!</p>
+            </div>
+            
+            <button
+              onClick={() => setShowAddModal(true)}
+              className="px-5 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-navy-950 text-sm font-black flex items-center justify-center gap-2 transition-all shadow-glow-emerald"
+            >
+              <Plus className="w-4 h-4" />
+              <span>New Target</span>
+            </button>
+          </div>
 
       {/* Filters */}
       <div className="flex items-center gap-2 overflow-x-auto pb-2 custom-scrollbar">
@@ -381,6 +458,8 @@ export default function Targets() {
             </div>
           </div>
         </div>
+      )}
+        </>
       )}
     </div>
   );
