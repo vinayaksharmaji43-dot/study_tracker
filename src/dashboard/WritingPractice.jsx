@@ -135,14 +135,16 @@ export default function WritingPractice() {
       setSubmitting(true);
       await addDoc(collection(db, 'writingPracticeSubmissions'), {
         studentId: currentUser.uid,
-        studentName: userProfile?.name || currentUser.email,
-        studentEmail: currentUser.email,
-        course, level, attempt,
-        subject: form.subject.trim(),
-        chapter: form.chapter.trim(),
-        title: form.title.trim(),
-        targetDate: form.targetDate,
-        notes: form.notes.trim(),
+        studentName: userProfile?.name || currentUser?.email || 'Unknown Student',
+        studentEmail: currentUser?.email || 'no-email@test.com',
+        course: course || '', 
+        level: level || '', 
+        attempt: attempt || '',
+        subject: form.subject?.trim() || '',
+        chapter: form.chapter?.trim() || '',
+        title: form.title?.trim() || '',
+        targetDate: form.targetDate || '',
+        notes: form.notes?.trim() || '',
         createdBy: 'student',
         createdAt: serverTimestamp(),
         status: 'pending',
@@ -152,7 +154,10 @@ export default function WritingPractice() {
       });
       setForm({ subject: '', chapter: '', title: '', targetDate: '', notes: '' });
       setCreateModal(false);
-    } catch (err) { console.error(err); alert('Failed to create target.'); }
+    } catch (err) { 
+      console.error('Create Target Error:', err); 
+      alert(`Failed to create target: ${err.message || err}`); 
+    }
     finally { setSubmitting(false); }
   };
 
@@ -175,12 +180,14 @@ export default function WritingPractice() {
       } else {
         await addDoc(collection(db, 'writingPracticeSubmissions'), {
           studentId: currentUser.uid,
-          studentName: userProfile?.name || currentUser.email,
-          studentEmail: currentUser.email,
-          course, level, attempt,
-          subject: completeModal.subject,
+          studentName: userProfile?.name || currentUser?.email || 'Unknown Student',
+          studentEmail: currentUser?.email || 'no-email@test.com',
+          course: course || '', 
+          level: level || '', 
+          attempt: attempt || '',
+          subject: completeModal.subject || '',
           chapter: completeModal.chapter || '',
-          title: completeModal.title,
+          title: completeModal.title || '',
           targetDate: completeModal.targetDate || '',
           adminTargetId: completeModal.adminTargetId,
           createdBy: 'admin',
@@ -193,7 +200,10 @@ export default function WritingPractice() {
         });
       }
       resetCompleteModal();
-    } catch (err) { console.error(err); alert('Submission failed. Check your internet and try again.'); }
+    } catch (err) { 
+      console.error('Submit Error:', err); 
+      alert(`Submission failed: ${err.message || err}`); 
+    }
     finally { setUploading(false); }
   };
 
