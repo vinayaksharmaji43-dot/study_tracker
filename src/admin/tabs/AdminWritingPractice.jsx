@@ -13,8 +13,8 @@ import EmptyState from '../../components/EmptyState';
 
 const COURSES = ['CA', 'CMA'];
 const LEVELS = ['Foundation', 'Intermediate'];
-const CA_ATTEMPTS = ['Jan 2027', 'May 2027', 'Sep 2027'];
-const CMA_ATTEMPTS = ['Jun 2027', 'Dec 2027'];
+const CA_ATTEMPTS = ['All Attempts', 'Jan 2027', 'May 2027', 'Sep 2027'];
+const CMA_ATTEMPTS = ['All Attempts', 'Jun 2027', 'Dec 2027'];
 
 function getAttempts(course) {
   return course === 'CMA' ? CMA_ATTEMPTS : CA_ATTEMPTS;
@@ -44,7 +44,7 @@ export default function AdminWritingPractice() {
   // Create target form
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [editTarget, setEditTarget] = useState(null);
-  const [tForm, setTForm] = useState({ course: 'CA', level: 'Foundation', attempt: 'Jan 2027', subject: '', chapter: '', title: '', targetDate: '', instructions: '' });
+  const [tForm, setTForm] = useState({ course: 'CA', level: 'Foundation', attempt: 'All Attempts', subject: '', chapter: '', title: '', targetDate: '', instructions: '' });
   const [tSaving, setTSaving] = useState(false);
 
   // Evaluate modal
@@ -64,16 +64,32 @@ export default function AdminWritingPractice() {
   // Load all targets
   useEffect(() => {
     return onSnapshot(
-      query(collection(db, 'writingPracticeTargets'), orderBy('createdAt', 'desc')),
-      snap => setTargets(snap.docs.map(d => ({ id: d.id, ...d.data() })))
+      collection(db, 'writingPracticeTargets'),
+      snap => {
+        const docs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+        docs.sort((a, b) => {
+          const tA = a.createdAt?.toDate ? a.createdAt.toDate().getTime() : (a.createdAt || Date.now());
+          const tB = b.createdAt?.toDate ? b.createdAt.toDate().getTime() : (b.createdAt || Date.now());
+          return tB - tA;
+        });
+        setTargets(docs);
+      }
     );
   }, []);
 
   // Load all submissions
   useEffect(() => {
     return onSnapshot(
-      query(collection(db, 'writingPracticeSubmissions'), orderBy('createdAt', 'desc')),
-      snap => setSubmissions(snap.docs.map(d => ({ id: d.id, ...d.data() })))
+      collection(db, 'writingPracticeSubmissions'),
+      snap => {
+        const docs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+        docs.sort((a, b) => {
+          const tA = a.createdAt?.toDate ? a.createdAt.toDate().getTime() : (a.createdAt || Date.now());
+          const tB = b.createdAt?.toDate ? b.createdAt.toDate().getTime() : (b.createdAt || Date.now());
+          return tB - tA;
+        });
+        setSubmissions(docs);
+      }
     );
   }, []);
 

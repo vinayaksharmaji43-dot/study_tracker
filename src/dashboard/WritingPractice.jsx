@@ -74,9 +74,17 @@ export default function WritingPractice() {
     );
     return onSnapshot(q, snap => {
       const all = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-      const filtered = all.filter(t => !t.attempt || normalizeAttempt(t.attempt) === normalizeAttempt(attempt));
+      const filtered = all.filter(t => 
+        !t.attempt || 
+        t.attempt === 'All Attempts' || 
+        t.attempt === 'all' || 
+        !attempt || 
+        normalizeAttempt(t.attempt) === normalizeAttempt(attempt) ||
+        normalizeAttempt(t.attempt).includes(normalizeAttempt(attempt)) ||
+        normalizeAttempt(attempt).includes(normalizeAttempt(t.attempt))
+      );
       setAdminTargets(filtered);
-    });
+    }, (err) => console.error("Admin targets query error:", err));
   }, [currentUser, course, level, attempt]);
 
   // Load my submissions
@@ -84,13 +92,21 @@ export default function WritingPractice() {
     if (!currentUser) return;
     const q = query(
       collection(db, 'writingPracticeSubmissions'),
-      where('studentId', '==', currentUser.uid),
-      orderBy('createdAt', 'desc')
+      where('studentId', '==', currentUser.uid)
     );
     return onSnapshot(q, snap => {
-      setMySubmissions(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+      const docs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      docs.sort((a, b) => {
+        const tA = a.createdAt?.toDate ? a.createdAt.toDate().getTime() : (a.createdAt || Date.now());
+        const tB = b.createdAt?.toDate ? b.createdAt.toDate().getTime() : (b.createdAt || Date.now());
+        return tB - tA;
+      });
+      setMySubmissions(docs);
       setLoading(false);
-    }, () => setLoading(false));
+    }, (err) => {
+      console.error("Submissions query error:", err);
+      setLoading(false);
+    });
   }, [currentUser]);
 
   // Load evaluations
