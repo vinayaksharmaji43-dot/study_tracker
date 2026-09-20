@@ -419,6 +419,9 @@ export default function Overview({ setActiveTab }) {
           <div className="text-xs text-amber-400 font-medium">
             {currentStreak > 0 ? 'Consistency streak active!' : 'Study today to build a streak'}
           </div>
+          <div className="text-[10px] text-slate-500 font-medium pt-2 border-t border-white/5">
+            ⚠️ Requires minimum 5 hours of total study per day to grow streak.
+          </div>
         </div>
 
         {/* Card 5: Target Completion */}

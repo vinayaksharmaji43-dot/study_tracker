@@ -41,20 +41,24 @@ export function getMonthKey(date = new Date()) {
 export function calculateStreak(sessions = [], protectedDates = []) {
   if (!sessions || sessions.length === 0) return 0;
   
-  // Get unique study dates sorted descending
-  const dates = sessions
-    .map(s => {
-      const d = s.date?.toDate ? s.date.toDate() : new Date(s.date);
-      return getDateKey(d);
-    })
-    .filter(Boolean);
+  // Aggregate durations per date
+  const dailyDurations = {};
+  sessions.forEach(s => {
+    if (!s.date) return;
+    const d = s.date.toDate ? s.date.toDate() : new Date(s.date);
+    const dateKey = getDateKey(d);
+    const duration = Number(s.duration) || 0;
+    dailyDurations[dateKey] = (dailyDurations[dateKey] || 0) + duration;
+  });
 
-  const uniqueDates = Array.from(new Set(dates));
-  if (uniqueDates.length === 0) return 0;
+  // A study day is one where total duration >= 18000 seconds (5 hours)
+  const validStudyDates = Object.keys(dailyDurations).filter(k => dailyDurations[k] >= 18000);
+  
+  if (validStudyDates.length === 0) return 0;
 
   const protectedDateSet = new Set(protectedDates);
   let streak = 0;
-  const studyDateSet = new Set(uniqueDates);
+  const studyDateSet = new Set(validStudyDates);
   const currentDate = new Date();
 
   // Move over today's protected rest days, or the usual one-day grace period.
