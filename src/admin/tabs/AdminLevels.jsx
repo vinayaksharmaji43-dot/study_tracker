@@ -14,6 +14,8 @@ const STREAMS = [
   { course: 'CMA', level: 'Intermediate', label: 'CMA Intermediate' }
 ];
 
+const LEVEL_NAMES_VERSION = 2;
+
 export default function AdminLevels() {
   const [selectedStream, setSelectedStream] = useState(STREAMS[0]);
   const streamId = getStreamId(selectedStream.course, selectedStream.level);
@@ -33,16 +35,37 @@ export default function AdminLevels() {
     setLoading(true);
     const docRef = doc(db, 'levelConfigs', streamId);
 
-    const unsub = onSnapshot(docRef, (snap) => {
+    const unsub = onSnapshot(docRef, async (snap) => {
       if (snap.exists() && snap.data().levels?.length === 35) {
-        setLevelsList(normalizeLevelConfig(snap.data().levels, streamId));
+        const savedData = snap.data();
+        const savedLevels = normalizeLevelConfig(savedData.levels, streamId);
+        const defaults = getDefaultStreamLevels(streamId);
+        const migratedLevels = savedLevels.map((level, index) => ({
+          ...level,
+          levelName: savedData.levelNamesVersion === LEVEL_NAMES_VERSION ? level.levelName : defaults[index].levelName,
+          badge: savedData.levelNamesVersion === LEVEL_NAMES_VERSION ? level.badge : defaults[index].badge
+        }));
+
+        setLevelsList(migratedLevels);
+
+        if (savedData.levelNamesVersion !== LEVEL_NAMES_VERSION) {
+          try {
+            await setDoc(docRef, {
+              levels: migratedLevels,
+              levelNamesVersion: LEVEL_NAMES_VERSION,
+              updatedAt: serverTimestamp()
+            }, { merge: true });
+          } catch (error) {
+            console.error('Could not migrate level names and badges:', error);
+          }
+        }
       } else {
         setLevelsList(getDefaultStreamLevels(streamId));
       }
       setLoading(false);
     }, (err) => {
       console.error("Error fetching levelConfigs:", err);
-      setLevelsList(DEFAULT_35_LEVELS);
+      setLevelsList(getDefaultStreamLevels(streamId));
       setLoading(false);
     });
 
