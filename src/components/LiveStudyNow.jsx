@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { collection, query, where, onSnapshot } from 'firebase/firestore';
 import { db } from '../config/firebase';
 import { useAuth } from '../contexts/AuthContext';
+import { Users, Radio, Flame, Sparkles } from 'lucide-react';
+import { calculateStudentLevel, getDefaultStreamLevels, getStreamId, normalizeLevelConfig } from '../utils/levelSystem';
 
 function getBadge(durationSecs) {
   const hours = durationSecs / 3600;
@@ -26,6 +28,17 @@ export default function LiveStudyNow() {
   const { currentUser } = useAuth();
   const [activeSessions, setActiveSessions] = useState([]);
   const [now, setNow] = useState(Date.now());
+  const [levelConfigs, setLevelConfigs] = useState({});
+
+  useEffect(() => {
+    return onSnapshot(collection(db, 'levelConfigs'), (snapshot) => {
+      const configs = {};
+      snapshot.docs.forEach(configDoc => {
+        configs[configDoc.id] = normalizeLevelConfig(configDoc.data().levels, configDoc.id);
+      });
+      setLevelConfigs(configs);
+    });
+  }, []);
 
   // 1. Fetch active sessions from Firestore
   useEffect(() => {
@@ -84,6 +97,8 @@ export default function LiveStudyNow() {
           {validSessions.map((s) => {
             const badge = getBadge(Math.max(0, s.durationSecs));
             const isMe = s.studentId === currentUser?.uid;
+            const streamId = getStreamId(s.course, s.level);
+            const liveLevel = calculateStudentLevel(s.points || 0, levelConfigs[streamId] || getDefaultStreamLevels(streamId));
 
             return (
               <div 
@@ -97,8 +112,11 @@ export default function LiveStudyNow() {
                     <div className="flex items-center gap-2 flex-wrap">
                       <div className="flex items-center gap-1.5 shrink-0">
                         <span className="w-2 h-2 rounded-full bg-rose-500"></span>
-                        <h3 className="text-sm font-black text-white truncate max-w-[120px] sm:max-w-[150px] uppercase">
-                          {s.displayName}
+                        <h3 className="text-sm font-black text-white truncate max-w-[120px] sm:max-w-[150px] uppercase flex items-center gap-1">
+                          <span>{s.displayName}</span>
+                          <span title={`Level ${liveLevel.currentLevelNumber}: ${liveLevel.currentLevelName}`}>
+                            {liveLevel.badge} {liveLevel.currentLevelName}
+                          </span>
                         </h3>
                       </div>
                       

@@ -13,6 +13,7 @@ import { doc, getDoc, setDoc, updateDoc, onSnapshot, serverTimestamp } from 'fir
 import { auth, db } from '../config/firebase';
 import { generateRollNumber } from '../utils/rollNumberGenerator';
 import LoadingSpinner from '../components/LoadingSpinner';
+import { calculateStudentLevel, getDefaultStreamLevels, getStreamId, normalizeLevelConfig } from '../utils/levelSystem';
 
 const AuthContext = createContext();
 
@@ -23,6 +24,7 @@ export function useAuth() {
 export function AuthProvider({ children }) {
   const [currentUser, setCurrentUser] = useState(null);
   const [userProfile, setUserProfile] = useState(null);
+  const [levelConfig, setLevelConfig] = useState(null);
   const [loading, setLoading] = useState(true);
 
   // Subscribe to auth state changes and fetch Firestore user profile
@@ -150,6 +152,105 @@ export function AuthProvider({ children }) {
     };
   }, []);
 
+  const streamId = userProfile ? getStreamId(userProfile.course, userProfile.level) : null;
+
+  useEffect(() => {
+    if (!streamId || userProfile?.role === 'admin') return undefined;
+
+    const configRef = doc(db, 'levelConfigs', streamId);
+    return onSnapshot(configRef, async (snapshot) => {
+      if (snapshot.exists() && Array.isArray(snapshot.data().levels) && snapshot.data().levels.length === 35) {
+        setLevelConfig(normalizeLevelConfig(snapshot.data().levels, streamId));
+        return;
+      }
+
+      const defaults = getDefaultStreamLevels(streamId);
+      setLevelConfig(defaults);
+      try {
+        await setDoc(configRef, {
+          stream: streamId,
+          course: streamId.split('_')[0],
+          level: streamId.split('_')[1],
+          levels: defaults,
+          createdAt: serverTimestamp(),
+          updatedAt: serverTimestamp()
+        }, { merge: true });
+      } catch (error) {
+        console.warn('Could not initialize level configuration:', error);
+      }
+    }, (error) => {
+      console.error('Level configuration listener error:', error);
+      setLevelConfig(getDefaultStreamLevels(streamId));
+    });
+  }, [streamId, userProfile?.role]);
+
+  useEffect(() => {
+    if (!currentUser?.uid || !userProfile || userProfile.role === 'admin' || !levelConfig) return;
+
+    const levelInfo = calculateStudentLevel(userProfile.points, levelConfig);
+    const previousLevel = Number(userProfile.currentLevel) || null;
+    const isFirstSync = previousLevel === null;
+    const levelChanged = previousLevel !== null && previousLevel !== levelInfo.currentLevelNumber;
+    const nextLastNotified = isFirstSync
+      ? levelInfo.currentLevelNumber
+      : (levelChanged && levelInfo.currentLevelNumber < previousLevel
+        ? levelInfo.currentLevelNumber
+        : (Number(userProfile.lastNotifiedLevel) || 1));
+
+    const userRef = doc(db, 'users', currentUser.uid);
+    const levelDataRef = doc(db, 'studentLevelData', currentUser.uid);
+    const levelData = {
+      studentId: currentUser.uid,
+      stream: streamId,
+      currentLevel: levelInfo.currentLevelNumber,
+      levelName: levelInfo.currentLevelName,
+      badge: levelInfo.badge,
+      totalPoints: levelInfo.totalPoints,
+      lastNotifiedLevel: nextLastNotified,
+      updatedAt: serverTimestamp()
+    };
+
+    const updates = {
+      currentLevel: levelInfo.currentLevelNumber,
+      levelName: levelInfo.currentLevelName,
+      badge: levelInfo.badge,
+      lastNotifiedLevel: nextLastNotified,
+      levelStream: streamId,
+      levelUpdatedAt: serverTimestamp()
+    };
+
+    const shouldUpdateProfile = previousLevel !== levelInfo.currentLevelNumber ||
+      userProfile.levelName !== levelInfo.currentLevelName ||
+      userProfile.badge !== levelInfo.badge ||
+      userProfile.lastNotifiedLevel !== nextLastNotified ||
+      userProfile.levelStream !== streamId;
+
+    const syncLevel = async () => {
+      try {
+        await setDoc(levelDataRef, levelData, { merge: true });
+        if (shouldUpdateProfile) await updateDoc(userRef, updates);
+
+        if (levelChanged) {
+          await setDoc(doc(db, 'users', currentUser.uid, 'levelHistory', `level_${levelInfo.currentLevelNumber}`), {
+            studentId: currentUser.uid,
+            stream: streamId,
+            fromLevel: previousLevel,
+            toLevel: levelInfo.currentLevelNumber,
+            levelNumber: levelInfo.currentLevelNumber,
+            levelName: levelInfo.currentLevelName,
+            badge: levelInfo.badge,
+            pointsAtLevelUp: levelInfo.totalPoints,
+            achievedAt: serverTimestamp()
+          }, { merge: true });
+        }
+      } catch (error) {
+        console.error('Could not synchronize student level:', error);
+      }
+    };
+
+    syncLevel();
+  }, [currentUser?.uid, userProfile, levelConfig, streamId]);
+
   // Login function with Remember Me persistence support & Ban check
   async function login(email, password, rememberMe = true) {
     const persistenceType = rememberMe ? browserLocalPersistence : browserSessionPersistence;
@@ -244,6 +345,8 @@ export function AuthProvider({ children }) {
     register,
     logout,
     resetPassword
+    ,levelInfo: userProfile ? calculateStudentLevel(userProfile.points, levelConfig || getDefaultStreamLevels(streamId || getStreamId(userProfile.course, userProfile.level))) : null
+    ,levelConfig
   };
 
   return (

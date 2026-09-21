@@ -23,6 +23,7 @@ import AdminTimerSubjects from './tabs/AdminTimerSubjects';
 import AdminMentorSessions from './tabs/AdminMentorSessions';
 import AdminDevices from './tabs/AdminDevices';
 import AdminTests from './tabs/AdminTests';
+import AdminLevels from './tabs/AdminLevels';
 
 import { 
   LayoutDashboard,  
@@ -44,7 +45,8 @@ import {
   PenLine,
   Flag,
   Video,
-  MonitorSmartphone
+  MonitorSmartphone,
+  Award
 } from 'lucide-react';
 
 
@@ -61,6 +63,7 @@ export default function AdminDashboard() {
     { id: 'leaderboard', label: 'Leaderboard', icon: Trophy },
     { id: 'targets', label: 'Targets', icon: Target },
     { id: 'tests', label: 'Test Papers', icon: FileText },
+    { id: 'levels', label: 'Levels & Badges', icon: Award },
     { id: 'writing_practice', label: 'Writing Practice', icon: PenLine },
     { id: 'missions', label: 'Weekly Missions', icon: Flag },
     { id: 'sessions', label: 'Study Sessions', icon: Clock },
@@ -175,6 +178,7 @@ export default function AdminDashboard() {
             {activeTab === 'leaderboard' && <AdminLeaderboard />}
             {activeTab === 'targets' && <AdminTargets />}
             {activeTab === 'tests' && <AdminTests />}
+            {activeTab === 'levels' && <AdminLevels />}
             {activeTab === 'writing_practice' && <AdminWritingPractice />}
             { activeTab === 'missions' && <AdminWeeklyMissions /> }
             { activeTab === 'sessions' && <AdminSessions /> }

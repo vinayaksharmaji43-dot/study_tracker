@@ -1,8 +1,57 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function admin() {
+      return signedIn() && (
+        request.auth.token.email == 'vaultstore27@gmail.com' ||
+        request.auth.token.email == 'thunderworld766@gmail.com' ||
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin'
+      );
+    }
+
+    function protectedLevelPath(path) {
+      return path.matches('levelConfigs/.*') ||
+        path.matches('studentLevelData/.*') ||
+        path.matches('users/.*/levelHistory/.*');
+    }
+
+    match /users/{userId} {
+      allow read: if signedIn();
+      allow create: if signedIn() && request.auth.uid == userId;
+      allow update: if admin() || (
+        signedIn() && request.auth.uid == userId &&
+        request.resource.data.points == resource.data.points &&
+        request.resource.data.role == resource.data.role &&
+        request.resource.data.currentLevel == resource.data.currentLevel &&
+        request.resource.data.levelName == resource.data.levelName &&
+        request.resource.data.badge == resource.data.badge &&
+        request.resource.data.lastNotifiedLevel == resource.data.lastNotifiedLevel &&
+        request.resource.data.levelStream == resource.data.levelStream
+      );
+      allow delete: if admin();
+    }
+
+    match /levelConfigs/{streamId} {
+      allow read: if signedIn();
+      allow write: if admin();
+    }
+
+    match /studentLevelData/{studentId} {
+      allow read: if signedIn() && (request.auth.uid == studentId || admin());
+      allow write: if admin();
+    }
+
+    match /users/{studentId}/levelHistory/{historyId} {
+      allow read: if signedIn() && (request.auth.uid == studentId || admin());
+      allow write: if admin();
+    }
+
     match /{document=**} {
-      allow read, write: if true;
+      allow read, write: if signedIn() && !protectedLevelPath(document);
     }
   }
 }

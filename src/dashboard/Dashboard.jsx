@@ -39,9 +39,10 @@ import CountdownWidget from '../components/CountdownWidget';
 import GlobalAnnouncementPopup from '../components/GlobalAnnouncementPopup';
 import useDailyEvaluator from '../hooks/useDailyEvaluator';
 import MobileMenuFAB from '../components/MobileMenuFAB';
+import LevelUpModal from '../components/LevelUpModal';
 
 export default function Dashboard() {
-  const { userProfile, currentUser, logout } = useAuth();
+  const { userProfile, currentUser, logout, levelInfo } = useAuth();
   const [activeTab, setActiveTab] = useState('overview');
   const [showSupportModal, setShowSupportModal] = useState(false);
 
@@ -84,8 +85,11 @@ export default function Dashboard() {
               
               {/* User Snapshot Header */}
               <div className="p-4 rounded-2xl bg-navy-900/80 border border-white/5 space-y-1 mb-2">
-                <div className="text-sm font-bold text-white truncate">
-                  {userProfile?.name || currentUser?.email}
+                <div className="text-sm font-bold text-white truncate flex items-center justify-between gap-1">
+                  <span className="truncate">{userProfile?.name || currentUser?.email}</span>
+                  <span className="text-xs px-2 py-0.5 rounded-lg bg-gold-500/20 text-gold-300 font-bold border border-gold-500/30 shrink-0" title={`Level ${levelInfo?.currentLevelNumber}: ${levelInfo?.currentLevelName}`}>
+                    {levelInfo?.badge} {levelInfo?.currentLevelName}
+                  </span>
                 </div>
                 <div className="text-xs font-semibold text-gold-400 flex items-center gap-1.5">
                   <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
@@ -169,6 +173,9 @@ export default function Dashboard() {
       </div>
 
       <Footer />
+
+      {/* Global Level Up Modal */}
+      <LevelUpModal />
 
       {/* Global Support Modal */}
       <SupportModal isOpen={showSupportModal} onClose={() => setShowSupportModal(false)} />

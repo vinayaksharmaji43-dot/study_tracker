@@ -3,10 +3,11 @@ import { doc, updateDoc } from 'firebase/firestore';
 import { db } from '../config/firebase';
 import { useAuth } from '../contexts/AuthContext';
 import { formatDate, formatHours } from '../utils/helpers';
-import { User, Mail, GraduationCap, Calendar, Award, BookOpen, LogOut, CheckCircle, ShieldCheck, Edit3, BookOpenCheck } from 'lucide-react';
+import { User, Mail, GraduationCap, Calendar, Award, BookOpen, LogOut, CheckCircle, ShieldCheck, Edit3, BookOpenCheck, Sparkles, Trophy, Flame, Crown, ChevronRight } from 'lucide-react';
+import { collection, query, orderBy, onSnapshot } from 'firebase/firestore';
 
 export default function Profile() {
-  const { userProfile, currentUser, logout } = useAuth();
+  const { userProfile, currentUser, logout, levelInfo } = useAuth();
 
   const [name, setName] = useState('');
   const [course, setCourse] = useState('CA');
@@ -26,16 +27,18 @@ export default function Profile() {
     }
   }, [userProfile]);
 
+  const [levelHistory, setLevelHistory] = useState([]);
+
+  const userPoints = userProfile?.points || 0;
+
   useEffect(() => {
     if (!currentUser?.uid) return;
-    import('firebase/firestore').then(({ onSnapshot, doc }) => {
-      const unsub = onSnapshot(doc(db, 'userDeviceSlots', currentUser.uid), (docSnap) => {
-        if (docSnap.exists()) {
-          setDeviceSlots(docSnap.data());
-        }
-      });
-      return () => unsub();
-    });
+    const historyRef = collection(db, 'users', currentUser.uid, 'levelHistory');
+    const q = query(historyRef, orderBy('achievedAt', 'desc'));
+    const unsub = onSnapshot(q, snap => {
+      setLevelHistory(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+    }, err => console.error("Level history listener error:", err));
+    return () => unsub();
   }, [currentUser]);
 
   const handleCourseChange = (newCourse) => {
@@ -88,10 +91,17 @@ export default function Profile() {
               </div>
             </div>
             <div className="space-y-1 text-center sm:text-left">
-              <div className="flex items-center gap-2 justify-center sm:justify-start">
+              <div className="flex items-center gap-2.5 justify-center sm:justify-start flex-wrap">
                 <h1 className="text-2xl font-extrabold text-white">{userProfile?.name || 'Student'}</h1>
+                
+                {/* Current Level Badge Pill */}
+                <span className="px-3 py-1 rounded-xl bg-gold-500/20 text-gold-300 text-xs font-black border border-gold-500/30 flex items-center gap-1.5 shadow-glow-gold">
+                  <span>{levelInfo.badge}</span>
+                  <span>{levelInfo.currentLevelName}</span>
+                </span>
+
                 {userProfile?.role === 'admin' && (
-                  <span className="px-2.5 py-0.5 rounded-full bg-gold-500/20 text-gold-400 text-xs font-bold border border-gold-500/30">
+                  <span className="px-2.5 py-0.5 rounded-full bg-purple-500/20 text-purple-300 text-xs font-bold border border-purple-500/30">
                     ADMIN
                   </span>
                 )}
@@ -122,6 +132,90 @@ export default function Profile() {
               </p>
             </div>
           </div>
+      </div>
+
+      {/* --- PROFILE LEVEL PROGRESS CARD (Section 8) --- */}
+      <div className="glass-card p-6 sm:p-8 rounded-3xl border border-gold-500/30 relative overflow-hidden shadow-2xl space-y-6">
+        <div className="absolute top-0 right-0 w-80 h-80 bg-gold-500/10 rounded-full blur-3xl pointer-events-none" />
+        
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-white/10 pb-4 relative z-10">
+          <div className="flex items-center gap-3">
+            <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-gold-500 to-amber-600 p-0.5 shadow-glow-gold">
+              <div className="w-full h-full bg-navy-950 rounded-[14px] flex items-center justify-center text-3xl">
+                {levelInfo.badge}
+              </div>
+            </div>
+            <div>
+              <div className="text-xs text-gold-400 font-extrabold uppercase tracking-wider">
+                Level {levelInfo.currentLevelNumber} / 35
+              </div>
+              <h2 className="text-2xl font-black text-white gold-gradient-text">
+                {levelInfo.currentLevelName}
+              </h2>
+            </div>
+          </div>
+
+          <div className="text-right">
+            <div className="text-[10px] font-bold text-slate-400 uppercase">Current Points</div>
+            <div className="text-2xl font-black text-gold-400 font-mono">{levelInfo.totalPoints} XP</div>
+          </div>
+        </div>
+
+        {/* Level Progress Bar & Next Level Details */}
+        <div className="space-y-3 relative z-10">
+          <div className="flex items-center justify-between text-xs font-bold">
+            <span className="text-slate-300">
+              {levelInfo.isMaxLevel ? (
+                <strong className="text-gold-400 font-black flex items-center gap-1.5">
+                  <Crown className="w-4 h-4" /> MAX LEVEL REACHED
+                </strong>
+              ) : (
+                <span>Next Level: <strong className="text-white">Level {levelInfo.nextLevelObj.levelNumber} — {levelInfo.nextLevelObj.levelName} {levelInfo.nextLevelObj.badge}</strong></span>
+              )}
+            </span>
+            <span className="text-gold-400 font-mono">
+              {levelInfo.isMaxLevel ? '100%' : `${levelInfo.pointsRemaining} XP Needed`}
+            </span>
+          </div>
+
+          <div className="w-full h-4 bg-navy-950 rounded-full p-0.5 border border-white/10 overflow-hidden shadow-inner">
+            <div
+              style={{ width: `${levelInfo.progressPct}%` }}
+              className="h-full rounded-full bg-gradient-to-r from-gold-500 via-amber-400 to-gold-400 shadow-glow-gold transition-all duration-500"
+            />
+          </div>
+
+          <div className="flex items-center justify-between text-[11px] text-slate-400 font-medium pt-1">
+            <span>Level Threshold: {levelInfo.currentLevelObj.requiredPoints} XP</span>
+            <span>{levelInfo.progressPct}% Complete</span>
+            <span>{levelInfo.isMaxLevel ? '30,800 XP' : `Target: ${levelInfo.nextLevelObj.requiredPoints} XP`}</span>
+          </div>
+        </div>
+
+        {/* Level History Log */}
+        {levelHistory.length > 0 && (
+          <div className="pt-4 border-t border-white/10 space-y-3 relative z-10">
+            <h4 className="text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center gap-2">
+              <Trophy className="w-4 h-4 text-gold-400" />
+              <span>Level Achievement History</span>
+            </h4>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+              {levelHistory.slice(0, 6).map(h => (
+                <div key={h.id} className="p-3 rounded-xl bg-navy-900 border border-white/5 flex items-center justify-between text-xs">
+                  <div className="flex items-center gap-2">
+                    <span className="text-base">{h.badge}</span>
+                    <div>
+                      <div className="font-bold text-white">Level {h.levelNumber}: {h.levelName}</div>
+                      <div className="text-[10px] text-slate-400">{formatDate(h.achievedAt)}</div>
+                    </div>
+                  </div>
+                  <span className="font-mono text-gold-400 font-bold">{h.pointsAtLevelUp} XP</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
       </div>
 
       {/* Profile Form & Quick Stats */}

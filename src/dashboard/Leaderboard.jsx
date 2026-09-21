@@ -4,6 +4,7 @@ import { db } from '../config/firebase';
 import { useAuth } from '../contexts/AuthContext';
 import { formatHours } from '../utils/helpers';
 import { getStudentSyllabus } from '../data/syllabusData';
+import { calculateStudentLevel, getDefaultStreamLevels, getStreamId, normalizeLevelConfig } from '../utils/levelSystem';
 import EmptyState from '../components/EmptyState';
 import LoadingSpinner from '../components/LoadingSpinner';
 import LiveStudyNow from '../components/LiveStudyNow';
@@ -16,6 +17,7 @@ export default function Leaderboard() {
   
   // Dynamic syllabi mapping for correct totals
   const [syllabiMeta, setSyllabiMeta] = useState({});
+  const [levelConfigs, setLevelConfigs] = useState({});
 
   // Student's stream parameters
   const userCourseKey = userProfile?.course === 'CMA' || userProfile?.course?.includes('CMA') ? 'CMA' : 'CA';
@@ -43,6 +45,16 @@ export default function Leaderboard() {
       setSyllabiMeta(meta);
     });
     return () => unsub();
+  }, []);
+
+  useEffect(() => {
+    return onSnapshot(collection(db, 'levelConfigs'), (snap) => {
+      const configs = {};
+      snap.docs.forEach(configDoc => {
+        configs[configDoc.id] = normalizeLevelConfig(configDoc.data().levels, configDoc.id);
+      });
+      setLevelConfigs(configs);
+    });
   }, []);
 
   useEffect(() => {
@@ -260,13 +272,17 @@ export default function Leaderboard() {
                       </div>
                     </div>
                     <div>
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 flex-wrap">
                         <span className="text-sm font-bold text-white">{student.name}</span>
                         {isCurrentUser && (
                           <span className="px-2 py-0.5 rounded-full bg-royal-500/30 border border-royal-500/50 text-[10px] font-extrabold text-royal-300">
                             YOU
                           </span>
                         )}
+                      </div>
+                      <div className="text-[11px] text-gold-400 font-bold flex items-center gap-1 mt-0.5">
+                        <span>{calculateStudentLevel(student.points, levelConfigs[getStreamId(student.courseKey, student.levelKey)] || getDefaultStreamLevels(getStreamId(student.courseKey, student.levelKey))).badge}</span>
+                        <span>Level {calculateStudentLevel(student.points, levelConfigs[getStreamId(student.courseKey, student.levelKey)] || getDefaultStreamLevels(getStreamId(student.courseKey, student.levelKey))).currentLevelNumber} — {calculateStudentLevel(student.points, levelConfigs[getStreamId(student.courseKey, student.levelKey)] || getDefaultStreamLevels(getStreamId(student.courseKey, student.levelKey))).currentLevelName}</span>
                       </div>
                       <div className="text-xs text-slate-400 sm:hidden">
                         {student.progressPct}% ({student.completedCount} chs)

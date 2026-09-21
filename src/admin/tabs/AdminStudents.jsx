@@ -494,8 +494,12 @@ export default function AdminStudents() {
                           </div>
                         </div>
                         <div>
-                          <div className="font-bold text-white flex items-center gap-2">
-                            <span>{student.name}</span>
+                          <div className="flex items-center gap-2">
+                            <span className="font-bold text-white group-hover:text-gold-400 transition-colors">{student.name}</span>
+                            <span className="text-xs px-2 py-0.5 rounded bg-gold-500/20 text-gold-300 font-bold border border-gold-500/30 flex items-center gap-1">
+                              <span>{student.badge || '🌱'}</span>
+                              <span>Lvl {student.currentLevel || 1}</span>
+                            </span>
                             {student.role === 'admin' && (
                               <span className="px-2 py-0.5 rounded bg-gold-500/20 text-gold-400 text-[10px] font-bold">ADMIN</span>
                             )}
