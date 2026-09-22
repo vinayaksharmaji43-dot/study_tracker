@@ -22,7 +22,8 @@ import {
   Send,
   Camera,
   MessageCircle,
-  Users
+  Users,
+  Bell
 } from 'lucide-react';
 
 function parseStream(userProfile) {
@@ -201,6 +202,7 @@ export default function Overview({ setActiveTab }) {
 
   // Streak
   const currentStreak = calculateStreak(sessions, dayOffs.map(dayOff => dayOff.dateKey));
+  const unreadAnnouncementCount = announcements.filter(announcement => !readIds.has(announcement.id)).length;
 
   return (
     <div className="space-y-8">
@@ -223,6 +225,15 @@ export default function Overview({ setActiveTab }) {
           </div>
 
           <div className="flex items-center gap-3">
+            <button
+              onClick={() => window.dispatchEvent(new Event('open-announcement-center'))}
+              className="relative p-3 rounded-2xl bg-rose-500/10 border border-rose-400/30 text-rose-200 hover:bg-rose-500/20 hover:border-rose-300/50 transition-all shadow-[0_0_18px_rgba(244,63,94,0.14)]"
+              title="Open Announcement Center"
+              aria-label="Open Announcement Center"
+            >
+              <Bell className="w-5 h-5" />
+              {unreadAnnouncementCount > 0 && <span className="absolute -top-1 -right-1 min-w-5 h-5 px-1 rounded-full bg-rose-500 text-white text-[10px] font-black flex items-center justify-center border-2 border-navy-950">{unreadAnnouncementCount > 9 ? '9+' : unreadAnnouncementCount}</span>}
+            </button>
             <button
               onClick={() => setActiveTab('timer')}
               className="px-5 py-3 rounded-2xl bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-500 hover:to-emerald-600 text-white text-sm font-bold shadow-glow-emerald flex items-center gap-2 transition-all hover:scale-105"

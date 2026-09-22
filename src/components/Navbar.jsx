@@ -128,6 +128,12 @@ export default function Navbar({ activeTab, setActiveTab }) {
     };
   }, [mobileActionMenuOpen]);
 
+  useEffect(() => {
+    const openAnnouncementCenter = () => setShowAnnouncements(true);
+    window.addEventListener('open-announcement-center', openAnnouncementCenter);
+    return () => window.removeEventListener('open-announcement-center', openAnnouncementCenter);
+  }, []);
+
   const handleDashboardNav = (id) => {
     setActiveTab?.(id);
     setMobileActionMenuOpen(false);
@@ -207,7 +213,8 @@ export default function Navbar({ activeTab, setActiveTab }) {
                   {!isAdmin && isDashboardRoute && (
                     <button
                       onClick={() => setShowAnnouncements(true)}
-                      className="relative p-2 rounded-xl text-slate-400 hover:text-white hover:bg-white/5 transition-colors mr-1"
+                      className="relative p-2 rounded-xl bg-rose-500/10 border border-rose-400/25 text-rose-200 hover:bg-rose-500/20 hover:border-rose-300/45 hover:text-white transition-all mr-1 shadow-[0_0_14px_rgba(244,63,94,0.12)]"
+                      title="Announcement Center"
                     >
                       <Bell className="w-5 h-5" />
                       {announcements.filter(a => !readIds.has(a.id)).length > 0 && (
