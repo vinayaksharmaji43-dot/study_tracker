@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { collection, query, onSnapshot, where, orderBy, doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../config/firebase';
-import { BookOpen, Menu, X, LayoutDashboard, LogOut, User, ChevronRight, ShieldCheck, Bell, Megaphone, Check, Headphones, MoreVertical, Clock, PenLine, Flag, Video, BookOpenCheck, Trophy, Target, FileText, HelpCircle, Crown, Calendar as CalendarIcon } from 'lucide-react';
+import { BookOpen, Menu, X, LayoutDashboard, LogOut, User, ChevronRight, ShieldCheck, Bell, Megaphone, Check, Headphones, MoreVertical, Clock, PenLine, Flag, Video, BookOpenCheck, Trophy, Target, FileText, HelpCircle, Crown, Calendar as CalendarIcon, Image as ImageIcon, ExternalLink } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import SupportModal from './SupportModal';
 
@@ -23,6 +23,7 @@ export default function Navbar({ activeTab, setActiveTab }) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [mobileActionMenuOpen, setMobileActionMenuOpen] = useState(false);
   const [showAnnouncements, setShowAnnouncements] = useState(false);
+  const [selectedAnnouncement, setSelectedAnnouncement] = useState(null);
   const [showSupportModal, setShowSupportModal] = useState(false);
   const actionMenuRef = useRef(null);
   const [announcements, setAnnouncements] = useState([]);
@@ -68,6 +69,13 @@ export default function Navbar({ activeTab, setActiveTab }) {
       });
     } catch (err) {
       console.error('Failed to mark read', err);
+    }
+  };
+
+  const openAnnouncement = async (announcement) => {
+    setSelectedAnnouncement(announcement);
+    if (currentUser && !readIds.has(announcement.id)) {
+      await handleMarkAsRead(announcement.id);
     }
   };
 
@@ -451,7 +459,7 @@ export default function Navbar({ activeTab, setActiveTab }) {
                   return (
                     <div 
                       key={a.id} 
-                      onClick={() => handleMarkAsRead(a.id)}
+                      onClick={() => openAnnouncement(a)}
                       className={`p-4 rounded-2xl border transition-all cursor-pointer ${isRead ? 'bg-navy-950/50 border-white/5 opacity-75' : 'bg-rose-500/5 border-rose-500/30 shadow-lg shadow-rose-500/5'}`}
                     >
                       <div className="flex items-start justify-between gap-3 mb-2">
@@ -467,7 +475,8 @@ export default function Navbar({ activeTab, setActiveTab }) {
                         {isRead && <Check className="w-4 h-4 text-emerald-500 shrink-0 mt-1" />}
                       </div>
                       
-                      <p className="text-xs text-slate-300 leading-relaxed whitespace-pre-wrap">{a.message}</p>
+                      {a.imageUrl && <img src={a.imageUrl} alt="" className="w-full h-32 object-cover rounded-xl border border-white/10 mb-3" />}
+                      <p className="text-xs text-slate-300 leading-relaxed whitespace-pre-wrap line-clamp-3">{a.message}</p>
                       
                       <div className="mt-3 pt-3 border-t border-white/5 flex items-center justify-between">
                         <span className="text-[10px] font-semibold text-slate-500">
@@ -483,6 +492,30 @@ export default function Navbar({ activeTab, setActiveTab }) {
               )}
             </div>
 
+          </div>
+        </div>
+      )}
+
+      {selectedAnnouncement && (
+        <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-navy-950/85 backdrop-blur-md" onClick={() => setSelectedAnnouncement(null)}>
+          <div className="w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-3xl bg-navy-900 border border-violet-400/25 shadow-[0_0_50px_rgba(99,102,241,0.2)] animate-in fade-in zoom-in-95 duration-200" onClick={event => event.stopPropagation()}>
+            <div className="flex items-start justify-between gap-4 p-5 sm:p-7 border-b border-white/10">
+              <div>
+                <div className="flex items-center gap-2 text-[10px] uppercase tracking-wider font-black text-gold-300 mb-2"><Megaphone className="w-3.5 h-3.5" /> Announcement Center</div>
+                <h2 className="text-xl sm:text-2xl font-black text-white">{selectedAnnouncement.title}</h2>
+              </div>
+              <button onClick={() => setSelectedAnnouncement(null)} className="p-2 rounded-xl text-slate-400 hover:text-white hover:bg-white/5" aria-label="Close announcement"><X className="w-5 h-5" /></button>
+            </div>
+            <div className="p-5 sm:p-7 space-y-5">
+              {selectedAnnouncement.imageUrl && <a href={selectedAnnouncement.imageUrl} target="_blank" rel="noopener noreferrer" className="block group"><img src={selectedAnnouncement.imageUrl} alt="Announcement attachment" className="w-full max-h-[28rem] object-contain rounded-2xl border border-white/10 bg-navy-950 group-hover:border-violet-400/40 transition-colors" /><span className="mt-2 flex items-center justify-end gap-1 text-[11px] text-violet-300"><ExternalLink className="w-3 h-3" /> Open full image</span></a>}
+              <div className="flex flex-wrap items-center gap-2 text-xs text-slate-400">
+                <span>{selectedAnnouncement.createdAt?.toDate ? new Intl.DateTimeFormat('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }).format(selectedAnnouncement.createdAt.toDate()) : 'Recently Published'}</span>
+                <span className="text-slate-600">•</span>
+                <span>{selectedAnnouncement.audienceType === 'specific' ? `${selectedAnnouncement.course} ${selectedAnnouncement.level} • ${selectedAnnouncement.attempt}` : 'All Streams'}</span>
+                <span className="inline-flex items-center gap-1 text-emerald-300"><Check className="w-3 h-3" /> Read</span>
+              </div>
+              <p className="text-sm sm:text-base leading-7 text-slate-200 whitespace-pre-wrap">{selectedAnnouncement.message}</p>
+            </div>
           </div>
         </div>
       )}

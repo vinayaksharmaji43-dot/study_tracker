@@ -154,6 +154,10 @@ export default function GlobalAnnouncementPopup() {
              {unreadAnnouncement.createdAt?.toDate ? formatDate(unreadAnnouncement.createdAt.toDate().toISOString()) : 'Recently Published'}
           </div>
 
+          {unreadAnnouncement.imageUrl && (
+            <img src={unreadAnnouncement.imageUrl} alt="Announcement attachment" className="w-full max-h-64 object-cover rounded-2xl border border-white/10" />
+          )}
+
           <div className="text-slate-300 text-sm leading-relaxed whitespace-pre-wrap max-h-60 overflow-y-auto custom-scrollbar">
             {unreadAnnouncement.message}
           </div>

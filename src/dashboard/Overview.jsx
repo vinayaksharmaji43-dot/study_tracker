@@ -315,6 +315,7 @@ export default function Overview({ setActiveTab }) {
                         {a.audienceType === 'specific' ? `${a.course} ${a.level}` : 'All Students'}
                       </span>
                     </div>
+                    {a.imageUrl && <img src={a.imageUrl} alt="" className="w-full max-h-56 object-cover rounded-xl border border-white/10" />}
                     <p className="text-xs text-slate-300 leading-relaxed whitespace-pre-wrap">{a.message}</p>
                   </div>
                 </div>

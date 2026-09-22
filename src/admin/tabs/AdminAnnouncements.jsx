@@ -3,7 +3,7 @@ import { collection, addDoc, doc, updateDoc, deleteDoc, serverTimestamp, onSnaps
 import { db } from '../../config/firebase';
 import { formatDate } from '../../utils/helpers';
 import EmptyState from '../../components/EmptyState';
-import { Megaphone, Plus, Edit2, Trash2, CheckCircle, EyeOff, AlertCircle } from 'lucide-react';
+import { Megaphone, Plus, Edit2, Trash2, CheckCircle, EyeOff, AlertCircle, ImagePlus, X } from 'lucide-react';
 
 const COURSES = ['CA', 'CMA'];
 const LEVELS = ['Foundation', 'Intermediate'];
@@ -29,10 +29,40 @@ export default function AdminAnnouncements() {
   const [course, setCourse] = useState('CA');
   const [level, setLevel] = useState('Foundation');
   const [attempt, setAttempt] = useState('Jan 2027');
+  const [imageUrl, setImageUrl] = useState('');
+  const [imageName, setImageName] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
   // Delete Confirmation State
   const [deletingId, setDeletingId] = useState(null);
+
+  const readAndCompressImage = (file) => new Promise((resolve, reject) => {
+    if (!file) return resolve('');
+    if (!file.type.startsWith('image/')) return reject(new Error('Please select an image file.'));
+    const reader = new FileReader();
+    reader.onload = () => {
+      const image = new Image();
+      image.onload = () => {
+        const maxWidth = 1400;
+        const scale = Math.min(1, maxWidth / image.width);
+        const canvas = document.createElement('canvas');
+        canvas.width = Math.max(1, Math.round(image.width * scale));
+        canvas.height = Math.max(1, Math.round(image.height * scale));
+        const context = canvas.getContext('2d');
+        context.drawImage(image, 0, 0, canvas.width, canvas.height);
+        const compressedImage = canvas.toDataURL('image/jpeg', 0.72);
+        if (compressedImage.length > 900000) {
+          reject(new Error('Please choose a smaller image (maximum compressed size is about 900 KB).'));
+          return;
+        }
+        resolve(compressedImage);
+      };
+      image.onerror = () => reject(new Error('Could not read this image.'));
+      image.src = reader.result;
+    };
+    reader.onerror = () => reject(new Error('Could not upload this image.'));
+    reader.readAsDataURL(file);
+  });
 
   useEffect(() => {
     const q = query(collection(db, 'announcements'), orderBy('createdAt', 'desc'));
@@ -53,6 +83,8 @@ export default function AdminAnnouncements() {
     setCourse('CA');
     setLevel('Foundation');
     setAttempt('Jan 2027');
+    setImageUrl('');
+    setImageName('');
     setShowModal(true);
   };
 
@@ -64,6 +96,8 @@ export default function AdminAnnouncements() {
     setCourse(item.course || 'CA');
     setLevel(item.level || 'Foundation');
     setAttempt(item.attempt || 'Jan 2027');
+    setImageUrl(item.imageUrl || '');
+    setImageName(item.imageUrl ? 'Current announcement image' : '');
     setShowModal(true);
   };
 
@@ -77,6 +111,7 @@ export default function AdminAnnouncements() {
         title: title.trim(),
         message: message.trim(),
         audienceType: audienceType,
+        imageUrl: imageUrl || '',
         ...(audienceType === 'specific' && { course, level, attempt }),
       };
 
@@ -224,6 +259,7 @@ export default function AdminAnnouncements() {
               <p className="text-sm text-slate-300 bg-navy-950/60 p-4 rounded-2xl border border-white/5 leading-relaxed">
                 {item.message}
               </p>
+              {item.imageUrl && <img src={item.imageUrl} alt="" className="w-full max-h-72 object-cover rounded-2xl border border-white/10" />}
             </div>
           ))}
         </div>
@@ -257,6 +293,35 @@ export default function AdminAnnouncements() {
                   onChange={(e) => setTitle(e.target.value)}
                   className="w-full px-4 py-3 rounded-xl bg-navy-900 border border-white/10 text-white text-sm focus:outline-none focus:border-rose-500"
                 />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-2">Optional Image</label>
+                <label className="flex items-center justify-center gap-2 w-full min-h-24 rounded-xl border border-dashed border-violet-400/35 bg-violet-500/5 text-violet-200 text-sm font-semibold cursor-pointer hover:bg-violet-500/10 transition-colors">
+                  <ImagePlus className="w-5 h-5" />
+                  <span>{imageName || 'Choose an announcement image'}</span>
+                  <input
+                    type="file"
+                    accept="image/png,image/jpeg,image/webp"
+                    className="sr-only"
+                    onChange={async (e) => {
+                      const file = e.target.files?.[0];
+                      if (!file) return;
+                      try {
+                        setImageUrl(await readAndCompressImage(file));
+                        setImageName(file.name);
+                      } catch (error) {
+                        alert(error.message);
+                      }
+                    }}
+                  />
+                </label>
+                {imageUrl && (
+                  <div className="relative mt-3">
+                    <img src={imageUrl} alt="Announcement preview" className="w-full max-h-44 object-cover rounded-xl border border-white/10" />
+                    <button type="button" onClick={() => { setImageUrl(''); setImageName(''); }} className="absolute top-2 right-2 p-1.5 rounded-lg bg-navy-950/80 text-white hover:bg-rose-500" aria-label="Remove image"><X className="w-4 h-4" /></button>
+                  </div>
+                )}
               </div>
 
               <div>
