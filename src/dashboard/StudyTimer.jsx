@@ -519,9 +519,19 @@ export default function StudyTimer() {
   };
 
   // Handle Start / Resume Session
-  const handleStart = () => {
+  const handleStart = async () => {
     const now = Date.now();
     let currentAccumulated = accumulatedSeconds;
+
+    if (currentUser?.uid) {
+      try {
+        await updateDoc(doc(db, 'users', currentUser.uid), {
+          lastActiveAt: serverTimestamp()
+        });
+      } catch (error) {
+        console.warn('Could not update study activity:', error);
+      }
+    }
 
     if (seconds === 0) {
       currentAccumulated = 0;

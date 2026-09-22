@@ -24,6 +24,7 @@ import AdminMentorSessions from './tabs/AdminMentorSessions';
 import AdminDevices from './tabs/AdminDevices';
 import AdminTests from './tabs/AdminTests';
 import AdminLevels from './tabs/AdminLevels';
+import AdminDiscipline from './tabs/AdminDiscipline';
 
 import { 
   LayoutDashboard,  
@@ -46,7 +47,8 @@ import {
   Flag,
   Video,
   MonitorSmartphone,
-  Award
+  Award,
+  ShieldAlert
 } from 'lucide-react';
 
 
@@ -57,6 +59,7 @@ export default function AdminDashboard() {
   const navItems = [
     { id: 'overview', label: 'Dashboard', icon: LayoutDashboard },
     { id: 'students', label: 'Students', icon: Users },
+    { id: 'discipline', label: 'Inactive / Discipline', icon: ShieldAlert },
     { id: 'syllabus', label: 'Student Progress', icon: BookOpenCheck },
     { id: 'syllabus_manager', label: 'Manage Syllabus', icon: Layers },
     { id: 'analytics', label: 'Analytics', icon: TrendingUp },
@@ -172,6 +175,7 @@ export default function AdminDashboard() {
           <main className="col-span-1 lg:col-span-9 space-y-6">
             {activeTab === 'overview' && <AdminOverview setActiveTab={setActiveTab} />}
             {activeTab === 'students' && <AdminStudents />}
+            {activeTab === 'discipline' && <AdminDiscipline />}
             {activeTab === 'syllabus' && <AdminSyllabus />}
             {activeTab === 'syllabus_manager' && <AdminSyllabusManager />}
             {activeTab === 'analytics' && <AdminAnalytics />}

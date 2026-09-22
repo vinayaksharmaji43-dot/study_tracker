@@ -127,7 +127,10 @@ export default function useDailyEvaluator(currentUser) {
         // 5. Apply total deduction to user profile
         if (pointsToDeduct < 0) {
           const userRef = doc(db, 'users', uid);
-          batch.update(userRef, { points: increment(pointsToDeduct) });
+          batch.update(userRef, {
+            points: increment(pointsToDeduct),
+            negativePoints: increment(Math.abs(pointsToDeduct))
+          });
           batchCount++;
         }
 
