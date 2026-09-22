@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { collection, query, onSnapshot, where, orderBy, doc, setDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, query, onSnapshot, where, doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../config/firebase';
 import { BookOpen, Menu, X, LayoutDashboard, LogOut, User, ChevronRight, ShieldCheck, Bell, Megaphone, Check, Headphones, MoreVertical, Clock, PenLine, Flag, Video, BookOpenCheck, Trophy, Target, FileText, HelpCircle, Crown, Calendar as CalendarIcon, Image as ImageIcon, ExternalLink } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
@@ -37,15 +37,19 @@ export default function Navbar({ activeTab, setActiveTab }) {
     if (!currentUser || isAdmin || !userProfile) return;
 
     const my = parseStream(userProfile);
-    const qA = query(collection(db, 'announcements'), orderBy('createdAt', 'desc'));
+    const qA = query(collection(db, 'announcements'));
     const unsubA = onSnapshot(qA, (snap) => {
       const allA = snap.docs.map(d => ({ id: d.id, ...d.data() }));
       const activeA = allA.filter(a => 
-        a.published && (
+        a.published !== false && (
           a.audienceType === 'all' || 
           (a.course === my.course && a.level === my.level && normalizeAttempt(a.attempt) === normalizeAttempt(my.attempt))
         )
-      );
+      ).sort((a, b) => {
+        const timeA = a.createdAt?.toMillis ? a.createdAt.toMillis() : new Date(a.createdAt || 0).getTime();
+        const timeB = b.createdAt?.toMillis ? b.createdAt.toMillis() : new Date(b.createdAt || 0).getTime();
+        return timeB - timeA;
+      });
       setAnnouncements(activeA);
     });
 
