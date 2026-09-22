@@ -122,15 +122,13 @@ export default function StudyTimer() {
           const elapsed = savedAccumulated + Math.floor((now - saved.startTimestamp) / 1000);
 
           if (elapsed >= 18000) {
-            // Reached 5-hour limit while away
-            setSeconds(18000);
+            setSeconds(0);
             setAccumulatedSeconds(0);
             setStartTimestamp(null);
             setIsActive(false);
             localStorage.removeItem(storageKey);
             triggerAutoStop5Hours(18000, saved.selectedSubject);
           } else {
-            // Restore running timer
             setAccumulatedSeconds(savedAccumulated);
             setStartTimestamp(saved.startTimestamp);
             setIsActive(true);
@@ -149,7 +147,7 @@ export default function StudyTimer() {
     }
   }, [storageKey]);
 
-  // 2. Accurate timestamp-based timer tick & 5-hour auto-stop check
+  // 2. Accurate timestamp-based timer tick with a 5-hour session limit
   useEffect(() => {
     if (isActive && startTimestamp) {
       intervalRef.current = setInterval(() => {
@@ -158,7 +156,7 @@ export default function StudyTimer() {
 
         if (currentElapsed >= 18000) {
           clearInterval(intervalRef.current);
-          setSeconds(18000);
+          setSeconds(0);
           setIsActive(false);
           setStartTimestamp(null);
           setAccumulatedSeconds(0);
@@ -406,13 +404,13 @@ export default function StudyTimer() {
       case 2: return "🔥 2 Hours Done! You're building momentum.";
       case 3: return "💪 3 Hours Completed! Keep pushing.";
       case 4: return "🎯 4 Hours Done! Keep the consistency going.";
-      case 5: return "🚀 5 Hours Completed! One more hour to unlock +10 points.";
-      case 6: return "🏆 6 Hours Completed! +10 Points Unlocked!";
-      case 7: return "⚡ 7 Hours Done! +3 Bonus Points Earned.";
-      case 8: return "🔥 8 Hours Completed! Another +3 Bonus Points.";
+      case 5: return "🚀 5 Hours Completed! One more hour to unlock +5 points.";
+      case 6: return "🏆 6 Hours Completed! +5 Points Unlocked!";
+      case 7: return "⚡ 7 Hours Done! +2 Bonus Points Earned.";
+      case 8: return "🔥 8 Hours Completed! Another +2 Bonus Points.";
       case 9: return "👑 9 Hours Done! Excellent consistency.";
       case 10: return "💎 10 Hours Completed! Amazing discipline.";
-      default: return `🔥 ${hours} Hours Completed! Another +3 Bonus Points.`;
+      default: return `🔥 ${hours} Hours Completed! Another +2 Bonus Points.`;
     }
   };
 
@@ -445,8 +443,8 @@ export default function StudyTimer() {
           if (!completedMilestones.includes(h)) {
             newlyUnlocked.push(h);
             completedMilestones.push(h);
-            if (h === 6) earned += 10;
-            if (h >= 7) earned += 3;
+            if (h === 6) earned += 5;
+            if (h >= 7) earned += 2;
           }
         }
 
@@ -512,7 +510,7 @@ export default function StudyTimer() {
     try {
       await saveSessionToFirestore(durationSecs, subjectToSave || selectedSubject);
       setAutoStoppedAlert(true);
-      alert("5 hours completed! Study Timer has been automatically stopped.");
+      alert("5 hours completed! Timer automatically stopped. Press Start to continue studying.");
     } catch (e) {
       console.error("Error auto-saving 5 hour session:", e);
     } finally {
@@ -658,7 +656,7 @@ export default function StudyTimer() {
           <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Today's Points</span>
           <span className="text-lg font-black text-emerald-400">+{todayStats?.dailyStudyPoints || 0}</span>
           <span className="text-[10px] font-semibold text-slate-500">
-            Next: {((todayStats?.completedFullHours || 0) + 1) === 6 ? '6 Hrs → +10' : ((todayStats?.completedFullHours || 0) + 1) > 6 ? `${(todayStats?.completedFullHours || 0) + 1} Hrs → +3` : '6 Hrs → +10'}
+            Next: {((todayStats?.completedFullHours || 0) + 1) === 6 ? '6 Hrs → +5' : ((todayStats?.completedFullHours || 0) + 1) > 6 ? `${(todayStats?.completedFullHours || 0) + 1} Hrs → +2` : '6 Hrs → +5'}
           </span>
         </div>
         <div className="p-4 rounded-3xl bg-navy-900 border border-white/5 flex flex-col gap-1">
@@ -871,9 +869,6 @@ export default function StudyTimer() {
                     <div className="text-sm font-mono font-bold text-royal-400">
                       {formatTimerTime(sess.duration)}
                     </div>
-                    <div className="text-[11px] text-emerald-400 font-semibold">
-                      +{(sess.duration / 3600 * 10).toFixed(0)} PTS
-                    </div>
                   </div>
                 </div>
               ))}
@@ -899,14 +894,14 @@ export default function StudyTimer() {
             <ul className="space-y-3 text-sm text-slate-300">
               <li className="flex items-start gap-2">
                 <span className="text-emerald-400 mt-0.5">•</span>
-                <span><strong>6 Hours Complete:</strong> +10 Points (One-time daily milestone)</span>
+                <span><strong>6 Hours Complete:</strong> +5 Points (One-time daily milestone)</span>
               </li>
               <li className="flex items-start gap-2">
                 <span className="text-emerald-400 mt-0.5">•</span>
-                <span><strong>7+ Hours:</strong> +3 Points per additional hour</span>
+                <span><strong>7+ Hours:</strong> +2 Points per additional hour</span>
               </li>
               <li className="flex items-start gap-2 text-xs text-slate-400 mt-2">
-                Note: Milestones (1-5 hours) give no points, only messages. The timer auto-stops and saves at 5 hours.
+                Note: Milestones (1-5 hours) give no points, only messages. Each timer session auto-stops at 5 hours; press Start again to continue. Streaks grow only on days with 5+ hours studied.
               </li>
             </ul>
           </div>
