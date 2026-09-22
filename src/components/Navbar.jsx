@@ -42,7 +42,7 @@ export default function Navbar({ activeTab, setActiveTab }) {
       const allA = snap.docs.map(d => ({ id: d.id, ...d.data() }));
       const activeA = allA.filter(a => 
         a.published !== false && (
-          a.audienceType === 'all' || 
+          a.audienceType !== 'specific' || 
           (a.course === my.course && a.level === my.level && normalizeAttempt(a.attempt) === normalizeAttempt(my.attempt))
         )
       ).sort((a, b) => {
@@ -264,8 +264,9 @@ export default function Navbar({ activeTab, setActiveTab }) {
             {currentUser && !isAdmin && isDashboardRoute && (
               <button
                 onClick={() => setShowAnnouncements(true)}
-                className="relative p-2.5 rounded-xl text-slate-300 hover:text-white hover:bg-white/5 transition-colors"
+                className="relative p-2.5 rounded-xl bg-rose-500/10 border border-rose-400/25 text-rose-200 hover:bg-rose-500/20 hover:border-rose-300/45 hover:text-white transition-all duration-200 shadow-[0_0_14px_rgba(244,63,94,0.12)]"
                 aria-label="Open announcements"
+                title="Announcement Center"
               >
                 <Bell className="w-5 h-5" />
                 {announcements.filter(a => !readIds.has(a.id)).length > 0 && (
