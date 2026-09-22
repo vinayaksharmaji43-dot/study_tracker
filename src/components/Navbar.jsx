@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { collection, query, onSnapshot, where, orderBy, doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../config/firebase';
-import { BookOpen, Menu, X, LayoutDashboard, LogOut, User, ChevronRight, ShieldCheck, Bell, Megaphone, Check, Headphones } from 'lucide-react';
+import { BookOpen, Menu, X, LayoutDashboard, LogOut, User, ChevronRight, ShieldCheck, Bell, Megaphone, Check, Headphones, MoreVertical, Clock, PenLine, Flag, Video, BookOpenCheck, Trophy, Target, FileText, HelpCircle, Crown, Calendar as CalendarIcon } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import SupportModal from './SupportModal';
 
@@ -19,10 +19,12 @@ function normalizeAttempt(att) {
   return (att || '').toLowerCase().replace(/\s+/g, '').replace('2027', '27');
 }
 
-export default function Navbar() {
+export default function Navbar({ activeTab, setActiveTab }) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [mobileActionMenuOpen, setMobileActionMenuOpen] = useState(false);
   const [showAnnouncements, setShowAnnouncements] = useState(false);
   const [showSupportModal, setShowSupportModal] = useState(false);
+  const actionMenuRef = useRef(null);
   const [announcements, setAnnouncements] = useState([]);
   const [readIds, setReadIds] = useState(new Set());
   
@@ -79,6 +81,45 @@ export default function Navbar() {
   };
 
   const isDashboardRoute = location.pathname.startsWith('/dashboard');
+  const dashboardNavItems = [
+    { id: 'overview', label: 'Home', icon: LayoutDashboard },
+    { id: 'calendar', label: 'Calendar', icon: CalendarIcon },
+    { id: 'syllabus', label: 'Syllabus', icon: BookOpenCheck },
+    { id: 'timer', label: 'Study Timer', icon: Clock },
+    { id: 'writing', label: 'Writing Practice', icon: PenLine },
+    { id: 'missions', label: 'Weekly Mission', icon: Flag },
+    { id: 'mentor', label: 'Mentor Session', icon: Video },
+    { id: 'leaderboard', label: 'Leaderboard', icon: Trophy },
+    { id: 'targets', label: 'Daily Target', icon: Target },
+    { id: 'notes', label: 'Notes', icon: FileText },
+    { id: 'doubts', label: 'Doubts', icon: HelpCircle },
+    { id: 'profile', label: 'Profile', icon: User }
+  ];
+  const quickJoinItems = [
+    { id: 'calendar', label: 'Calendar', icon: CalendarIcon, color: 'text-emerald-400', bg: 'bg-emerald-400/20' },
+    { id: 'timer', label: 'Study Timer', icon: Clock, color: 'text-amber-400', bg: 'bg-amber-400/20' },
+    { id: 'writing', label: 'Writing Practice', icon: PenLine, color: 'text-purple-400', bg: 'bg-purple-400/20' },
+    { id: 'mentor', label: 'Mentor Session', icon: Video, color: 'text-sky-400', bg: 'bg-sky-400/20' }
+  ];
+
+  useEffect(() => {
+    if (!mobileActionMenuOpen) return undefined;
+    const handleOutsideClick = (event) => {
+      if (!actionMenuRef.current?.contains(event.target)) setMobileActionMenuOpen(false);
+    };
+    const handleBack = () => setMobileActionMenuOpen(false);
+    document.addEventListener('pointerdown', handleOutsideClick);
+    window.addEventListener('popstate', handleBack);
+    return () => {
+      document.removeEventListener('pointerdown', handleOutsideClick);
+      window.removeEventListener('popstate', handleBack);
+    };
+  }, [mobileActionMenuOpen]);
+
+  const handleDashboardNav = (id) => {
+    setActiveTab?.(id);
+    setMobileActionMenuOpen(false);
+  };
 
   return (
     <nav className="sticky top-0 z-50 glass-nav transition-all duration-300">
@@ -198,11 +239,21 @@ export default function Navbar() {
           </div>
 
           {/* Mobile Menu Button */}
-          <div className="flex md:hidden items-center space-x-3">
+          <div className="flex md:hidden items-center gap-1.5 sm:gap-2">
+            {currentUser && (
+              <Link
+                to="/dashboard"
+                className="p-2.5 rounded-xl bg-royal-600/20 text-royal-300 border border-royal-500/30 shadow-[0_0_16px_rgba(99,102,241,0.16)]"
+                aria-label="Dashboard home"
+              >
+                <LayoutDashboard className="w-5 h-5" />
+              </Link>
+            )}
             {currentUser && !isAdmin && isDashboardRoute && (
               <button
                 onClick={() => setShowAnnouncements(true)}
-                className="relative p-2 rounded-xl text-slate-400 hover:text-white hover:bg-white/5 transition-colors"
+                className="relative p-2.5 rounded-xl text-slate-300 hover:text-white hover:bg-white/5 transition-colors"
+                aria-label="Open announcements"
               >
                 <Bell className="w-5 h-5" />
                 {announcements.filter(a => !readIds.has(a.id)).length > 0 && (
@@ -210,17 +261,55 @@ export default function Navbar() {
                 )}
               </button>
             )}
-            {currentUser && (
-              <Link
-                to="/dashboard"
-                className="p-2 rounded-xl bg-royal-600/20 text-royal-400 border border-royal-500/30"
-              >
-                <LayoutDashboard className="w-5 h-5" />
-              </Link>
+            {currentUser && isDashboardRoute && (
+              <div className="relative" ref={actionMenuRef}>
+                <button
+                  onClick={() => setMobileActionMenuOpen(open => !open)}
+                  className={`p-2.5 rounded-xl border transition-all duration-200 ${mobileActionMenuOpen ? 'bg-gold-500/20 border-gold-400/50 text-gold-300 shadow-[0_0_18px_rgba(245,158,11,0.24)] scale-105' : 'bg-violet-500/10 border-violet-400/30 text-violet-200 hover:bg-violet-500/20 hover:border-violet-300/50 hover:shadow-[0_0_16px_rgba(139,92,246,0.24)] hover:-translate-y-0.5'}`}
+                  aria-label="Open dashboard menu"
+                  aria-expanded={mobileActionMenuOpen}
+                >
+                  <MoreVertical className="w-5 h-5" />
+                </button>
+
+                {mobileActionMenuOpen && (
+                  <div className="absolute right-0 top-[calc(100%+0.75rem)] w-[min(19rem,calc(100vw-2rem))] rounded-2xl border border-violet-400/25 bg-[#130d22]/95 p-3 shadow-[0_18px_50px_rgba(0,0,0,0.55),0_0_28px_rgba(99,102,241,0.16)] backdrop-blur-xl animate-in fade-in slide-in-from-top-2 duration-200">
+                    <div className="flex items-center justify-between px-2 pb-2 border-b border-white/10">
+                      <div>
+                        <div className="text-sm font-black text-white">Dashboard Menu</div>
+                        <div className="text-[10px] text-gold-300 uppercase tracking-[0.16em]">Quick access</div>
+                      </div>
+                      <button onClick={() => setMobileActionMenuOpen(false)} className="p-1.5 rounded-lg text-slate-500 hover:text-white hover:bg-white/5" aria-label="Close dashboard menu"><X className="w-4 h-4" /></button>
+                    </div>
+
+                    <div className="py-3 space-y-2">
+                      <div className="px-2 text-[10px] font-black uppercase tracking-wider text-slate-500">Quick Join</div>
+                      <div className="grid grid-cols-2 gap-2">
+                        {quickJoinItems.map(item => {
+                          const Icon = item.icon;
+                          return <button key={item.id} onClick={() => handleDashboardNav(item.id)} className="flex items-center gap-2 rounded-xl border border-white/5 bg-navy-950/70 p-2.5 text-left hover:border-violet-400/30 hover:bg-white/5 transition-colors"><span className={`p-1.5 rounded-lg ${item.bg} ${item.color}`}><Icon className="w-4 h-4" /></span><span className="text-[11px] font-bold text-slate-200">{item.label}</span></button>;
+                        })}
+                      </div>
+                    </div>
+
+                    <div className="border-t border-white/10 pt-3 space-y-1.5">
+                      <div className="px-2 pb-1 text-[10px] font-black uppercase tracking-wider text-slate-500">All Features</div>
+                      {dashboardNavItems.map(item => {
+                        const Icon = item.icon;
+                        const isActive = activeTab === item.id;
+                        return <button key={item.id} onClick={() => handleDashboardNav(item.id)} className={`flex items-center gap-3 w-full rounded-xl px-2.5 py-2 text-xs font-semibold transition-colors ${isActive ? 'bg-violet-500/15 text-violet-200 border border-violet-400/25' : 'text-slate-300 hover:bg-white/5'}`}><Icon className="w-4 h-4" /><span>{item.label}</span></button>;
+                      })}
+                      <button onClick={() => { setMobileActionMenuOpen(false); setShowSupportModal(true); }} className="flex items-center gap-3 w-full rounded-xl px-2.5 py-2.5 text-xs font-bold text-emerald-300 bg-emerald-500/10 border border-emerald-400/20 hover:bg-emerald-500/15"><Headphones className="w-4 h-4" /><span className="flex-1 text-left">Help & Student Support</span><span className="text-[9px] font-black uppercase bg-emerald-500 text-navy-950 px-1.5 py-0.5 rounded">24/7</span></button>
+                      <div className="flex items-center gap-3 w-full rounded-xl px-2.5 py-2 text-xs font-semibold text-gold-300/70 border border-gold-500/10"><Crown className="w-4 h-4" /><span className="flex-1">Premium</span><span className="text-[9px] font-bold uppercase bg-gold-500/15 px-1.5 py-0.5 rounded">Coming Soon</span></div>
+                    </div>
+                  </div>
+                )}
+              </div>
             )}
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="p-2 rounded-xl text-slate-300 hover:text-white hover:bg-navy-800 focus:outline-none"
+              className="p-2.5 rounded-xl text-slate-300 hover:text-white hover:bg-navy-800 focus:outline-none"
+              aria-label={mobileMenuOpen ? 'Close navigation menu' : 'Open navigation menu'}
             >
               {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
             </button>

@@ -38,7 +38,6 @@ import SupportModal from '../components/SupportModal';
 import CountdownWidget from '../components/CountdownWidget';
 import GlobalAnnouncementPopup from '../components/GlobalAnnouncementPopup';
 import useDailyEvaluator from '../hooks/useDailyEvaluator';
-import MobileMenuFAB from '../components/MobileMenuFAB';
 import LevelUpModal from '../components/LevelUpModal';
 
 export default function Dashboard() {
@@ -69,7 +68,7 @@ export default function Dashboard() {
       {/* Global Announcement Priority Overlay */}
       <GlobalAnnouncementPopup />
 
-      <Navbar />
+      <Navbar activeTab={activeTab} setActiveTab={setActiveTab} />
 
       <div className="flex-grow max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
         
@@ -148,9 +147,6 @@ export default function Dashboard() {
 
             </div>
           </aside>
-
-          {/* Mobile Menu FAB (Replaces old horizontal scrolling bar) */}
-          <MobileMenuFAB activeTab={activeTab} setActiveTab={setActiveTab} />
 
           {/* Main Dashboard Workspace View */}
           <main className="col-span-1 lg:col-span-9 space-y-6">
