@@ -34,14 +34,14 @@ export default function Navbar({ activeTab, setActiveTab }) {
   const location = useLocation();
 
   useEffect(() => {
-    if (!currentUser || isAdmin || !userProfile) return;
+    if (!currentUser || !userProfile) return;
 
     const my = parseStream(userProfile);
     const qA = query(collection(db, 'announcements'));
     const unsubA = onSnapshot(qA, (snap) => {
       const allA = snap.docs.map(d => ({ id: d.id, ...d.data() }));
       const activeA = allA.filter(a => 
-        a.published !== false && (
+        a.published !== false && (isAdmin ||
           a.audienceType !== 'specific' || 
           (a.course === my.course && a.level === my.level && normalizeAttempt(a.attempt) === normalizeAttempt(my.attempt))
         )
