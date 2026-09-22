@@ -500,7 +500,7 @@ export default function Home() {
 
               {/* Telegram */}
               <a
-                href="https://t.me/casuccessblueprint"
+                href="https://t.me/Ca_foundation_help"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="group flex flex-col items-center gap-4 p-6 rounded-2xl bg-navy-950 border border-white/10 hover:border-sky-500/40 hover:bg-sky-500/5 transition-all text-center"
