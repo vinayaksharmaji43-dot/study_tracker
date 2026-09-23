@@ -1,10 +1,10 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { collection, addDoc, doc, increment, onSnapshot, query, runTransaction, serverTimestamp, updateDoc, where, setDoc } from 'firebase/firestore';
 import { db } from '../config/firebase';
 import { useAuth } from '../contexts/AuthContext';
 import { formatTimerTime, formatDate, getDateKey, getMonthKey, calculateDailyPoints } from '../utils/helpers';
 import EmptyState from '../components/EmptyState';
-import { Play, Pause, Square, Clock, BookOpen, CheckCircle, Calendar, ShieldCheck, X, Zap, AlertTriangle, Target } from 'lucide-react';
+import { Play, Pause, Square, Clock, BookOpen, CheckCircle, Calendar, ShieldCheck, X, Zap, AlertTriangle, Target, ChevronDown, ChevronUp, Layers } from 'lucide-react';
 import { isSubjectMatch, calculateTargetProgress } from '../utils/subjectMatcher';
 
 function normalizeAttempt(att) {
@@ -92,6 +92,40 @@ export default function StudyTimer() {
 
   const [saving, setSaving] = useState(false);
   const [sessions, setSessions] = useState([]);
+  const [sessionViewMode, setSessionViewMode] = useState('subject'); // 'subject' | 'history'
+  const [expandedSubject, setExpandedSubject] = useState(null);
+
+  // Group and aggregate sessions strictly by subject name
+  const subjectGroupedSessions = useMemo(() => {
+    const map = {};
+    sessions.forEach((sess) => {
+      const sub = (sess.subject || 'General Study').trim();
+      if (!map[sub]) {
+        map[sub] = {
+          subject: sub,
+          totalDuration: 0,
+          sessionCount: 0,
+          latestDate: sess.date,
+          sessionsList: []
+        };
+      }
+      map[sub].totalDuration += (Number(sess.duration) || 0);
+      map[sub].sessionCount += 1;
+      map[sub].sessionsList.push(sess);
+
+      const sDate = sess.date?.toDate ? sess.date.toDate() : new Date(sess.date);
+      const mDate = map[sub].latestDate?.toDate ? map[sub].latestDate.toDate() : new Date(map[sub].latestDate);
+      if (sDate > mDate) {
+        map[sub].latestDate = sess.date;
+      }
+    });
+
+    return Object.values(map).sort((a, b) => {
+      const da = a.latestDate?.toDate ? a.latestDate.toDate() : new Date(a.latestDate);
+      const dbDate = b.latestDate?.toDate ? b.latestDate.toDate() : new Date(b.latestDate);
+      return dbDate - da;
+    });
+  }, [sessions]);
   const [savedSuccess, setSavedSuccess] = useState(false);
   const [autoStoppedAlert, setAutoStoppedAlert] = useState(false);
   const [dayOffs, setDayOffs] = useState([]);
@@ -953,10 +987,40 @@ export default function StudyTimer() {
 
         {/* Right Column: History of Logged Sessions */}
         <div className="lg:col-span-5 space-y-4">
-          <h3 className="text-lg font-bold text-white flex items-center gap-2">
-            <BookOpen className="w-5 h-5 text-gold-400" />
-            Your Study Log History
-          </h3>
+          <div className="flex items-center justify-between gap-2 flex-wrap">
+            <h3 className="text-lg font-bold text-white flex items-center gap-2">
+              <BookOpen className="w-5 h-5 text-gold-400" />
+              <span>Your Study Log History</span>
+            </h3>
+
+            {/* View Mode Toggle: By Subject (Consolidated) vs All Sessions */}
+            <div className="flex items-center gap-1 bg-navy-900/80 p-1 rounded-xl border border-white/10 text-xs">
+              <button
+                type="button"
+                onClick={() => setSessionViewMode('subject')}
+                className={`px-2.5 py-1 rounded-lg font-bold transition-all ${
+                  sessionViewMode === 'subject'
+                    ? 'bg-royal-600 text-white shadow-sm'
+                    : 'text-slate-400 hover:text-white'
+                }`}
+                title="Consolidated by subject — time adds up directly per subject"
+              >
+                By Subject
+              </button>
+              <button
+                type="button"
+                onClick={() => setSessionViewMode('history')}
+                className={`px-2.5 py-1 rounded-lg font-bold transition-all ${
+                  sessionViewMode === 'history'
+                    ? 'bg-royal-600 text-white shadow-sm'
+                    : 'text-slate-400 hover:text-white'
+                }`}
+                title="All individual session records"
+              >
+                All Sessions
+              </button>
+            </div>
+          </div>
 
           {sessions.length === 0 ? (
             <EmptyState
@@ -964,7 +1028,68 @@ export default function StudyTimer() {
               title="No logged sessions yet"
               description="Your completed sessions will be saved here automatically with timestamp and subject breakdown."
             />
+          ) : sessionViewMode === 'subject' ? (
+            /* ================= VIEW 1: BY SUBJECT (CONSOLIDATED) ================= */
+            <div className="glass-card rounded-2xl border border-white/10 divide-y divide-white/5 max-h-[460px] overflow-y-auto">
+              {subjectGroupedSessions.map((grp) => {
+                const isExpanded = expandedSubject === grp.subject;
+                return (
+                  <div key={grp.subject} className="transition-colors">
+                    <div 
+                      onClick={() => setExpandedSubject(isExpanded ? null : grp.subject)}
+                      className="p-4 flex items-center justify-between hover:bg-white/5 cursor-pointer transition-colors select-none group"
+                      title="Click to view/hide session breakdown"
+                    >
+                      <div className="space-y-1 min-w-0 pr-3">
+                        <div className="text-sm font-black text-white group-hover:text-gold-400 transition-colors flex items-center gap-2">
+                          <span className="truncate">{grp.subject}</span>
+                          <span className="px-2 py-0.5 rounded-full bg-white/5 border border-white/10 text-[10px] font-bold text-slate-400 shrink-0">
+                            {grp.sessionCount} {grp.sessionCount === 1 ? 'session' : 'sessions'}
+                          </span>
+                        </div>
+                        <div className="text-xs text-slate-400 flex items-center gap-1">
+                          <Calendar className="w-3 h-3 text-gold-400 shrink-0" />
+                          <span className="truncate">{formatDate(grp.latestDate)}</span>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-3 shrink-0">
+                        <div className="text-right">
+                          <div className="text-sm font-mono font-black text-emerald-400">
+                            {formatTimerTime(grp.totalDuration)}
+                          </div>
+                          <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">
+                            Total Time
+                          </div>
+                        </div>
+                        <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform duration-200 ${isExpanded ? 'rotate-180 text-gold-400' : ''}`} />
+                      </div>
+                    </div>
+
+                    {/* Collapsible Session Breakdown */}
+                    {isExpanded && (
+                      <div className="px-4 pb-3 pt-1 space-y-1.5 bg-navy-950/60 border-t border-white/5 animate-in fade-in duration-150">
+                        <div className="text-[10px] uppercase font-bold text-slate-400 pb-1">
+                          Individual Session Records ({grp.sessionsList.length}):
+                        </div>
+                        {grp.sessionsList.map((sess, idx) => (
+                          <div key={sess.id || idx} className="flex items-center justify-between text-xs py-1.5 px-2.5 rounded-lg bg-white/5 text-slate-300">
+                            <span className="text-slate-400 font-medium">
+                              {formatDate(sess.date)}
+                            </span>
+                            <span className="font-mono font-bold text-royal-300">
+                              {formatTimerTime(sess.duration)}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
           ) : (
+            /* ================= VIEW 2: ALL SESSIONS (RAW HISTORY) ================= */
             <div className="glass-card rounded-2xl border border-white/10 divide-y divide-white/5 max-h-[460px] overflow-y-auto">
               {sessions.map((sess) => (
                 <div key={sess.id} className="p-4 flex items-center justify-between hover:bg-white/5 transition-colors">
