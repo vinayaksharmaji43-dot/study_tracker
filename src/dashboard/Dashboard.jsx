@@ -34,9 +34,11 @@ import {
   Video,
   Headphones,
   Calendar as CalendarIcon,
-  Megaphone
+  Megaphone,
+  MessageSquare
 } from 'lucide-react';
 import SupportModal from '../components/SupportModal';
+import FeedbackModal from '../components/FeedbackModal';
 
 import CountdownWidget from '../components/CountdownWidget';
 import useDailyEvaluator from '../hooks/useDailyEvaluator';
@@ -49,6 +51,7 @@ export default function Dashboard() {
     return searchParams.get('tab') || 'overview';
   });
   const [showSupportModal, setShowSupportModal] = useState(false);
+  const [showFeedbackModal, setShowFeedbackModal] = useState(false);
 
   // Sync tab with URL search parameter
   const setActiveTab = (tabId) => {
@@ -161,6 +164,17 @@ export default function Dashboard() {
                 </button>
 
                 <button
+                  onClick={() => setShowFeedbackModal(true)}
+                  className="w-full flex items-center justify-between px-4 py-2.5 rounded-2xl text-xs font-bold text-royal-300 bg-royal-500/10 border border-royal-500/20 hover:bg-royal-500/20 transition-all"
+                >
+                  <div className="flex items-center space-x-3">
+                    <MessageSquare className="w-4 h-4 text-royal-400" />
+                    <span>Give Feedback</span>
+                  </div>
+                  <span className="text-[10px] font-black uppercase text-gold-400">Review</span>
+                </button>
+
+                <button
                   onClick={logout}
                   className="w-full flex items-center space-x-3 px-4 py-3 rounded-2xl text-sm font-semibold text-red-400 hover:bg-red-500/10 transition-colors"
                 >
@@ -199,7 +213,14 @@ export default function Dashboard() {
       <LevelUpModal />
 
       {/* Global Support Modal */}
-      <SupportModal isOpen={showSupportModal} onClose={() => setShowSupportModal(false)} />
+      <SupportModal 
+        isOpen={showSupportModal} 
+        onClose={() => setShowSupportModal(false)} 
+        onOpenFeedback={() => setShowFeedbackModal(true)}
+      />
+
+      {/* Global Feedback Modal */}
+      <FeedbackModal isOpen={showFeedbackModal} onClose={() => setShowFeedbackModal(false)} />
     </div>
   );
 }

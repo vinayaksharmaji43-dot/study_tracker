@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { collection, addDoc, onSnapshot, query, orderBy, serverTimestamp } from 'firebase/firestore';
 import { db } from '../config/firebase';
+import { formatDate } from '../utils/helpers';
 import { 
   BookOpenCheck, 
   Trophy, 
@@ -118,6 +119,7 @@ export default function Home() {
         name: fbName.trim(),
         rating: fbRating,
         text: fbText.trim(),
+        message: fbText.trim(),
         createdAt: serverTimestamp()
       });
       setFbName(''); setFbRating(0); setFbText(''); setFbSuccess(true);
@@ -453,17 +455,17 @@ export default function Home() {
                           <div>
                             <div className="text-sm font-bold text-white">{f.name}</div>
                             <div className="text-[10px] text-slate-400">
-                              {f.createdAt?.toDate ? f.createdAt.toDate().toLocaleDateString() : 'Recent'}
+                              {formatDate(f.createdAt) || 'Recent'}
                             </div>
                           </div>
                         </div>
                         <div className="flex gap-0.5">
                           {[...Array(5)].map((_, i) => (
-                            <Star key={i} className={`w-3.5 h-3.5 ${i < f.rating ? 'fill-gold-400 text-gold-400' : 'text-slate-600'}`} />
+                            <Star key={i} className={`w-3.5 h-3.5 ${i < (Number(f.rating) || 5) ? 'fill-gold-400 text-gold-400' : 'text-slate-600'}`} />
                           ))}
                         </div>
                       </div>
-                      <p className="text-sm text-slate-300 leading-relaxed italic">"{f.text}"</p>
+                      <p className="text-sm text-slate-300 leading-relaxed italic whitespace-pre-wrap">"{f.text || f.message}"</p>
                     </div>
                   ))
                 )}

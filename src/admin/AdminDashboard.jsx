@@ -14,6 +14,7 @@ import AdminSessions from './tabs/AdminSessions';
 import AdminNotes from './tabs/AdminNotes';
 import AdminDoubts from './tabs/AdminDoubts';
 import AdminAnnouncements from './tabs/AdminAnnouncements';
+import AdminFeedback from './tabs/AdminFeedback';
 import AdminCourses from './tabs/AdminCourses';
 import AdminSettings from './tabs/AdminSettings';
 import AdminStudyGroups from './tabs/AdminStudyGroups';
@@ -37,7 +38,8 @@ import {
   Clock, 
   FileText, 
   HelpCircle, 
-  Megaphone, 
+  Megaphone,
+  MessageSquare, 
   Calendar, 
   Settings, 
   LogOut,
@@ -75,6 +77,7 @@ export default function AdminDashboard() {
     { id: 'notes', label: 'Notes', icon: FileText },
     { id: 'doubts', label: 'Doubts', icon: HelpCircle },
     { id: 'announcements', label: 'Announcements', icon: Megaphone },
+    { id: 'feedback', label: 'Student Feedback', icon: MessageSquare },
     { id: 'study_groups', label: 'Study Groups', icon: Users },
     { id: 'courses', label: 'Courses & Attempts', icon: Calendar },
     { id: 'devices', label: 'Device Activity', icon: MonitorSmartphone },
@@ -191,6 +194,7 @@ export default function AdminDashboard() {
             { activeTab === 'notes' && <AdminNotes /> }
             {activeTab === 'doubts' && <AdminDoubts />}
             {activeTab === 'announcements' && <AdminAnnouncements />}
+            {activeTab === 'feedback' && <AdminFeedback />}
             {activeTab === 'study_groups' && <AdminStudyGroups />}
             {activeTab === 'courses' && <AdminCourses />}
             {activeTab === 'devices' && <AdminDevices />}

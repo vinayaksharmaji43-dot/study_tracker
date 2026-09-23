@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { Mail, Send, X, Copy, Check, Headphones, ExternalLink } from 'lucide-react';
+import { Mail, Send, X, Copy, Check, Headphones, ExternalLink, MessageSquare } from 'lucide-react';
 
-export default function SupportModal({ isOpen, onClose }) {
+export default function SupportModal({ isOpen, onClose, onOpenFeedback }) {
   const [copiedEmail, setCopiedEmail] = useState(false);
   const [copiedTelegram, setCopiedTelegram] = useState(false);
 
@@ -109,6 +109,23 @@ export default function SupportModal({ isOpen, onClose }) {
               <ExternalLink className="w-3.5 h-3.5" />
             </a>
           </div>
+
+          {/* Feedback Option */}
+          {onOpenFeedback && (
+            <div className="pt-2">
+              <button
+                type="button"
+                onClick={() => {
+                  onClose();
+                  onOpenFeedback();
+                }}
+                className="w-full py-3 rounded-2xl bg-royal-600/20 hover:bg-royal-600/30 text-royal-300 border border-royal-500/30 font-bold text-xs flex items-center justify-center gap-2 transition-all"
+              >
+                <MessageSquare className="w-4 h-4 text-royal-400" />
+                <span>Share Feedback & Review Platform</span>
+              </button>
+            </div>
+          )}
 
         </div>
 
