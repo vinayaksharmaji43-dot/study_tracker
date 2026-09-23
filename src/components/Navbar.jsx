@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { collection, query, onSnapshot, where, doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../config/firebase';
-import { BookOpen, Menu, X, LayoutDashboard, LogOut, User, ChevronRight, ShieldCheck, Bell, Headphones, MoreVertical, Clock, PenLine, Flag, Video, BookOpenCheck, Trophy, Target, FileText, HelpCircle, Crown, Calendar as CalendarIcon, Megaphone, Lock } from 'lucide-react';
+import { BookOpen, Menu, X, LayoutDashboard, LogOut, User, ChevronRight, ShieldCheck, Bell, Headphones, MoreVertical, Clock, PenLine, Flag, Video, BookOpenCheck, Trophy, Medal, Target, FileText, HelpCircle, Crown, Calendar as CalendarIcon, Megaphone, Lock } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import SupportModal from './SupportModal';
 import SectionMaintenanceModal from './SectionMaintenanceModal';
@@ -125,6 +125,7 @@ export default function Navbar({ activeTab, setActiveTab }) {
     { id: 'missions', label: 'Weekly Mission', icon: Flag },
     { id: 'mentor', label: 'Mentor Session', icon: Video },
     { id: 'leaderboard', label: 'Leaderboard', icon: Trophy },
+    { id: 'overall_leaderboard', label: 'All Students', icon: Medal },
     { id: 'targets', label: 'Daily Target', icon: Target },
     { id: 'notes', label: 'Notes', icon: FileText },
     { id: 'doubts', label: 'Doubts', icon: HelpCircle },

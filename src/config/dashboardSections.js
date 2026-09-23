@@ -43,6 +43,13 @@ export const DASHBOARD_SECTIONS = [
     iconName: 'Trophy'
   },
   {
+    id: 'overall_leaderboard',
+    label: 'Overall Leaderboard',
+    description: 'Universal student ranking across all streams by total study hours, points, and streaks',
+    category: 'Gamification',
+    iconName: 'Medal'
+  },
+  {
     id: 'timer',
     label: 'Study Timer',
     description: 'Precision stopwatch for subject-wise study sessions and verified points',

@@ -16,11 +16,13 @@ import WeeklyMissions from '../dashboard/WeeklyMissions';
 import MentorSession from '../dashboard/MentorSession';
 import Calendar from '../dashboard/Calendar';
 import Announcements from '../dashboard/Announcements';
+import OverallLeaderboard from '../dashboard/OverallLeaderboard';
 
 import { 
   LayoutDashboard, 
   BookOpenCheck,
   Trophy, 
+  Medal,
   Clock, 
   Target, 
   Flag,
@@ -100,6 +102,7 @@ export default function Dashboard() {
     { id: 'calendar', label: 'Calendar', icon: CalendarIcon },
     { id: 'syllabus', label: 'Syllabus & Progress', icon: BookOpenCheck },
     { id: 'leaderboard', label: 'Live Leaderboard', icon: Trophy },
+    { id: 'overall_leaderboard', label: '🏆 All Students', icon: Medal },
     { id: 'timer', label: 'Study Timer', icon: Clock },
     { id: 'mentor', label: 'Mentor Session', icon: Video },
     { id: 'writing', label: 'Writing Practice', icon: PenLine },
@@ -229,6 +232,7 @@ export default function Dashboard() {
                 {activeTab === 'calendar' && <Calendar />}
                 {activeTab === 'syllabus' && <Syllabus />}
                 {activeTab === 'leaderboard' && <Leaderboard />}
+                {activeTab === 'overall_leaderboard' && <OverallLeaderboard />}
                 {activeTab === 'timer' && <StudyTimer setActiveTab={setActiveTab} />}
                 {activeTab === 'mentor' && <MentorSession />}
                 {activeTab === 'writing' && <WritingPractice />}
