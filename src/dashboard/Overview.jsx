@@ -203,6 +203,10 @@ export default function Overview({ setActiveTab }) {
   // Streak
   const currentStreak = calculateStreak(sessions, dayOffs.map(dayOff => dayOff.dateKey));
   const unreadAnnouncementCount = announcements.filter(announcement => !readIds.has(announcement.id)).length;
+  const sortedAnnouncements = [...announcements].sort((a, b) => {
+    const getTime = item => item.createdAt?.toMillis ? item.createdAt.toMillis() : new Date(item.createdAt || 0).getTime();
+    return getTime(b) - getTime(a);
+  });
 
   return (
     <div className="space-y-8">
@@ -295,39 +299,35 @@ export default function Overview({ setActiveTab }) {
         </div>
       </div>
 
-      {/* Published Announcements Banner (from Admin) */}
+      {/* Latest Announcements */}
       {announcements.length > 0 && (
-        <div className="space-y-3">
-          <div className="text-xs font-bold uppercase tracking-wider text-rose-400 flex items-center gap-1.5 pl-1">
-            <span className="w-2 h-2 rounded-full bg-rose-500 animate-ping inline-block"></span>
-            <span>Official Platform Announcements</span>
+        <div className="p-5 sm:p-6 rounded-3xl glass-card border border-rose-500/25 space-y-4">
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <div className="text-[10px] font-bold uppercase tracking-[0.18em] text-rose-300">Official updates</div>
+              <h2 className="mt-1 text-xl font-bold text-white flex items-center gap-2"><Megaphone className="w-5 h-5 text-rose-400" />Latest Announcements</h2>
+            </div>
+            <button onClick={() => setActiveTab('announcements')} className="shrink-0 text-xs font-bold text-rose-300 hover:text-white transition-colors">View All <span aria-hidden="true">→</span></button>
           </div>
-          <div className="grid grid-cols-1 gap-3">
-            {announcements.slice(0, 1).map((a) => {
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+            {sortedAnnouncements.slice(0, 3).map((a) => {
               const isRead = readIds.has(a.id);
               return (
                 <div 
                   key={a.id} 
                   onClick={() => handleMarkAsRead(a.id)}
-                  className={`p-4 rounded-2xl border flex items-start space-x-3 relative overflow-hidden group cursor-pointer transition-all ${isRead ? 'bg-rose-500/5 border-rose-500/10' : 'bg-rose-500/10 border-rose-500/30'}`}
+                  className={`p-4 rounded-2xl border flex flex-col gap-3 relative overflow-hidden group cursor-pointer transition-all ${isRead ? 'bg-rose-500/5 border-rose-500/10' : 'bg-rose-500/10 border-rose-500/30'}`}
                 >
                   <div className="absolute right-0 top-0 w-32 h-32 bg-rose-500/10 rounded-full blur-2xl pointer-events-none group-hover:bg-rose-500/20 transition-all"></div>
-                  <div className="p-2 rounded-xl bg-rose-500/20 text-rose-400 shrink-0 mt-0.5 relative z-10">
-                    <Megaphone className="w-5 h-5" />
-                  </div>
+                  {a.imageUrl && <img src={a.imageUrl} alt="" className="relative z-10 w-full h-28 object-cover rounded-xl border border-white/10" />}
                   <div className="space-y-2 w-full relative z-10">
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                      <div className="flex items-center gap-2">
-                        {!isRead && <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-rose-500 text-white uppercase tracking-wider">New</span>}
-                        <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-white/10 text-white uppercase tracking-wider">Latest</span>
-                        <h4 className="text-sm font-bold text-white">{a.title}</h4>
-                      </div>
-                      <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-rose-500/20 border border-rose-500/20 text-rose-300 w-fit">
-                        {a.audienceType === 'specific' ? `${a.course} ${a.level}` : 'All Students'}
-                      </span>
+                    <div className="flex items-center gap-2">
+                      {!isRead && <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-rose-500 text-white uppercase tracking-wider">New</span>}
+                      <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-white/10 text-white uppercase tracking-wider">Latest</span>
                     </div>
-                    {a.imageUrl && <img src={a.imageUrl} alt="" className="w-full max-h-56 object-cover rounded-xl border border-white/10" />}
-                    <p className="text-xs text-slate-300 leading-relaxed whitespace-pre-wrap">{a.message}</p>
+                    <h4 className="text-sm font-bold text-white line-clamp-2">{a.title}</h4>
+                    <p className="text-xs text-slate-300 leading-relaxed line-clamp-2">{a.message}</p>
+                    <p className="text-[10px] text-slate-500">{formatDate(a.createdAt)}</p>
                   </div>
                 </div>
               );

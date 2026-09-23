@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { collection, query, onSnapshot, where, doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../config/firebase';
-import { BookOpen, Menu, X, LayoutDashboard, LogOut, User, ChevronRight, ShieldCheck, Bell, Megaphone, Check, Headphones, MoreVertical, Clock, PenLine, Flag, Video, BookOpenCheck, Trophy, Target, FileText, HelpCircle, Crown, Calendar as CalendarIcon, Image as ImageIcon, ExternalLink } from 'lucide-react';
+import { BookOpen, Menu, X, LayoutDashboard, LogOut, User, ChevronRight, ShieldCheck, Bell, Headphones, MoreVertical, Clock, PenLine, Flag, Video, BookOpenCheck, Trophy, Target, FileText, HelpCircle, Crown, Calendar as CalendarIcon } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import SupportModal from './SupportModal';
 
@@ -22,8 +22,6 @@ function normalizeAttempt(att) {
 export default function Navbar({ activeTab, setActiveTab }) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [mobileActionMenuOpen, setMobileActionMenuOpen] = useState(false);
-  const [showAnnouncements, setShowAnnouncements] = useState(false);
-  const [selectedAnnouncement, setSelectedAnnouncement] = useState(null);
   const [showSupportModal, setShowSupportModal] = useState(false);
   const actionMenuRef = useRef(null);
   const [announcements, setAnnouncements] = useState([]);
@@ -76,13 +74,6 @@ export default function Navbar({ activeTab, setActiveTab }) {
     }
   };
 
-  const openAnnouncement = async (announcement) => {
-    setSelectedAnnouncement(announcement);
-    if (currentUser && !readIds.has(announcement.id)) {
-      await handleMarkAsRead(announcement.id);
-    }
-  };
-
   const handleLogout = async () => {
     try {
       await logout();
@@ -129,7 +120,7 @@ export default function Navbar({ activeTab, setActiveTab }) {
   }, [mobileActionMenuOpen]);
 
   useEffect(() => {
-    const openAnnouncementCenter = () => setShowAnnouncements(true);
+    const openAnnouncementCenter = () => setActiveTab?.('announcements');
     window.addEventListener('open-announcement-center', openAnnouncementCenter);
     return () => window.removeEventListener('open-announcement-center', openAnnouncementCenter);
   }, []);
@@ -212,7 +203,7 @@ export default function Navbar({ activeTab, setActiveTab }) {
                   {/* Announcement Bell (Students Only) */}
                   {!isAdmin && isDashboardRoute && (
                     <button
-                      onClick={() => setShowAnnouncements(true)}
+                      onClick={() => setActiveTab?.('announcements')}
                       className="relative p-2 rounded-xl bg-rose-500/10 border border-rose-400/25 text-rose-200 hover:bg-rose-500/20 hover:border-rose-300/45 hover:text-white transition-all mr-1 shadow-[0_0_14px_rgba(244,63,94,0.12)]"
                       title="Announcement Center"
                     >
@@ -270,7 +261,7 @@ export default function Navbar({ activeTab, setActiveTab }) {
             )}
             {currentUser && !isAdmin && isDashboardRoute && (
               <button
-                onClick={() => setShowAnnouncements(true)}
+                onClick={() => setActiveTab?.('announcements')}
                 className="relative p-2.5 rounded-xl bg-rose-500/10 border border-rose-400/25 text-rose-200 hover:bg-rose-500/20 hover:border-rose-300/45 hover:text-white transition-all duration-200 shadow-[0_0_14px_rgba(244,63,94,0.12)]"
                 aria-label="Open announcements"
                 title="Announcement Center"
@@ -428,106 +419,6 @@ export default function Navbar({ activeTab, setActiveTab }) {
                 </Link>
               </div>
             )}
-          </div>
-        </div>
-      )}
-
-      {/* Announcement Center Modal */}
-      {showAnnouncements && (
-        <div className="fixed inset-0 z-[100] flex justify-end bg-navy-950/60 backdrop-blur-sm transition-opacity">
-          <div className="w-full max-w-md bg-navy-900 h-full border-l border-white/10 shadow-2xl flex flex-col animate-in slide-in-from-right duration-300">
-            
-            {/* Header */}
-            <div className="p-6 border-b border-white/10 flex items-center justify-between bg-navy-950/50">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-rose-500/20 text-rose-400 flex items-center justify-center border border-rose-500/30">
-                  <Bell className="w-5 h-5" />
-                </div>
-                <div>
-                  <h2 className="text-lg font-bold text-white">Announcements</h2>
-                  <p className="text-xs text-slate-400">Updates & Important Notices</p>
-                </div>
-              </div>
-              <button 
-                onClick={() => setShowAnnouncements(false)}
-                className="p-2 rounded-xl text-slate-400 hover:text-white hover:bg-white/5 transition-colors"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            {/* List */}
-            <div className="flex-1 overflow-y-auto p-4 space-y-4">
-              {announcements.length === 0 ? (
-                <div className="text-center py-12">
-                  <div className="w-12 h-12 rounded-2xl bg-white/5 text-slate-500 flex items-center justify-center mx-auto mb-3">
-                    <Bell className="w-6 h-6" />
-                  </div>
-                  <p className="text-sm font-medium text-slate-400">No announcements yet</p>
-                </div>
-              ) : (
-                announcements.map((a) => {
-                  const isRead = readIds.has(a.id);
-                  return (
-                    <div 
-                      key={a.id} 
-                      onClick={() => openAnnouncement(a)}
-                      className={`p-4 rounded-2xl border transition-all cursor-pointer ${isRead ? 'bg-navy-950/50 border-white/5 opacity-75' : 'bg-rose-500/5 border-rose-500/30 shadow-lg shadow-rose-500/5'}`}
-                    >
-                      <div className="flex items-start justify-between gap-3 mb-2">
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2 mb-1">
-                            {!isRead && <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-rose-500 text-white uppercase tracking-wider">New</span>}
-                            <span className="text-[10px] font-bold text-slate-400">
-                              {a.createdAt?.toDate ? new Intl.DateTimeFormat('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }).format(a.createdAt.toDate()) : 'Recent'}
-                            </span>
-                          </div>
-                          <h4 className={`text-sm font-bold ${isRead ? 'text-slate-200' : 'text-white'}`}>{a.title}</h4>
-                        </div>
-                        {isRead && <Check className="w-4 h-4 text-emerald-500 shrink-0 mt-1" />}
-                      </div>
-                      
-                      {a.imageUrl && <img src={a.imageUrl} alt="" className="w-full h-32 object-cover rounded-xl border border-white/10 mb-3" />}
-                      <p className="text-xs text-slate-300 leading-relaxed whitespace-pre-wrap line-clamp-3">{a.message}</p>
-                      
-                      <div className="mt-3 pt-3 border-t border-white/5 flex items-center justify-between">
-                        <span className="text-[10px] font-semibold text-slate-500">
-                          {a.audienceType === 'specific' ? `${a.course} ${a.level}` : 'All Streams'}
-                        </span>
-                        <span className="text-[10px] font-semibold text-slate-500">
-                          By Admin
-                        </span>
-                      </div>
-                    </div>
-                  );
-                })
-              )}
-            </div>
-
-          </div>
-        </div>
-      )}
-
-      {selectedAnnouncement && (
-        <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-navy-950/85 backdrop-blur-md" onClick={() => setSelectedAnnouncement(null)}>
-          <div className="w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-3xl bg-navy-900 border border-violet-400/25 shadow-[0_0_50px_rgba(99,102,241,0.2)] animate-in fade-in zoom-in-95 duration-200" onClick={event => event.stopPropagation()}>
-            <div className="flex items-start justify-between gap-4 p-5 sm:p-7 border-b border-white/10">
-              <div>
-                <div className="flex items-center gap-2 text-[10px] uppercase tracking-wider font-black text-gold-300 mb-2"><Megaphone className="w-3.5 h-3.5" /> Announcement Center</div>
-                <h2 className="text-xl sm:text-2xl font-black text-white">{selectedAnnouncement.title}</h2>
-              </div>
-              <button onClick={() => setSelectedAnnouncement(null)} className="p-2 rounded-xl text-slate-400 hover:text-white hover:bg-white/5" aria-label="Close announcement"><X className="w-5 h-5" /></button>
-            </div>
-            <div className="p-5 sm:p-7 space-y-5">
-              {selectedAnnouncement.imageUrl && <a href={selectedAnnouncement.imageUrl} target="_blank" rel="noopener noreferrer" className="block group"><img src={selectedAnnouncement.imageUrl} alt="Announcement attachment" className="w-full max-h-[28rem] object-contain rounded-2xl border border-white/10 bg-navy-950 group-hover:border-violet-400/40 transition-colors" /><span className="mt-2 flex items-center justify-end gap-1 text-[11px] text-violet-300"><ExternalLink className="w-3 h-3" /> Open full image</span></a>}
-              <div className="flex flex-wrap items-center gap-2 text-xs text-slate-400">
-                <span>{selectedAnnouncement.createdAt?.toDate ? new Intl.DateTimeFormat('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }).format(selectedAnnouncement.createdAt.toDate()) : 'Recently Published'}</span>
-                <span className="text-slate-600">•</span>
-                <span>{selectedAnnouncement.audienceType === 'specific' ? `${selectedAnnouncement.course} ${selectedAnnouncement.level} • ${selectedAnnouncement.attempt}` : 'All Streams'}</span>
-                <span className="inline-flex items-center gap-1 text-emerald-300"><Check className="w-3 h-3" /> Read</span>
-              </div>
-              <p className="text-sm sm:text-base leading-7 text-slate-200 whitespace-pre-wrap">{selectedAnnouncement.message}</p>
-            </div>
           </div>
         </div>
       )}

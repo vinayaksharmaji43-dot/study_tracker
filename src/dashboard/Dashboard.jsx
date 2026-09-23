@@ -14,6 +14,7 @@ import WritingPractice from '../dashboard/WritingPractice';
 import WeeklyMissions from '../dashboard/WeeklyMissions';
 import MentorSession from '../dashboard/MentorSession';
 import Calendar from '../dashboard/Calendar';
+import Announcements from '../dashboard/Announcements';
 
 import { 
   LayoutDashboard, 
@@ -31,12 +32,12 @@ import {
   PenLine,
   Video,
   Headphones,
-  Calendar as CalendarIcon
+  Calendar as CalendarIcon,
+  Megaphone
 } from 'lucide-react';
 import SupportModal from '../components/SupportModal';
 
 import CountdownWidget from '../components/CountdownWidget';
-import GlobalAnnouncementPopup from '../components/GlobalAnnouncementPopup';
 import useDailyEvaluator from '../hooks/useDailyEvaluator';
 import LevelUpModal from '../components/LevelUpModal';
 
@@ -50,6 +51,7 @@ export default function Dashboard() {
 
   const navItems = [
     { id: 'overview', label: 'Overview', icon: LayoutDashboard },
+    { id: 'announcements', label: 'Announcements', icon: Megaphone },
     { id: 'calendar', label: 'Calendar', icon: CalendarIcon },
     { id: 'syllabus', label: 'Syllabus & Progress', icon: BookOpenCheck },
     { id: 'leaderboard', label: 'Live Leaderboard', icon: Trophy },
@@ -65,9 +67,6 @@ export default function Dashboard() {
 
   return (
     <div className="min-h-screen bg-navy-950 text-slate-100 flex flex-col selection:bg-emerald-500 selection:text-white">
-      {/* Global Announcement Priority Overlay */}
-      <GlobalAnnouncementPopup />
-
       <Navbar activeTab={activeTab} setActiveTab={setActiveTab} />
 
       <div className="flex-grow max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
@@ -151,6 +150,7 @@ export default function Dashboard() {
           {/* Main Dashboard Workspace View */}
           <main className="col-span-1 lg:col-span-9 space-y-6">
             {activeTab === 'overview' && <Overview setActiveTab={setActiveTab} />}
+            {activeTab === 'announcements' && <Announcements />}
             {activeTab === 'calendar' && <Calendar />}
             {activeTab === 'syllabus' && <Syllabus />}
             {activeTab === 'leaderboard' && <Leaderboard />}
