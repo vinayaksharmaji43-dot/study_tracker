@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { doc, onSnapshot, updateDoc, deleteField } from 'firebase/firestore';
+import { doc, onSnapshot, updateDoc, deleteField, increment } from 'firebase/firestore';
 import { db } from '../config/firebase';
 import { useAuth } from '../contexts/AuthContext';
 import EmptyState from '../components/EmptyState';
 import LoadingSpinner from '../components/LoadingSpinner';
+import { calculateStudentLevel, getDefaultStreamLevels, getStreamId, normalizeLevelConfig } from '../utils/levelSystem';
 import { 
   BookOpen, 
   CheckCircle2, 
@@ -12,27 +13,47 @@ import {
   BarChart3,
   Layers,
   Calendar,
-  BookOpenCheck
+  BookOpenCheck,
+  Trophy,
+  Star,
+  Sparkles,
+  ChevronDown,
+  ChevronUp,
+  Lock,
+  Check,
+  Zap,
+  Target,
+  Search,
+  ArrowRight,
+  ShieldCheck,
+  Flame
 } from 'lucide-react';
 
 export default function Syllabus() {
   const { currentUser, userProfile } = useAuth();
   
   const [completedMap, setCompletedMap] = useState({});
+  const [currentUserData, setCurrentUserData] = useState(null);
   const [togglingChapterId, setTogglingChapterId] = useState(null);
 
   // Dynamic syllabus from Firestore
   const [syllabusDoc, setSyllabusDoc] = useState(null);
   const [loading, setLoading] = useState(true);
 
+  // Level roadmap states
+  const [showAllLevels, setShowAllLevels] = useState(true);
+  const [levelFilter, setLevelFilter] = useState('all'); // 'all' | 'unlocked' | 'locked'
+  const [levelSearch, setLevelSearch] = useState('');
+
   const rawCourse = userProfile?.course || 'CA';
   const courseKey = rawCourse === 'CMA' || rawCourse?.includes('CMA') ? 'CMA' : 'CA';
   const levelKey = userProfile?.level || (rawCourse?.includes('Intermediate') ? 'Intermediate' : 'Foundation');
   const attempt = userProfile?.attempt || (courseKey === 'CA' ? 'Jan 27' : 'June 27');
   
-  const streamId = `${courseKey}_${levelKey}`;
+  const streamId = getStreamId(courseKey, levelKey);
+  const [levelConfig, setLevelConfig] = useState(() => getDefaultStreamLevels(streamId));
 
-  // Real-time listener for syllabus blueprint
+  // 1. Real-time listener for syllabus blueprint
   useEffect(() => {
     const unsubSyllabus = onSnapshot(doc(db, 'syllabi', streamId), (snap) => {
       if (snap.exists()) {
@@ -49,12 +70,29 @@ export default function Syllabus() {
     return () => unsubSyllabus();
   }, [streamId]);
 
-  // Real-time listener for student's completed syllabus chapters
+  // 2. Real-time listener for stream levelConfigs
+  useEffect(() => {
+    const unsubLevel = onSnapshot(doc(db, 'levelConfigs', streamId), (snap) => {
+      if (snap.exists() && snap.data().levels) {
+        setLevelConfig(normalizeLevelConfig(snap.data().levels, streamId));
+      } else {
+        setLevelConfig(getDefaultStreamLevels(streamId));
+      }
+    }, (err) => {
+      console.warn("Error fetching levelConfigs for stream:", streamId, err);
+      setLevelConfig(getDefaultStreamLevels(streamId));
+    });
+    return () => unsubLevel();
+  }, [streamId]);
+
+  // 3. Real-time listener for student's live user data (points, completed chapters)
   useEffect(() => {
     if (!currentUser?.uid) return;
     const unsubUser = onSnapshot(doc(db, 'users', currentUser.uid), (snapshot) => {
       if (snapshot.exists()) {
-        setCompletedMap(snapshot.data().syllabusCompleted || {});
+        const data = snapshot.data();
+        setCurrentUserData(data);
+        setCompletedMap(data.syllabusCompleted || {});
       }
     }, (err) => console.error("Error subscribing to syllabus progress:", err));
     return () => unsubUser();
@@ -90,6 +128,33 @@ export default function Syllabus() {
     ? Math.min(100, Math.round((completedChaptersCount / totalChaptersCount) * 100))
     : 0;
 
+  // Live student points & gamified level calculations
+  const studentPoints = Number(currentUserData?.points ?? userProfile?.points ?? 0);
+
+  const levelInfo = useMemo(() => {
+    return calculateStudentLevel(studentPoints, levelConfig);
+  }, [studentPoints, levelConfig]);
+
+  const filteredLevels = useMemo(() => {
+    return levelConfig.filter((lvl) => {
+      const isUnlocked = studentPoints >= lvl.requiredPoints;
+      const isCurrent = lvl.levelNumber === levelInfo.currentLevelNumber;
+
+      if (levelFilter === 'unlocked' && !isUnlocked) return false;
+      if (levelFilter === 'locked' && isUnlocked) return false;
+      if (levelFilter === 'current' && !isCurrent) return false;
+
+      if (levelSearch.trim()) {
+        const q = levelSearch.toLowerCase().trim();
+        const matchesName = (lvl.levelName || '').toLowerCase().includes(q);
+        const matchesNum = String(lvl.levelNumber).includes(q);
+        const matchesPoints = String(lvl.requiredPoints).includes(q);
+        return matchesName || matchesNum || matchesPoints;
+      }
+      return true;
+    });
+  }, [levelConfig, studentPoints, levelFilter, levelSearch, levelInfo.currentLevelNumber]);
+
   // Toggle chapter completion & sync with Firestore
   const handleToggleChapter = async (chapterId, pointsReward) => {
     if (!currentUser?.uid || togglingChapterId) return;
@@ -105,7 +170,7 @@ export default function Syllabus() {
         await updateDoc(userRef, {
           [`syllabusCompleted.${chapterId}`]: deleteField(),
           syllabusCompletedCount: newCount,
-          points: Math.max(0, (userProfile?.points || 0) - pointsReward)
+          points: increment(-pointsReward)
         });
       } else {
         // Check chapter: add to map and add specific chapter points
@@ -113,7 +178,7 @@ export default function Syllabus() {
         await updateDoc(userRef, {
           [`syllabusCompleted.${chapterId}`]: true,
           syllabusCompletedCount: newCount,
-          points: (userProfile?.points || 0) + pointsReward
+          points: increment(pointsReward)
         });
       }
     } catch (err) {
@@ -165,6 +230,246 @@ export default function Syllabus() {
           </p>
         </div>
       </div>
+
+      {/* ========================================================================= */}
+      {/* 🏆 GAMIFIED LEVEL PROGRESS & NEXT LEVEL REQUIREMENT HERO BANNER */}
+      {/* ========================================================================= */}
+      <div className="p-6 sm:p-7 rounded-3xl glass-card border border-gold-500/40 bg-gradient-to-r from-amber-950/40 via-navy-900/90 to-royal-950/50 shadow-2xl relative overflow-hidden space-y-6">
+        <div className="absolute top-0 right-0 w-80 h-80 bg-gold-500/10 rounded-full blur-3xl pointer-events-none" />
+        
+        {/* Top Header & Identity */}
+        <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-5 relative z-10">
+          
+          {/* Current Level Identity */}
+          <div className="flex items-center space-x-4">
+            <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-3xl bg-gradient-to-tr from-gold-500 via-amber-500 to-royal-600 p-0.5 shadow-glow-gold flex items-center justify-center shrink-0">
+              <div className="w-full h-full bg-navy-950 rounded-[22px] flex items-center justify-center text-3xl sm:text-4xl">
+                {levelInfo.badge}
+              </div>
+            </div>
+            
+            <div className="space-y-1">
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="px-2.5 py-0.5 rounded-full bg-gold-500/20 border border-gold-500/40 text-gold-300 text-xs font-black uppercase tracking-wider">
+                  Level {levelInfo.currentLevelNumber} of 35
+                </span>
+                <span className="text-xs text-slate-400 font-semibold">
+                  {courseKey} {levelKey} Gamified Track
+                </span>
+              </div>
+              <h2 className="text-xl sm:text-2xl font-black text-white flex items-center gap-2">
+                <span>{levelInfo.currentLevelName}</span>
+                <span className="text-2xl">{levelInfo.badge}</span>
+              </h2>
+              <div className="text-xs text-slate-300 font-medium">
+                Your Current Balance: <strong className="text-gold-400 font-mono text-sm">{studentPoints.toLocaleString()} PTS</strong>
+              </div>
+            </div>
+          </div>
+
+          {/* Next Level Target Pill & Roadmap Button */}
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full lg:w-auto">
+            {!levelInfo.isMaxLevel && levelInfo.nextLevelObj ? (
+              <div className="p-4 rounded-2xl bg-navy-900/90 border border-emerald-500/30 space-y-1 sm:min-w-[260px] shadow-lg shadow-emerald-950/20">
+                <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider flex items-center justify-between">
+                  <span>Next Milestone Target</span>
+                  <span className="text-gold-400 font-black flex items-center gap-1">
+                    {levelInfo.nextLevelObj.badge} Level {levelInfo.nextLevelObj.levelNumber}
+                  </span>
+                </div>
+                <div className="text-sm font-black text-white truncate">
+                  {levelInfo.nextLevelObj.levelName}
+                </div>
+                <div className="text-xs font-extrabold text-emerald-400 pt-0.5 flex items-center gap-1.5">
+                  <span className="relative flex h-2 w-2">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                  </span>
+                  <span>Next level ke liye {levelInfo.pointsRemaining.toLocaleString()} PTS chahiye!</span>
+                </div>
+              </div>
+            ) : (
+              <div className="p-4 rounded-2xl bg-gold-500/10 border border-gold-500/30 text-center space-y-1">
+                <div className="text-xs font-black text-gold-300">🏆 MAXIMUM LEVEL 35 REACHED!</div>
+                <div className="text-xs text-slate-300">You are the Ultimate Blueprint Master!</div>
+              </div>
+            )}
+
+            <button
+              onClick={() => setShowAllLevels(prev => !prev)}
+              className="px-4 py-3 rounded-2xl bg-royal-600/30 hover:bg-royal-600/50 border border-royal-400/40 text-royal-200 hover:text-white text-xs font-black transition-all flex items-center justify-center gap-2 shadow-lg shrink-0"
+              title="Click to show or hide the full 35 levels roadmap"
+            >
+              <Award className="w-4 h-4 text-gold-400" />
+              <span>{showAllLevels ? 'Hide Levels Roadmap' : 'Show All 35 Levels'}</span>
+              <ChevronDown className={`w-4 h-4 transition-transform duration-200 ${showAllLevels ? 'rotate-180' : ''}`} />
+            </button>
+          </div>
+        </div>
+
+        {/* Level Progression Bar */}
+        {!levelInfo.isMaxLevel && levelInfo.nextLevelObj && (
+          <div className="space-y-2 pt-2 border-t border-white/10">
+            <div className="flex items-center justify-between text-xs font-bold">
+              <span className="text-slate-300 flex items-center gap-1.5 flex-wrap">
+                <span>Progress to Level {levelInfo.nextLevelObj.levelNumber} ({levelInfo.nextLevelObj.levelName})</span>
+                <span className="text-gold-400 font-mono font-black">({levelInfo.progressPct}%)</span>
+              </span>
+              <span className="text-emerald-400 font-mono text-xs font-extrabold">
+                {studentPoints.toLocaleString()} / {levelInfo.nextLevelObj.requiredPoints.toLocaleString()} PTS
+              </span>
+            </div>
+
+            <div className="w-full bg-navy-950 rounded-full h-3.5 overflow-hidden p-0.5 border border-white/10 shadow-inner">
+              <div 
+                className="bg-gradient-to-r from-gold-500 via-amber-400 to-emerald-400 h-full rounded-full transition-all duration-500 shadow-glow-gold"
+                style={{ width: `${levelInfo.progressPct}%` }}
+              />
+            </div>
+
+            <div className="flex items-center justify-between text-[11px] text-slate-400 pt-0.5 flex-wrap gap-2">
+              <span className="font-semibold">{levelInfo.badge} Level {levelInfo.currentLevelNumber} ({levelInfo.currentLevelObj.requiredPoints.toLocaleString()} PTS)</span>
+              <span className="text-emerald-300 font-bold bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">
+                🎯 {levelInfo.pointsRemaining.toLocaleString()} more points to level up!
+              </span>
+              <span className="font-semibold">{levelInfo.nextLevelObj.badge} Level {levelInfo.nextLevelObj.levelNumber} ({levelInfo.nextLevelObj.requiredPoints.toLocaleString()} PTS)</span>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* ========================================================================= */}
+      {/* 🌟 ALL 35 LEVELS ROADMAP SECTION */}
+      {/* ========================================================================= */}
+      {showAllLevels && (
+        <div className="p-6 sm:p-7 rounded-3xl glass-card border border-white/10 space-y-6 shadow-xl animate-in fade-in slide-in-from-top-4 duration-300">
+          
+          {/* Header & Filter Controls */}
+          <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4 border-b border-white/10 pb-5">
+            <div>
+              <h3 className="text-lg font-bold text-white flex items-center gap-2">
+                <Sparkles className="w-5 h-5 text-gold-400" />
+                <span>{courseKey} {levelKey} Levels Roadmap — All 35 Levels</span>
+              </h3>
+              <p className="text-xs text-slate-400 mt-0.5">
+                Complete chapters and log study sessions to climb through all 35 levels and earn prestigious badges.
+              </p>
+            </div>
+
+            {/* Filter Pills & Search */}
+            <div className="flex flex-wrap items-center gap-2">
+              <div className="relative flex-1 sm:flex-initial">
+                <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                <input
+                  type="text"
+                  value={levelSearch}
+                  onChange={(e) => setLevelSearch(e.target.value)}
+                  placeholder="Search level name..."
+                  className="pl-8 pr-3 py-1.5 rounded-xl bg-navy-900 border border-white/10 text-white text-xs placeholder:text-slate-500 focus:outline-none focus:border-gold-500/50 transition-colors w-full sm:w-44"
+                />
+              </div>
+
+              <div className="flex items-center gap-1 bg-navy-900/80 p-1 rounded-xl border border-white/10">
+                {[
+                  { id: 'all', label: `All (${levelConfig.length})` },
+                  { id: 'unlocked', label: `Unlocked (${levelConfig.filter(l => studentPoints >= l.requiredPoints).length})` },
+                  { id: 'locked', label: `Locked (${levelConfig.filter(l => studentPoints < l.requiredPoints).length})` }
+                ].map((tab) => (
+                  <button
+                    key={tab.id}
+                    onClick={() => setLevelFilter(tab.id)}
+                    className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all ${
+                      levelFilter === tab.id
+                        ? 'bg-gold-500/20 text-gold-300 border border-gold-500/40 shadow-sm'
+                        : 'text-slate-400 hover:text-white'
+                    }`}
+                  >
+                    {tab.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* 35 Levels Grid */}
+          {filteredLevels.length === 0 ? (
+            <div className="p-8 rounded-2xl bg-navy-900/40 border border-white/5 text-center text-xs text-slate-400">
+              No levels match your search or filter.
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-7 gap-3">
+              {filteredLevels.map((lvl) => {
+                const isUnlocked = studentPoints >= lvl.requiredPoints;
+                const isCurrent = lvl.levelNumber === levelInfo.currentLevelNumber;
+                const pointsNeeded = Math.max(0, lvl.requiredPoints - studentPoints);
+
+                return (
+                  <div
+                    key={lvl.levelNumber}
+                    className={`p-3.5 rounded-2xl border transition-all flex flex-col justify-between relative group ${
+                      isCurrent
+                        ? 'bg-gradient-to-b from-gold-500/25 via-navy-900 to-amber-950/40 border-2 border-gold-400 shadow-glow-gold scale-[1.03] z-10'
+                        : isUnlocked
+                        ? 'bg-emerald-950/20 border-emerald-500/30 hover:border-emerald-400/50 hover:bg-emerald-950/30'
+                        : 'bg-navy-900/50 border-white/5 opacity-75 hover:opacity-100 hover:border-white/20'
+                    }`}
+                  >
+                    {/* Top Row: Level Number & Badge */}
+                    <div className="flex items-center justify-between gap-1 mb-2">
+                      <span className={`text-[10px] font-black px-1.5 py-0.5 rounded-md ${
+                        isCurrent
+                          ? 'bg-gold-500 text-navy-950 font-black'
+                          : isUnlocked
+                          ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
+                          : 'bg-white/5 text-slate-400'
+                      }`}>
+                        #{lvl.levelNumber}
+                      </span>
+                      <span className="text-xl">{lvl.badge}</span>
+                    </div>
+
+                    {/* Level Title */}
+                    <div className="space-y-0.5 my-1">
+                      <h4 className={`text-xs font-black truncate ${
+                        isCurrent 
+                          ? 'text-gold-300' 
+                          : isUnlocked 
+                          ? 'text-white' 
+                          : 'text-slate-300'
+                      }`}>
+                        {lvl.levelName}
+                      </h4>
+                      <div className="text-[11px] font-mono font-bold text-slate-400">
+                        {lvl.requiredPoints.toLocaleString()} PTS
+                      </div>
+                    </div>
+
+                    {/* Bottom Status Tag */}
+                    <div className="pt-2 border-t border-white/5 mt-auto">
+                      {isCurrent ? (
+                        <div className="text-[10px] font-black text-gold-300 flex items-center gap-1 justify-center bg-gold-500/20 py-0.5 px-1 rounded-md border border-gold-400/40">
+                          <span className="w-1.5 h-1.5 rounded-full bg-gold-400 animate-pulse"></span>
+                          <span>Current Level</span>
+                        </div>
+                      ) : isUnlocked ? (
+                        <div className="text-[10px] font-bold text-emerald-400 flex items-center gap-1 justify-center bg-emerald-500/10 py-0.5 px-1 rounded-md border border-emerald-500/20">
+                          <Check className="w-3 h-3 text-emerald-400" />
+                          <span>Unlocked</span>
+                        </div>
+                      ) : (
+                        <div className="text-[10px] font-semibold text-slate-400 flex items-center gap-1 justify-center bg-white/5 py-0.5 px-1 rounded-md">
+                          <Lock className="w-2.5 h-2.5 text-slate-500 shrink-0" />
+                          <span className="truncate">Need {pointsNeeded.toLocaleString()} pts</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* SYLLABUS ANALYTICS & GRAPHICAL OVERVIEW */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
