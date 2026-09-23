@@ -44,7 +44,7 @@ export default function useDailyEvaluator(currentUser) {
           const targetDateKey = tData.targetDate || (tData.date?.toDate ? getDateKey(tData.date.toDate()) : null) || (tData.createdAt?.toDate ? getDateKey(tData.createdAt.toDate()) : null);
           
           if (!targetDateKey || targetDateKey >= todayKey) continue;
-          if (tData.status === 'completed' || tData.targetPenaltyApplied) continue;
+          if (tData.status === 'completed' || tData.targetRewardGranted || tData.targetPenaltyApplied || tData.status === 'missed') continue;
 
           // It's a past target, not completed, penalty not applied
           if (!exemptDates.has(targetDateKey)) {
@@ -56,16 +56,22 @@ export default function useDailyEvaluator(currentUser) {
               studentId: uid,
               amount: -3,
               type: 'penalty',
-              reason: 'Daily Target Not Completed',
+              reason: 'Daily Target Missed',
               sourceId: targetDoc.id,
+              targetTitle: tData.title || 'Daily Target',
+              subject: tData.subject || '',
               date: targetDateKey,
               createdAt: serverTimestamp()
             });
             batchCount++;
           }
 
-          // Mark as penalty applied so we don't do it again
-          batch.update(targetDoc.ref, { targetPenaltyApplied: true, status: 'pending' });
+          // Mark as missed and penalty applied so we never evaluate it again or allow completion
+          batch.update(targetDoc.ref, { 
+            targetPenaltyApplied: true, 
+            status: 'missed',
+            missedAt: serverTimestamp()
+          });
           batchCount++;
           if (batchCount > 400) await commitBatch();
         }

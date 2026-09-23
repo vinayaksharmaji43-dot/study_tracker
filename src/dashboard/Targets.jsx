@@ -18,8 +18,6 @@ import {
   Target, 
   Plus, 
   CheckCircle2, 
-  Circle, 
-  Calendar, 
   Award, 
   Filter, 
   Sparkles, 
@@ -27,12 +25,14 @@ import {
   Lock, 
   FileText,
   Clock,
-  ArrowRight,
   Play,
-  RotateCcw,
-  Check,
-  Zap,
-  Info
+  History,
+  XCircle,
+  ArrowUpRight,
+  ArrowDownRight,
+  HelpCircle,
+  TrendingUp,
+  X
 } from 'lucide-react';
 import TestTracker from './TestTracker';
 import { isSubjectMatch, calculateTargetProgress, formatDurationHuman } from '../utils/subjectMatcher';
@@ -82,12 +82,14 @@ export default function Targets({ setActiveTab }) {
   const [subjects, setSubjects] = useState(defaultSubjects);
   const [targets, setTargets] = useState([]);
   const [sessions, setSessions] = useState([]);
+  const [targetTransactions, setTargetTransactions] = useState([]);
   const [activeTimerState, setActiveTimerState] = useState(null);
   const [ticker, setTicker] = useState(0);
 
-  const [filter, setFilter] = useState('all'); // 'all', 'today', 'pending', 'completed'
+  const [filter, setFilter] = useState('all'); // 'all', 'pending', 'completed', 'missed'
   const [showAddModal, setShowAddModal] = useState(false);
   const [showWarningModal, setShowWarningModal] = useState(false);
+  const [showHistoryModal, setShowHistoryModal] = useState(false);
   const [incompleteModalData, setIncompleteModalData] = useState(null);
   const [rewardToast, setRewardToast] = useState(null);
 
@@ -190,7 +192,33 @@ export default function Targets({ setActiveTab }) {
     return () => unsubscribe();
   }, [currentUser]);
 
-  // 5. Track active timer state from localStorage & 1s interval ticker
+  // 5. Listen to target pointTransactions for Points History
+  useEffect(() => {
+    if (!currentUser?.uid) return;
+
+    const qTx = query(
+      collection(db, 'pointTransactions'),
+      where('studentId', '==', currentUser.uid)
+    );
+
+    const unsubscribe = onSnapshot(qTx, (snapshot) => {
+      const docs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      const targetOnly = docs.filter(tx => 
+        (tx.reason && tx.reason.toLowerCase().includes('target')) || 
+        (tx.sourceId && targets.some(t => t.id === tx.sourceId))
+      );
+      targetOnly.sort((a, b) => {
+        const da = a.createdAt?.toDate ? a.createdAt.toDate() : new Date(a.date || 0);
+        const dbDate = b.createdAt?.toDate ? b.createdAt.toDate() : new Date(b.date || 0);
+        return dbDate - da;
+      });
+      setTargetTransactions(targetOnly);
+    });
+
+    return () => unsubscribe();
+  }, [currentUser, targets]);
+
+  // 6. Track active timer state from localStorage & 1s interval ticker
   useEffect(() => {
     if (!currentUser?.uid) return;
     const storageKey = `study_timer_state_${currentUser.uid}`;
@@ -243,8 +271,8 @@ export default function Targets({ setActiveTab }) {
         uid: currentUser.uid,
         title: title.trim(),
         subject,
-        targetValue: parseFloat(targetHours) || 1.0, // Used for display
-        targetHours: parseFloat(targetHours) || 1.0, // Legacy support
+        targetValue: parseFloat(targetHours) || 1.0,
+        targetHours: parseFloat(targetHours) || 1.0,
         targetDate: todayStr,
         status: 'pending',
         studiedSeconds: 0,
@@ -253,7 +281,7 @@ export default function Targets({ setActiveTab }) {
         targetPenaltyApplied: false,
         course: userProfile?.course || 'CA Foundation',
         createdAt: serverTimestamp(),
-        date: serverTimestamp() // Legacy support
+        date: serverTimestamp()
       });
 
       setTitle('');
@@ -269,7 +297,8 @@ export default function Targets({ setActiveTab }) {
 
   // Prevent false completion: Check if student has genuinely met the target study time
   const handleTargetAction = (target, progress) => {
-    if (target.status === 'completed' || target.completed) return;
+    // If completed or missed, action is blocked
+    if (target.isCompleted || target.isMissed) return;
 
     if (!progress.isEligible) {
       // PREVENT false completion: show explicit warning with remaining duration
@@ -277,11 +306,16 @@ export default function Targets({ setActiveTab }) {
       return;
     }
 
-    // Target duration genuinely met on subject timer! Complete and reward
+    // Target duration genuinely met on subject timer! Complete and reward (+3 Pts)
     completeTarget(target);
   };
 
   const completeTarget = async (target) => {
+    // Strict mutual exclusivity guard: never reward twice, never reward a missed target
+    if (target.status === 'completed' || target.status === 'missed' || target.completed || target.targetRewardGranted || target.targetPenaltyApplied) {
+      return;
+    }
+
     try {
       const batch = writeBatch(db);
       const targetRef = doc(db, 'targets', target.id);
@@ -297,18 +331,20 @@ export default function Targets({ setActiveTab }) {
         completedAt: serverTimestamp()
       });
 
-      // Update user points +10
+      // Update user points: +3 Points
       batch.update(userRef, {
-        points: increment(10)
+        points: increment(3)
       });
 
-      // Log transaction
+      // Log transaction: +3 Points
       batch.set(txRef, {
         studentId: currentUser.uid,
-        amount: 10,
+        amount: 3,
         type: 'reward',
         reason: 'Daily Target Completed',
         sourceId: target.id,
+        targetTitle: target.title,
+        subject: target.subject,
         date: todayStr,
         createdAt: serverTimestamp()
       });
@@ -335,36 +371,41 @@ export default function Targets({ setActiveTab }) {
     }
   };
 
-  // Group targets into Today, Pending (Carried Forward), and Completed
+  // Group targets into: Pending (today active), Completed (+3), and Missed (-3)
   const todayKey = getDateKey(new Date());
 
   const enrichedTargets = targets.map(t => {
-    const isCompleted = t.status === 'completed' || t.completed === true;
-    const progress = calculateTargetProgress(t, sessions, activeTimerState);
     const targetDateKey = t.targetDate || (t.createdAt?.toDate ? getDateKey(t.createdAt.toDate()) : todayKey);
-    const isPendingPast = !isCompleted && targetDateKey < todayKey;
-    const isTodayActive = !isCompleted && targetDateKey >= todayKey;
+    const isCompleted = t.status === 'completed' || t.completed === true || t.targetRewardGranted === true;
+    const isMissed = !isCompleted && (t.status === 'missed' || t.targetPenaltyApplied === true || (targetDateKey && targetDateKey < todayKey));
+    const isPending = !isCompleted && !isMissed;
+    const progress = calculateTargetProgress(t, sessions, activeTimerState);
 
     return {
       ...t,
       isCompleted,
-      isPendingPast,
-      isTodayActive,
+      isMissed,
+      isPending,
       targetDateKey,
       progress
     };
   });
 
-  const todayTargets = enrichedTargets.filter(t => t.isTodayActive);
-  const pendingPastTargets = enrichedTargets.filter(t => t.isPendingPast);
+  const pendingTargets = enrichedTargets.filter(t => t.isPending);
   const completedTargets = enrichedTargets.filter(t => t.isCompleted);
+  const missedTargets = enrichedTargets.filter(t => t.isMissed);
 
   const displayedTargets = enrichedTargets.filter(t => {
-    if (filter === 'today') return t.isTodayActive;
-    if (filter === 'pending') return t.isPendingPast;
+    if (filter === 'pending') return t.isPending;
     if (filter === 'completed') return t.isCompleted;
+    if (filter === 'missed') return t.isMissed;
     return true; // 'all'
   });
+
+  // Calculate Target Points statistics
+  const totalEarned = targetTransactions.filter(tx => tx.amount > 0).reduce((sum, tx) => sum + (tx.amount || 0), 0);
+  const totalDeducted = Math.abs(targetTransactions.filter(tx => tx.amount < 0).reduce((sum, tx) => sum + (tx.amount || 0), 0));
+  const netTargetPoints = totalEarned - totalDeducted;
 
   return (
     <div className="space-y-6">
@@ -406,7 +447,7 @@ export default function Targets({ setActiveTab }) {
             </div>
             <button
               onClick={() => setHubTab('test_tracker')}
-              className="px-3 py-1.5 rounded-xl bg-purple-600 hover:bg-purple-500 text-white text-[11px] font-bold transition-all shadow-glow-purple"
+              className="px-3 py-1.5 rounded-xl bg-purple-600 hover:bg-purple-500 text-white text-[11px] font-bold transition-all shadow-glow-purple cursor-pointer"
             >
               View Tests →
             </button>
@@ -427,36 +468,85 @@ export default function Targets({ setActiveTab }) {
                 Daily Subject Targets
               </h1>
               <p className="text-sm text-slate-400 mt-1">
-                Targets are strictly connected to your subject timer. Study the required duration to unlock +10 Points!
+                Connected strictly to your subject study timer. Fulfill your target on time to earn verified points!
               </p>
             </div>
             
-            <button
-              onClick={() => setShowAddModal(true)}
-              className="px-5 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-navy-950 text-sm font-black flex items-center justify-center gap-2 transition-all shadow-glow-emerald cursor-pointer"
-            >
-              <Plus className="w-4 h-4" />
-              <span>New Target</span>
-            </button>
+            <div className="flex items-center gap-2.5">
+              <button
+                onClick={() => setShowHistoryModal(true)}
+                className="px-4 py-2.5 rounded-xl bg-navy-900 hover:bg-navy-800 text-slate-300 border border-white/10 text-xs font-bold flex items-center gap-2 transition-all cursor-pointer"
+              >
+                <History className="w-4 h-4 text-gold-400" />
+                <span>Points History</span>
+              </button>
+
+              <button
+                onClick={() => setShowAddModal(true)}
+                className="px-5 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-navy-950 text-sm font-black flex items-center justify-center gap-2 transition-all shadow-glow-emerald cursor-pointer"
+              >
+                <Plus className="w-4 h-4" />
+                <span>New Target</span>
+              </button>
+            </div>
           </div>
 
-          {/* Target Quick Stats Overview */}
+          {/* OFFICIAL TARGET POINTS RULES BANNER */}
+          <div className="p-4 sm:p-5 rounded-3xl bg-gradient-to-r from-emerald-500/10 via-navy-900 to-rose-500/10 border border-white/10 flex flex-col md:flex-row md:items-center justify-between gap-4 shadow-xl">
+            <div className="flex items-start sm:items-center gap-3.5">
+              <div className="w-12 h-12 rounded-2xl bg-gold-500/20 text-gold-400 border border-gold-500/30 flex items-center justify-center font-black text-xl shrink-0 shadow-[0_0_15px_rgba(245,158,11,0.2)]">
+                🎯
+              </div>
+              <div className="space-y-0.5">
+                <div className="flex items-center gap-2">
+                  <h3 className="text-sm font-black text-white tracking-wide">Target Points System</h3>
+                  <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-gold-500/20 text-gold-300 border border-gold-500/30">
+                    Official
+                  </span>
+                </div>
+                <p className="text-xs text-slate-300">
+                  Scores are computed exclusively from verified <strong className="text-white">subject study timer</strong> hours logged on the assigned day.
+                </p>
+              </div>
+            </div>
+
+            {/* Visual Points Rule Pills */}
+            <div className="flex flex-wrap items-center gap-3 shrink-0">
+              <div className="flex items-center gap-2.5 px-4 py-2.5 rounded-2xl bg-emerald-500/15 border border-emerald-500/40 text-emerald-300 shadow-sm">
+                <span className="text-lg">🎯</span>
+                <div className="text-left">
+                  <div className="text-[10px] uppercase font-bold text-emerald-400/90">Target Reward</div>
+                  <div className="text-sm font-black text-emerald-300">+3 Points</div>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2.5 px-4 py-2.5 rounded-2xl bg-rose-500/15 border border-rose-500/40 text-rose-300 shadow-sm">
+                <span className="text-lg">⚠️</span>
+                <div className="text-left">
+                  <div className="text-[10px] uppercase font-bold text-rose-400/90">Target Missed</div>
+                  <div className="text-sm font-black text-rose-300">-3 Points</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Quick Stats Grid */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             <div className="p-3.5 rounded-2xl glass-card border border-white/5 flex flex-col gap-0.5">
               <span className="text-[10px] font-black uppercase tracking-wider text-slate-400">Total Targets</span>
               <span className="text-xl font-black text-white">{targets.length}</span>
             </div>
+            <div className="p-3.5 rounded-2xl glass-card border border-royal-500/20 bg-royal-500/5 flex flex-col gap-0.5">
+              <span className="text-[10px] font-black uppercase tracking-wider text-royal-400">Pending (Today)</span>
+              <span className="text-xl font-black text-royal-400">{pendingTargets.length}</span>
+            </div>
             <div className="p-3.5 rounded-2xl glass-card border border-emerald-500/20 bg-emerald-500/5 flex flex-col gap-0.5">
-              <span className="text-[10px] font-black uppercase tracking-wider text-emerald-400">Today's Active</span>
-              <span className="text-xl font-black text-emerald-400">{todayTargets.length}</span>
+              <span className="text-[10px] font-black uppercase tracking-wider text-emerald-400">Completed (+3)</span>
+              <span className="text-xl font-black text-emerald-400">{completedTargets.length}</span>
             </div>
-            <div className="p-3.5 rounded-2xl glass-card border border-amber-500/20 bg-amber-500/5 flex flex-col gap-0.5">
-              <span className="text-[10px] font-black uppercase tracking-wider text-amber-400">Carried Forward</span>
-              <span className="text-xl font-black text-amber-400">{pendingPastTargets.length}</span>
-            </div>
-            <div className="p-3.5 rounded-2xl glass-card border border-purple-500/20 bg-purple-500/5 flex flex-col gap-0.5">
-              <span className="text-[10px] font-black uppercase tracking-wider text-purple-300">Completed</span>
-              <span className="text-xl font-black text-purple-300">{completedTargets.length}</span>
+            <div className="p-3.5 rounded-2xl glass-card border border-rose-500/20 bg-rose-500/5 flex flex-col gap-0.5">
+              <span className="text-[10px] font-black uppercase tracking-wider text-rose-400">Missed (-3)</span>
+              <span className="text-xl font-black text-rose-400">{missedTargets.length}</span>
             </div>
           </div>
 
@@ -470,12 +560,12 @@ export default function Targets({ setActiveTab }) {
                 <div>
                   <h4 className="text-sm font-bold text-white">Target Completed! 🎉</h4>
                   <p className="text-xs text-emerald-300">
-                    +10 Points added to your profile for <strong className="text-white">{rewardToast.subject}</strong> ({rewardToast.title}).
+                    <strong className="text-white">+3 Points</strong> added to your profile for <strong className="text-white">{rewardToast.subject}</strong> ({rewardToast.title}).
                   </p>
                 </div>
               </div>
               <span className="text-xs font-black px-3 py-1.5 rounded-xl bg-emerald-500 text-navy-950">
-                +10 PTS
+                +3 PTS
               </span>
             </div>
           )}
@@ -488,9 +578,9 @@ export default function Targets({ setActiveTab }) {
             </div>
             {[
               { id: 'all', label: `All (${targets.length})` },
-              { id: 'today', label: `Today's Active (${todayTargets.length})` },
-              { id: 'pending', label: `Pending Carried Forward (${pendingPastTargets.length})` },
-              { id: 'completed', label: `Completed (${completedTargets.length})` }
+              { id: 'pending', label: `Pending (${pendingTargets.length})` },
+              { id: 'completed', label: `Completed (+3) (${completedTargets.length})` },
+              { id: 'missed', label: `Missed (-3) (${missedTargets.length})` }
             ].map((f) => (
               <button
                 key={f.id}
@@ -516,7 +606,7 @@ export default function Targets({ setActiveTab }) {
               {setActiveTab && (
                 <button
                   onClick={() => setActiveTab('timer')}
-                  className="px-3 py-1 rounded-lg bg-royal-500 hover:bg-royal-400 text-white font-bold text-[11px] shrink-0"
+                  className="px-3 py-1 rounded-lg bg-royal-500 hover:bg-royal-400 text-white font-bold text-[11px] shrink-0 cursor-pointer"
                 >
                   View Timer →
                 </button>
@@ -524,25 +614,12 @@ export default function Targets({ setActiveTab }) {
             </div>
           )}
 
-          {/* Carried Forward Info Banner if showing pending past */}
-          {pendingPastTargets.length > 0 && (filter === 'all' || filter === 'pending') && (
-            <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-start gap-3">
-              <AlertTriangle className="w-5 h-5 text-amber-400 mt-0.5 shrink-0" />
-              <div className="space-y-0.5 text-xs text-amber-200">
-                <div className="font-bold text-white text-sm">Carried Forward Pending Targets</div>
-                <div>
-                  Targets from previous days that were not completed are carried forward here. You can start the matching subject timer today to complete the remaining hours and claim your +10 points!
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Target List */}
+          {/* Target Cards Grid */}
           {targets.length === 0 ? (
             <EmptyState
               icon={Target}
               title="No daily targets set"
-              description="Create a subject target to challenge yourself. Start your subject timer, study the required hours, and earn verified points!"
+              description="Create a subject target to challenge yourself. Start your subject timer, study the required hours, and earn +3 Points!"
             />
           ) : displayedTargets.length === 0 ? (
             <div className="p-8 text-center text-slate-400 text-sm glass-card rounded-3xl border border-white/5">
@@ -551,7 +628,7 @@ export default function Targets({ setActiveTab }) {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
               {displayedTargets.map((target) => {
-                const { progress, isCompleted, isPendingPast, isTodayActive } = target;
+                const { progress, isCompleted, isMissed, isPending } = target;
                 const isTimerActiveForThis = activeTimerState?.isActive && isSubjectMatch(activeTimerState.selectedSubject, target.subject);
 
                 return (
@@ -559,38 +636,38 @@ export default function Targets({ setActiveTab }) {
                     key={target.id}
                     className={`p-5 rounded-3xl border transition-all flex flex-col justify-between ${
                       isCompleted 
-                        ? 'bg-emerald-500/5 border-emerald-500/20' 
-                        : progress.isEligible
-                          ? 'bg-emerald-500/10 border-emerald-400/50 shadow-glow-emerald ring-1 ring-emerald-400/30'
-                          : isPendingPast
-                            ? 'bg-amber-500/5 border-amber-500/30 hover:border-amber-500/50'
+                        ? 'bg-emerald-500/5 border-emerald-500/30' 
+                        : isMissed
+                          ? 'bg-rose-500/5 border-rose-500/30'
+                          : progress.isEligible
+                            ? 'bg-emerald-500/10 border-emerald-400/50 shadow-glow-emerald ring-1 ring-emerald-400/30'
                             : 'bg-navy-900 border-white/10 hover:border-white/20'
                     }`}
                   >
                     <div>
-                      {/* Card Top Badges */}
+                      {/* Top Badges */}
                       <div className="flex items-start justify-between mb-3 gap-2">
                         <div className="flex flex-wrap items-center gap-1.5">
                           <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider ${
                             isCompleted 
                               ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' 
-                              : progress.isEligible
-                                ? 'bg-emerald-400 text-navy-950 font-black animate-pulse'
-                                : isPendingPast
-                                  ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30'
+                              : isMissed
+                                ? 'bg-rose-500/20 text-rose-400 border border-rose-500/30'
+                                : progress.isEligible
+                                  ? 'bg-emerald-400 text-navy-950 font-black animate-pulse'
                                   : 'bg-royal-500/20 text-royal-300 border border-royal-500/30'
                           }`}>
                             {isCompleted 
-                              ? '✅ Completed' 
-                              : progress.isEligible
-                                ? '🎯 Ready to Complete'
-                                : isPendingPast 
-                                  ? '⏳ Carried Forward' 
-                                  : '🔒 In Progress'
+                              ? '✅ Completed (+3)' 
+                              : isMissed
+                                ? '❌ Missed (-3)'
+                                : progress.isEligible 
+                                  ? '🎯 Ready to Complete (+3)' 
+                                  : '⏳ Pending'
                             }
                           </span>
 
-                          {isTimerActiveForThis && !isCompleted && (
+                          {isTimerActiveForThis && isPending && (
                             <span className="px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider bg-rose-500/20 text-rose-300 border border-rose-500/40 animate-pulse flex items-center gap-1">
                               <span className="w-1.5 h-1.5 rounded-full bg-rose-400 animate-ping" />
                               Timer Live
@@ -600,15 +677,15 @@ export default function Targets({ setActiveTab }) {
 
                         {isCompleted ? (
                           <Award className="w-5 h-5 text-emerald-400 shrink-0" />
-                        ) : isPendingPast ? (
-                          <AlertTriangle className="w-5 h-5 text-amber-400 shrink-0" />
+                        ) : isMissed ? (
+                          <XCircle className="w-5 h-5 text-rose-400 shrink-0" />
                         ) : (
                           <Clock className="w-5 h-5 text-slate-500 shrink-0" />
                         )}
                       </div>
 
                       {/* Title & Subject */}
-                      <h3 className={`text-base font-bold mb-1.5 leading-snug ${isCompleted ? 'line-through text-slate-400' : 'text-white'}`}>
+                      <h3 className={`text-base font-bold mb-1.5 leading-snug ${isCompleted ? 'text-slate-300 line-through' : isMissed ? 'text-slate-400' : 'text-white'}`}>
                         {target.title}
                       </h3>
 
@@ -618,7 +695,9 @@ export default function Targets({ setActiveTab }) {
                       </div>
 
                       {/* Progress Section */}
-                      <div className="p-3 rounded-2xl bg-navy-950/70 border border-white/5 space-y-2 mb-4">
+                      <div className={`p-3 rounded-2xl bg-navy-950/70 border space-y-2 mb-4 ${
+                        isCompleted ? 'border-emerald-500/20' : isMissed ? 'border-rose-500/20' : 'border-white/5'
+                      }`}>
                         <div className="flex items-center justify-between text-xs">
                           <span className="text-slate-400 font-medium">Recorded Study Time:</span>
                           <span className="font-bold text-white">
@@ -632,22 +711,28 @@ export default function Targets({ setActiveTab }) {
                             className={`h-full rounded-full transition-all duration-500 ${
                               isCompleted || progress.isEligible 
                                 ? 'bg-gradient-to-r from-emerald-500 to-teal-400 shadow-glow-emerald' 
-                                : 'bg-gradient-to-r from-gold-500 to-amber-400'
+                                : isMissed
+                                  ? 'bg-gradient-to-r from-rose-500 to-red-600'
+                                  : 'bg-gradient-to-r from-gold-500 to-amber-400'
                             }`}
                             style={{ width: `${progress.progressPct}%` }}
                           />
                         </div>
 
                         <div className="flex items-center justify-between text-[11px] pt-0.5">
-                          <span className={`font-black ${progress.isEligible ? 'text-emerald-400' : 'text-gold-400'}`}>
-                            {progress.progressPct}% Complete
+                          <span className={`font-black ${
+                            isCompleted ? 'text-emerald-400' : isMissed ? 'text-rose-400' : progress.isEligible ? 'text-emerald-400' : 'text-gold-400'
+                          }`}>
+                            {progress.progressPct}% {isCompleted ? 'Achieved' : isMissed ? 'Incomplete' : 'Complete'}
                           </span>
 
                           <span className="font-semibold text-slate-400">
                             {isCompleted ? (
-                              <span className="text-emerald-400">Target Achieved</span>
+                              <span className="text-emerald-400 font-bold">Target Completed +3 Points</span>
+                            ) : isMissed ? (
+                              <span className="text-rose-400 font-bold">Target Missed -3 Points</span>
                             ) : progress.isEligible ? (
-                              <span className="text-emerald-400 font-bold">Ready to Claim!</span>
+                              <span className="text-emerald-400 font-bold">Ready to Claim (+3 Pts)!</span>
                             ) : (
                               <span>Remaining: <strong className="text-amber-300">{progress.remainingHuman}</strong></span>
                             )}
@@ -657,14 +742,28 @@ export default function Targets({ setActiveTab }) {
 
                       {/* Target Meta Details */}
                       <div className="text-[11px] text-slate-500 flex items-center justify-between mb-4">
-                        <span>Started: {target.targetDateKey || 'Past Target'}</span>
-                        <span className="text-emerald-400/90 font-bold">Reward: +10 Pts</span>
+                        <span>Assigned Date: {target.targetDateKey || 'Today'}</span>
+                        <span className={`font-bold ${
+                          isCompleted ? 'text-emerald-400' : isMissed ? 'text-rose-400' : 'text-gold-400'
+                        }`}>
+                          {isCompleted ? 'Rewarded: +3 Pts' : isMissed ? 'Deducted: -3 Pts' : 'Reward: +3 Pts'}
+                        </span>
                       </div>
                     </div>
 
                     {/* Action Buttons */}
                     <div className="space-y-2 pt-2 border-t border-white/5">
-                      {!isCompleted ? (
+                      {isCompleted ? (
+                        <div className="w-full py-2.5 rounded-xl bg-emerald-500/10 text-emerald-400 text-xs font-black flex items-center justify-center gap-1.5 border border-emerald-500/20 cursor-default">
+                          <CheckCircle2 className="w-4 h-4" />
+                          <span>Target Completed (+3 Points)</span>
+                        </div>
+                      ) : isMissed ? (
+                        <div className="w-full py-2.5 rounded-xl bg-rose-500/10 text-rose-400 text-xs font-black flex items-center justify-center gap-1.5 border border-rose-500/20 cursor-default">
+                          <XCircle className="w-4 h-4" />
+                          <span>Target Missed (-3 Points Applied)</span>
+                        </div>
+                      ) : (
                         <>
                           {progress.isEligible ? (
                             /* Unlocked: Ready to complete */
@@ -673,16 +772,16 @@ export default function Targets({ setActiveTab }) {
                               className="w-full py-3 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-400 hover:from-emerald-400 hover:to-teal-300 text-navy-950 text-xs font-black shadow-glow-emerald flex items-center justify-center gap-1.5 transition-all cursor-pointer animate-bounce-subtle"
                             >
                               <Sparkles className="w-4 h-4" />
-                              <span>✨ Claim Target (+10 Pts)</span>
+                              <span>✨ Claim Target (+3 Points)</span>
                             </button>
                           ) : (
-                            /* Locked: Clicking triggers prevent false completion modal */
+                            /* Locked: Clicking triggers prevent false completion warning */
                             <button
                               onClick={() => handleTargetAction(target, progress)}
                               className="w-full py-2.5 rounded-xl bg-navy-800 hover:bg-navy-700/80 border border-white/10 text-slate-300 text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer group"
                             >
                               <Lock className="w-3.5 h-3.5 text-amber-400 group-hover:scale-110 transition-transform" />
-                              <span>Complete (+10 Pts)</span>
+                              <span>Complete (+3 Points)</span>
                               <span className="text-[10px] text-amber-400/80 font-medium">({progress.remainingHuman} left)</span>
                             </button>
                           )}
@@ -696,11 +795,6 @@ export default function Targets({ setActiveTab }) {
                             <span>Study {target.subject.split(':')[0]} on Timer</span>
                           </button>
                         </>
-                      ) : (
-                        <div className="w-full py-2.5 rounded-xl bg-emerald-500/10 text-emerald-400 text-xs font-black flex items-center justify-center gap-1.5 border border-emerald-500/20 cursor-default">
-                          <CheckCircle2 className="w-4 h-4" />
-                          <span>Rewarded (+10 Pts)</span>
-                        </div>
                       )}
                     </div>
                   </div>
@@ -793,13 +887,17 @@ export default function Targets({ setActiveTab }) {
                 
                 <div className="p-6 space-y-4">
                   <p className="text-sm text-slate-300 text-center font-medium leading-relaxed">
-                    Once you set today's target, it will be <strong className="text-amber-400">LOCKED</strong> and can only be completed by genuinely studying <strong className="text-white">{targetHours} Hours</strong> on the <strong className="text-gold-400">{subject}</strong> timer.
+                    Once you set today's target, it will be <strong className="text-amber-400">LOCKED</strong> for today. You must study <strong className="text-white">{targetHours} Hours</strong> on the <strong className="text-gold-400">{subject}</strong> timer to complete it.
                   </p>
                   
                   <div className="p-4 rounded-2xl bg-navy-950 border border-white/5 space-y-2">
                     <div className="flex items-center justify-between text-sm">
                       <span className="text-slate-400">If you complete it:</span>
-                      <span className="font-bold text-emerald-400">+10 Points</span>
+                      <span className="font-bold text-emerald-400">+3 Points</span>
+                    </div>
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-slate-400">If you fail to complete it:</span>
+                      <span className="font-bold text-rose-400">-3 Points</span>
                     </div>
                     <div className="flex items-center justify-between text-sm">
                       <span className="text-slate-400">Subject-wise Timer:</span>
@@ -892,6 +990,109 @@ export default function Targets({ setActiveTab }) {
                       Okay, I'll Complete It Later
                     </button>
                   </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* TARGET POINTS HISTORY MODAL */}
+          {showHistoryModal && (
+            <div className="fixed inset-0 z-[80] flex items-center justify-center p-4 bg-navy-950/90 backdrop-blur-md animate-in fade-in duration-150">
+              <div className="w-full max-w-2xl bg-navy-900 border border-white/10 rounded-3xl overflow-hidden shadow-2xl flex flex-col max-h-[85vh] animate-in zoom-in-95 duration-200">
+                {/* Header */}
+                <div className="p-6 border-b border-white/10 flex items-center justify-between bg-navy-950/60">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-gold-500/20 text-gold-400 flex items-center justify-center">
+                      <History className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <h2 className="text-lg font-bold text-white">Target Points History</h2>
+                      <p className="text-xs text-slate-400">Complete log of target rewards (+3) and missed penalties (-3)</p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => setShowHistoryModal(false)}
+                    className="w-8 h-8 rounded-full bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white flex items-center justify-center transition-colors cursor-pointer"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+
+                {/* Score Summary Banner */}
+                <div className="grid grid-cols-3 gap-3 p-4 bg-navy-950/40 border-b border-white/5 text-center">
+                  <div className="p-3 rounded-2xl bg-emerald-500/10 border border-emerald-500/20">
+                    <div className="text-[10px] font-bold text-emerald-400 uppercase tracking-wider">Completed Rewards</div>
+                    <div className="text-xl font-black text-emerald-400">+{totalEarned} Pts</div>
+                  </div>
+                  <div className="p-3 rounded-2xl bg-rose-500/10 border border-rose-500/20">
+                    <div className="text-[10px] font-bold text-rose-400 uppercase tracking-wider">Missed Penalties</div>
+                    <div className="text-xl font-black text-rose-400">-{totalDeducted} Pts</div>
+                  </div>
+                  <div className="p-3 rounded-2xl bg-royal-500/10 border border-royal-500/20">
+                    <div className="text-[10px] font-bold text-royal-300 uppercase tracking-wider">Net Target Score</div>
+                    <div className={`text-xl font-black ${netTargetPoints >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                      {netTargetPoints >= 0 ? `+${netTargetPoints}` : netTargetPoints} Pts
+                    </div>
+                  </div>
+                </div>
+
+                {/* Transactions List */}
+                <div className="p-6 overflow-y-auto custom-scrollbar flex-1 space-y-3">
+                  {targetTransactions.length === 0 ? (
+                    <div className="text-center py-12 text-slate-400 text-sm">
+                      <History className="w-12 h-12 text-slate-600 mx-auto mb-3" />
+                      <p className="font-semibold text-white">No target points history yet</p>
+                      <p className="text-xs text-slate-500 mt-1">Complete your subject timer targets to earn +3 Points!</p>
+                    </div>
+                  ) : (
+                    targetTransactions.map((tx) => {
+                      const isPositive = (tx.amount || 0) > 0;
+                      return (
+                        <div 
+                          key={tx.id}
+                          className={`p-4 rounded-2xl border flex items-center justify-between gap-4 transition-all ${
+                            isPositive 
+                              ? 'bg-emerald-500/5 border-emerald-500/20' 
+                              : 'bg-rose-500/5 border-rose-500/20'
+                          }`}
+                        >
+                          <div className="flex items-center gap-3.5">
+                            <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${
+                              isPositive ? 'bg-emerald-500/20 text-emerald-400' : 'bg-rose-500/20 text-rose-400'
+                            }`}>
+                              {isPositive ? <ArrowUpRight className="w-5 h-5" /> : <ArrowDownRight className="w-5 h-5" />}
+                            </div>
+                            <div>
+                              <div className="text-sm font-bold text-white flex items-center gap-2">
+                                <span>{tx.reason || (isPositive ? 'Target Completed' : 'Target Missed')}</span>
+                              </div>
+                              <div className="text-xs text-slate-400 mt-0.5">
+                                {tx.targetTitle && <span className="text-slate-300 font-medium">{tx.targetTitle} • </span>}
+                                {tx.subject && <span className="text-gold-400">{tx.subject} • </span>}
+                                <span>{tx.date || (tx.createdAt ? formatDate(tx.createdAt) : '')}</span>
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className={`px-3 py-1.5 rounded-xl font-black text-sm shrink-0 ${
+                            isPositive ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' : 'bg-rose-500/20 text-rose-400 border border-rose-500/30'
+                          }`}>
+                            {isPositive ? `+${tx.amount} Pts` : `${tx.amount} Pts`}
+                          </div>
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
+
+                {/* Footer */}
+                <div className="p-4 border-t border-white/10 bg-navy-950/60 flex justify-end">
+                  <button
+                    onClick={() => setShowHistoryModal(false)}
+                    className="px-5 py-2 rounded-xl bg-navy-800 hover:bg-navy-700 text-white font-bold text-xs transition-all cursor-pointer"
+                  >
+                    Close
+                  </button>
                 </div>
               </div>
             </div>

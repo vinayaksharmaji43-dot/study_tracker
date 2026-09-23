@@ -832,7 +832,7 @@ export default function Calendar() {
                   </div>
                   {selectedDayData.dayTarget.status === 'completed' ? (
                     <div className="flex items-center gap-1 text-xs font-bold text-emerald-400 bg-emerald-500/20 px-3 py-1 rounded-lg border border-emerald-500/30 shrink-0">
-                      <CheckCircle2 className="w-3.5 h-3.5" /> Completed (+10 Pts)
+                      <CheckCircle2 className="w-3.5 h-3.5" /> Completed (+3 Pts)
                     </div>
                   ) : (
                     <div className="flex items-center gap-1 text-xs font-bold text-rose-400 bg-rose-500/20 px-3 py-1 rounded-lg border border-rose-500/30 shrink-0">

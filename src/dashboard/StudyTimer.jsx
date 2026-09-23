@@ -747,7 +747,7 @@ export default function StudyTimer() {
                 {activeSubjectProgress?.isEligible ? '🎯 Ready to Complete' : '⏳ In Progress'}
               </span>
               <span className="text-[10px] font-semibold text-slate-400">
-                Reward: <strong className="text-emerald-400">+10 Points</strong>
+                Reward: <strong className="text-emerald-400">+3 Points</strong>
               </span>
             </div>
           ) : todayTarget ? (
@@ -755,12 +755,12 @@ export default function StudyTimer() {
               <span className={`text-sm font-bold ${todayTarget.status === 'completed' ? 'text-emerald-400' : 'text-amber-400'}`}>
                 {todayTarget.status === 'completed' ? '✅ Completed' : '⚠️ Pending'}
               </span>
-              <span className="text-[10px] font-semibold text-slate-500">Reward: +10 Points</span>
+              <span className="text-[10px] font-semibold text-slate-500">Reward: +3 Points</span>
             </div>
           ) : (
             <div className="space-y-0.5">
               <span className="text-sm font-bold text-slate-500">-</span>
-              <span className="text-[10px] font-semibold text-slate-500">Reward: +10 Points</span>
+              <span className="text-[10px] font-semibold text-slate-500">Reward: +3 Points</span>
             </div>
           )}
         </div>
