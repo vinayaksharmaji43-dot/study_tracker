@@ -9,10 +9,12 @@ import EmptyState from '../components/EmptyState';
 import LoadingSpinner from '../components/LoadingSpinner';
 import LiveStudyNow from '../components/LiveStudyNow';
 import StudentProfileModal from '../components/StudentProfileModal';
+import { useActiveSessionsTracker } from '../hooks/useActiveSessionsTracker';
 import { Trophy, Award, Flame, UserCheck, ShieldCheck, Sparkles, Calendar, BookOpenCheck, Filter, Star } from 'lucide-react';
 
 export default function Leaderboard() {
   const { currentUser, userProfile } = useAuth();
+  const { isStudentOnline, getStudentLiveDuration } = useActiveSessionsTracker(currentUser, userProfile);
   const [leaderboardData, setLeaderboardData] = useState([]);
   const [selectedStudent, setSelectedStudent] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -103,16 +105,23 @@ export default function Leaderboard() {
     return <LoadingSpinner text="Fetching live stream leaderboard..." />;
   }
 
-  // Strictly filter out admins and filter ONLY matching student Course + Level + Attempt
+  // Strictly filter out admins (except currentUser) and filter ONLY matching student Course + Level + Attempt
   const activeStreamStudents = leaderboardData
-    .filter(u => 
-      u.role !== 'admin' && 
-      u.email?.toLowerCase() !== 'vaultstore27@gmail.com' &&
-      u.email?.toLowerCase() !== 'thunderworld766@gmail.com' &&
-      u.courseKey === userCourseKey &&
-      u.levelKey === userLevelKey &&
-      (u.attempt === activeAttempt || (activeAttempt === 'Jan 27' && u.attempt === 'January 2027') || (activeAttempt === 'Sep 27' && u.attempt === 'September 2027'))
-    )
+    .filter(u => {
+      const isSelf = u.uid === currentUser?.uid;
+      const isRoleAdmin = !isSelf && u.role === 'admin';
+      const isSpecialAdmin = !isSelf && (
+        u.email?.toLowerCase() === 'vaultstore27@gmail.com' ||
+        u.email?.toLowerCase() === 'thunderworld766@gmail.com'
+      );
+      if (isRoleAdmin || isSpecialAdmin) return false;
+
+      return (
+        u.courseKey === userCourseKey &&
+        u.levelKey === userLevelKey &&
+        (u.attempt === activeAttempt || (activeAttempt === 'Jan 27' && u.attempt === 'January 2027') || (activeAttempt === 'Sep 27' && u.attempt === 'September 2027'))
+      );
+    })
     .map((u, index) => ({
       ...u,
       name: u.name || 'Student',
@@ -189,11 +198,20 @@ export default function Leaderboard() {
             </div>
             <div>
               <div className="text-xs font-bold text-slate-400 uppercase tracking-wider">Your Live Rank ({userCourseKey} {userLevelKey})</div>
-              <div className="text-lg font-black text-white flex items-center gap-2">
+              <div className="text-lg font-black text-white flex items-center gap-2 flex-wrap">
                 <span>{userRankEntry.name}</span>
                 <span className="px-2.5 py-0.5 rounded-full bg-royal-500/30 border border-royal-400/40 text-royal-300 text-xs font-bold">
                   Rank #{userRankEntry.rank} of {activeStreamStudents.length}
                 </span>
+                {isStudentOnline(userRankEntry.uid) && (
+                  <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-500/20 border border-emerald-500/50 text-emerald-300 text-xs font-bold shadow-[0_0_12px_rgba(16,185,129,0.35)]">
+                    <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                    <span>Online</span>
+                    <span className="font-mono font-black text-white pl-1.5 border-l border-emerald-500/40">
+                      ⏱ {getStudentLiveDuration(userRankEntry.uid)}
+                    </span>
+                  </span>
+                )}
               </div>
               <div className="text-xs text-gold-400 font-semibold mt-0.5">
                 Syllabus Progress: {userRankEntry.progressPct}% ({userRankEntry.completedCount} chapters)
@@ -281,6 +299,15 @@ export default function Leaderboard() {
                         {isCurrentUser && (
                           <span className="px-2 py-0.5 rounded-full bg-royal-500/30 border border-royal-500/50 text-[10px] font-extrabold text-royal-300">
                             YOU
+                          </span>
+                        )}
+                        {isStudentOnline(student.uid) && (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-500/15 border border-emerald-500/40 text-emerald-300 text-[10px] font-bold shadow-[0_0_10px_rgba(16,185,129,0.25)]">
+                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                            <span>Online</span>
+                            <span className="font-mono font-black text-white pl-1 border-l border-emerald-500/30">
+                              ⏱ {getStudentLiveDuration(student.uid)}
+                            </span>
                           </span>
                         )}
                       </div>

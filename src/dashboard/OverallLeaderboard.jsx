@@ -7,6 +7,7 @@ import { calculateStudentLevel, getDefaultStreamLevels, getStreamId, normalizeLe
 import LoadingSpinner from '../components/LoadingSpinner';
 import EmptyState from '../components/EmptyState';
 import StudentProfileModal from '../components/StudentProfileModal';
+import { useActiveSessionsTracker } from '../hooks/useActiveSessionsTracker';
 import { 
   Trophy, 
   Medal, 
@@ -33,6 +34,7 @@ function formatStudyTimeHms(totalSecs) {
 
 export default function OverallLeaderboard() {
   const { currentUser } = useAuth();
+  const { isStudentOnline, getStudentLiveDuration } = useActiveSessionsTracker(currentUser);
 
   const [users, setUsers] = useState([]);
   const [sessions, setSessions] = useState([]);
@@ -117,8 +119,9 @@ export default function OverallLeaderboard() {
 
   // Ranked List Calculation (Strict Priority: 1. Hours DESC, 2. Points DESC, 3. Streak DESC)
   const rankedStudents = useMemo(() => {
-    // 1. Filter out platform admins & invalid accounts
+    // 1. Filter out platform admins & invalid accounts (exempt currentUser so they can see/test their own rank & timer)
     const realStudents = users.filter((u) => {
+      if (u.uid === currentUser?.uid) return true;
       const isRoleAdmin = u.role === 'admin';
       const isSpecialAdmin = 
         u.email?.toLowerCase() === 'vaultstore27@gmail.com' ||
@@ -185,7 +188,7 @@ export default function OverallLeaderboard() {
       ...student,
       rank: index + 1
     }));
-  }, [users, sessionsByUid, dayOffsByUid, levelConfigs]);
+  }, [users, sessionsByUid, dayOffsByUid, levelConfigs, currentUser?.uid]);
 
   // Logged-in user's entry in the global ranking
   const currentUserEntry = useMemo(() => {
@@ -288,6 +291,15 @@ export default function OverallLeaderboard() {
                   Rank #{currentUserEntry.rank} of {rankedStudents.length}
                 </span>
                 <span className="text-sm">{currentUserEntry.levelInfo.badge}</span>
+                {isStudentOnline(currentUserEntry.uid) && (
+                  <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-500/20 border border-emerald-500/50 text-emerald-300 text-xs font-bold shadow-[0_0_12px_rgba(16,185,129,0.35)]">
+                    <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                    <span>Online</span>
+                    <span className="font-mono font-black text-white pl-1.5 border-l border-emerald-500/40">
+                      ⏱ {getStudentLiveDuration(currentUserEntry.uid)}
+                    </span>
+                  </span>
+                )}
               </div>
               <div className="text-xs text-gold-400 font-semibold mt-1">
                 {currentUserEntry.courseKey} {currentUserEntry.levelKey} • {currentUserEntry.attempt || 'Jan 27'}
@@ -346,11 +358,20 @@ export default function OverallLeaderboard() {
             </div>
 
             <div className="my-4 space-y-1">
-              <div className="flex items-center gap-1.5">
+              <div className="flex items-center gap-1.5 flex-wrap">
                 <h3 className="text-base font-black text-white group-hover:text-slate-200 transition-colors truncate">
                   {topThree[1]?.name}
                 </h3>
                 <span className="text-base">{topThree[1]?.levelInfo.badge}</span>
+                {isStudentOnline(topThree[1]?.uid) && (
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 text-[10px] font-bold shadow-[0_0_8px_rgba(16,185,129,0.3)]">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                    <span>Online</span>
+                    <span className="font-mono font-bold text-white pl-1 border-l border-emerald-500/30">
+                      ⏱ {getStudentLiveDuration(topThree[1]?.uid)}
+                    </span>
+                  </span>
+                )}
               </div>
               <div className="text-xs text-slate-400 truncate">
                 Level {topThree[1]?.levelInfo.currentLevelNumber} • {topThree[1]?.courseKey} {topThree[1]?.levelKey}
@@ -398,11 +419,20 @@ export default function OverallLeaderboard() {
             </div>
 
             <div className="my-4 space-y-1 relative z-10">
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-wrap">
                 <h3 className="text-lg font-black text-white group-hover:text-gold-300 transition-colors truncate">
                   {topThree[0]?.name}
                 </h3>
                 <span className="text-xl">{topThree[0]?.levelInfo.badge}</span>
+                {isStudentOnline(topThree[0]?.uid) && (
+                  <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-500/20 border border-emerald-500/50 text-emerald-300 text-xs font-bold shadow-[0_0_12px_rgba(16,185,129,0.4)]">
+                    <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                    <span>Online</span>
+                    <span className="font-mono font-black text-white pl-1.5 border-l border-emerald-500/40">
+                      ⏱ {getStudentLiveDuration(topThree[0]?.uid)}
+                    </span>
+                  </span>
+                )}
               </div>
               <div className="text-xs font-bold text-gold-400 truncate">
                 Level {topThree[0]?.levelInfo.currentLevelNumber} ({topThree[0]?.levelInfo.currentLevelName}) • {topThree[0]?.courseKey} {topThree[0]?.levelKey}
@@ -445,11 +475,20 @@ export default function OverallLeaderboard() {
             </div>
 
             <div className="my-4 space-y-1">
-              <div className="flex items-center gap-1.5">
+              <div className="flex items-center gap-1.5 flex-wrap">
                 <h3 className="text-base font-black text-white group-hover:text-amber-300 transition-colors truncate">
                   {topThree[2]?.name}
                 </h3>
                 <span className="text-base">{topThree[2]?.levelInfo.badge}</span>
+                {isStudentOnline(topThree[2]?.uid) && (
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 text-[10px] font-bold shadow-[0_0_8px_rgba(16,185,129,0.3)]">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                    <span>Online</span>
+                    <span className="font-mono font-bold text-white pl-1 border-l border-emerald-500/30">
+                      ⏱ {getStudentLiveDuration(topThree[2]?.uid)}
+                    </span>
+                  </span>
+                )}
               </div>
               <div className="text-xs text-slate-400 truncate">
                 Level {topThree[2]?.levelInfo.currentLevelNumber} • {topThree[2]?.courseKey} {topThree[2]?.levelKey}
@@ -601,6 +640,15 @@ export default function OverallLeaderboard() {
                         {isCurrentUser && (
                           <span className="px-2 py-0.5 rounded-full bg-royal-500/30 border border-royal-500/50 text-[10px] font-extrabold text-royal-300">
                             YOU
+                          </span>
+                        )}
+                        {isStudentOnline(student.uid) && (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-500/15 border border-emerald-500/40 text-emerald-300 text-[10px] font-bold shadow-[0_0_10px_rgba(16,185,129,0.25)]">
+                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                            <span>Online</span>
+                            <span className="font-mono font-black text-white pl-1 border-l border-emerald-500/30">
+                              ⏱ {getStudentLiveDuration(student.uid)}
+                            </span>
                           </span>
                         )}
                       </div>

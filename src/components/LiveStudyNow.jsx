@@ -6,6 +6,8 @@ import { Users, Radio, Flame, Sparkles, ChevronRight, BarChart3 } from 'lucide-r
 import { calculateStudentLevel, getDefaultStreamLevels, getStreamId, normalizeLevelConfig } from '../utils/levelSystem';
 import StudentProfileModal from './StudentProfileModal';
 
+import { useActiveSessionsTracker, formatLiveTimer } from '../hooks/useActiveSessionsTracker';
+
 function getBadge(durationSecs) {
   const hours = durationSecs / 3600;
   if (hours >= 5) return { text: '💎 Unstoppable', color: 'text-cyan-400', bg: 'bg-cyan-400/20' };
@@ -16,19 +18,9 @@ function getBadge(durationSecs) {
   return null;
 }
 
-function formatLiveDuration(secs) {
-  const h = Math.floor(secs / 3600);
-  const m = Math.floor((secs % 3600) / 60);
-  if (h > 0) {
-    return `${h}h ${m < 10 ? '0' : ''}${m}m`;
-  }
-  return `${m}m`;
-}
-
 export default function LiveStudyNow({ onSelectStudent }) {
-  const { currentUser } = useAuth();
-  const [activeSessions, setActiveSessions] = useState([]);
-  const [now, setNow] = useState(Date.now());
+  const { currentUser, userProfile } = useAuth();
+  const { activeSessionsList } = useActiveSessionsTracker(currentUser, userProfile);
   const [levelConfigs, setLevelConfigs] = useState({});
   const [localSelectedStudent, setLocalSelectedStudent] = useState(null);
 
@@ -42,40 +34,7 @@ export default function LiveStudyNow({ onSelectStudent }) {
     });
   }, []);
 
-  // 1. Fetch active sessions from Firestore
-  useEffect(() => {
-    const q = query(
-      collection(db, 'activeStudySessions'),
-      where('active', '==', true)
-    );
-
-    const unsub = onSnapshot(q, (snapshot) => {
-      const docs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      setActiveSessions(docs);
-    });
-
-    return () => unsub();
-  }, []);
-
-  // 2. Local Tick for UI (every second)
-  useEffect(() => {
-    const timerId = setInterval(() => {
-      setNow(Date.now());
-    }, 1000);
-    return () => clearInterval(timerId);
-  }, []);
-
-  // 3. Filter and Sort
-  // Stale check: if lastUpdatedAt is older than 2 minutes (120,000 ms), drop it.
-  const validSessions = activeSessions
-    .filter(s => {
-      return (now - (s.lastUpdatedAt || s.startedAt)) < 120000;
-    })
-    .map(s => {
-      const durationSecs = Math.floor((now - s.startedAt) / 1000);
-      return { ...s, durationSecs };
-    })
-    .sort((a, b) => b.durationSecs - a.durationSecs); // Highest duration first
+  const validSessions = activeSessionsList;
 
   const handleCardClick = (session) => {
     if (onSelectStudent) {
@@ -139,6 +98,12 @@ export default function LiveStudyNow({ onSelectStudent }) {
                           </span>
                         </h3>
                       </div>
+
+                      {/* 🟢 Online tag */}
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 text-[10px] font-bold shadow-[0_0_8px_rgba(16,185,129,0.25)]">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                        <span>Online</span>
+                      </span>
                       
                       {badge && (
                         <span className={`px-2 py-0.5 rounded-md text-[10px] font-black tracking-wider shrink-0 ${badge.bg} ${badge.color}`}>
@@ -159,10 +124,10 @@ export default function LiveStudyNow({ onSelectStudent }) {
                 </div>
 
                 <div className="mt-auto flex items-center justify-between pt-1">
-                  <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-navy-950/80 border border-white/5 shadow-inner">
-                    <span className="text-slate-400 text-xs">⏱</span>
+                  <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-navy-950/80 border border-emerald-500/25 shadow-inner">
+                    <span className="text-emerald-400 text-xs animate-pulse">⏱</span>
                     <span className="text-sm font-mono font-bold text-white tracking-wide">
-                      {formatLiveDuration(Math.max(0, s.durationSecs))}
+                      {s.formattedDuration || formatLiveTimer(s.elapsedSeconds || s.durationSecs || 0)}
                     </span>
                   </div>
 
