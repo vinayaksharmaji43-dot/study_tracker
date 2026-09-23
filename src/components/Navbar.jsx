@@ -159,7 +159,7 @@ export default function Navbar({ activeTab, setActiveTab }) {
   }, []);
 
   const handleDashboardNav = (id) => {
-    if (isSectionLocked(id) && !isAdmin) {
+    if (isSectionLocked(id)) {
       const sectionInfo = getSectionById(id);
       setMaintenanceModalData({
         sectionId: id,

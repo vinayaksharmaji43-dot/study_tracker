@@ -61,10 +61,11 @@ export default function Dashboard() {
   const [showSupportModal, setShowSupportModal] = useState(false);
   const [showFeedbackModal, setShowFeedbackModal] = useState(false);
   const [maintenanceModalData, setMaintenanceModalData] = useState(null);
+  const [adminOverrideTab, setAdminOverrideTab] = useState(null);
 
   // Sync tab with URL search parameter with Section Lock Interception
-  const setActiveTab = (tabId) => {
-    if (isSectionLocked(tabId) && !isAdmin) {
+  const setActiveTab = (tabId, bypassLock = false) => {
+    if (isSectionLocked(tabId) && !bypassLock && adminOverrideTab !== tabId) {
       const sectionInfo = getSectionById(tabId);
       setMaintenanceModalData({
         sectionId: tabId,
@@ -219,11 +220,13 @@ export default function Dashboard() {
           {/* Main Dashboard Workspace View */}
           <main className="col-span-1 lg:col-span-9 space-y-6">
             {/* Security Guard: If activeTab is locked and student directly accessed it, render maintenance placeholder */}
-            {isSectionLocked(activeTab) && !isAdmin ? (
+            {isSectionLocked(activeTab) && adminOverrideTab !== activeTab ? (
               <SectionMaintenancePlaceholder
                 sectionTitle={getSectionById(activeTab)?.label}
                 customMessage={getMaintenanceMessage(activeTab)}
                 onReturn={() => setActiveTab('overview')}
+                isAdmin={isAdmin}
+                onAdminOverride={() => setAdminOverrideTab(activeTab)}
               />
             ) : (
               <>
@@ -257,6 +260,13 @@ export default function Dashboard() {
         onClose={() => setMaintenanceModalData(null)}
         sectionTitle={maintenanceModalData?.sectionTitle}
         customMessage={maintenanceModalData?.message}
+        isAdmin={isAdmin}
+        onAdminOverride={() => {
+          if (maintenanceModalData?.sectionId) {
+            setAdminOverrideTab(maintenanceModalData.sectionId);
+            setActiveTab(maintenanceModalData.sectionId, true);
+          }
+        }}
       />
 
       {/* Global Level Up Modal */}

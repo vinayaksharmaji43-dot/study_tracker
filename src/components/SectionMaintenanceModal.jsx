@@ -6,7 +6,9 @@ export default function SectionMaintenanceModal({
   isOpen, 
   onClose, 
   sectionTitle, 
-  customMessage 
+  customMessage,
+  isAdmin,
+  onAdminOverride
 }) {
   if (!isOpen) return null;
 
@@ -52,7 +54,7 @@ export default function SectionMaintenanceModal({
         </div>
 
         {/* Modal Body */}
-        <div className="p-6 space-y-5 text-center">
+        <div className="p-6 space-y-4 text-center">
           <p className="text-sm text-slate-300 leading-relaxed font-medium">
             {customMessage?.trim() || DEFAULT_MAINTENANCE_MESSAGE}
           </p>
@@ -68,6 +70,18 @@ export default function SectionMaintenanceModal({
           >
             Got It
           </button>
+
+          {isAdmin && onAdminOverride && (
+            <button
+              onClick={() => {
+                onClose();
+                onAdminOverride();
+              }}
+              className="w-full py-2.5 rounded-xl bg-navy-950/80 border border-amber-500/40 text-amber-300 text-xs font-bold hover:bg-amber-500/20 transition-all cursor-pointer"
+            >
+              👑 Preview Section Anyway (Admin Override)
+            </button>
+          )}
         </div>
       </div>
     </div>
@@ -77,7 +91,13 @@ export default function SectionMaintenanceModal({
 /**
  * In-Page Placeholder rendered when a user tries direct deep-linking or URL manipulation to a locked section.
  */
-export function SectionMaintenancePlaceholder({ sectionTitle, customMessage, onReturn }) {
+export function SectionMaintenancePlaceholder({ 
+  sectionTitle, 
+  customMessage, 
+  onReturn, 
+  isAdmin, 
+  onAdminOverride 
+}) {
   return (
     <div className="min-h-[500px] flex items-center justify-center p-6">
       <div className="w-full max-w-lg p-8 rounded-3xl glass-card border border-amber-500/30 text-center space-y-5 shadow-2xl">
@@ -100,7 +120,7 @@ export function SectionMaintenancePlaceholder({ sectionTitle, customMessage, onR
           </p>
         </div>
 
-        <div className="pt-2 flex justify-center">
+        <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-3">
           <button
             onClick={onReturn}
             className="px-6 py-3 rounded-2xl bg-gradient-to-r from-amber-500 to-gold-500 hover:from-amber-400 hover:to-gold-400 text-navy-950 text-sm font-black transition-all flex items-center gap-2 shadow-[0_0_20px_rgba(245,158,11,0.3)] cursor-pointer"
@@ -108,6 +128,15 @@ export function SectionMaintenancePlaceholder({ sectionTitle, customMessage, onR
             <ArrowLeft className="w-4 h-4" />
             <span>Return to Overview</span>
           </button>
+
+          {isAdmin && onAdminOverride && (
+            <button
+              onClick={onAdminOverride}
+              className="px-4 py-3 rounded-2xl bg-navy-900 border border-amber-500/40 text-amber-300 hover:text-white hover:bg-amber-500/20 text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5"
+            >
+              <span>👑 Preview as Admin</span>
+            </button>
+          )}
         </div>
       </div>
     </div>
