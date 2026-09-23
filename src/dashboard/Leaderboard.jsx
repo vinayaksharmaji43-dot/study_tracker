@@ -8,11 +8,13 @@ import { calculateStudentLevel, getDefaultStreamLevels, getStreamId, normalizeLe
 import EmptyState from '../components/EmptyState';
 import LoadingSpinner from '../components/LoadingSpinner';
 import LiveStudyNow from '../components/LiveStudyNow';
+import StudentProfileModal from '../components/StudentProfileModal';
 import { Trophy, Award, Flame, UserCheck, ShieldCheck, Sparkles, Calendar, BookOpenCheck, Filter, Star } from 'lucide-react';
 
 export default function Leaderboard() {
   const { currentUser, userProfile } = useAuth();
   const [leaderboardData, setLeaderboardData] = useState([]);
+  const [selectedStudent, setSelectedStudent] = useState(null);
   const [loading, setLoading] = useState(true);
   
   // Dynamic syllabi mapping for correct totals
@@ -239,11 +241,13 @@ export default function Leaderboard() {
               return (
                 <div
                   key={student.uid}
-                  className={`grid grid-cols-12 px-6 py-4 items-center transition-colors ${
+                  onClick={() => setSelectedStudent(student)}
+                  className={`grid grid-cols-12 px-6 py-4 items-center transition-all cursor-pointer group hover:bg-white/10 ${
                     isCurrentUser 
                       ? 'bg-royal-600/20 border-l-4 border-royal-500' 
                       : 'hover:bg-white/5'
                   }`}
+                  title="Click to view student profile & study statistics"
                 >
                   {/* Rank Column */}
                   <div className="col-span-2 sm:col-span-1 flex items-center justify-center font-black">
@@ -266,14 +270,14 @@ export default function Leaderboard() {
 
                   {/* Student Name */}
                   <div className="col-span-6 sm:col-span-4 flex items-center space-x-3">
-                    <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-royal-600 to-gold-500 p-0.5 shrink-0">
+                    <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-royal-600 to-gold-500 p-0.5 shrink-0 group-hover:scale-105 transition-transform">
                       <div className="w-full h-full bg-navy-950 rounded-full flex items-center justify-center text-white font-bold text-sm">
                         {student.name.charAt(0).toUpperCase()}
                       </div>
                     </div>
                     <div>
                       <div className="flex items-center gap-2 flex-wrap">
-                        <span className="text-sm font-bold text-white">{student.name}</span>
+                        <span className="text-sm font-bold text-white group-hover:text-gold-400 transition-colors">{student.name}</span>
                         {isCurrentUser && (
                           <span className="px-2 py-0.5 rounded-full bg-royal-500/30 border border-royal-500/50 text-[10px] font-extrabold text-royal-300">
                             YOU
@@ -322,8 +326,16 @@ export default function Leaderboard() {
 
       {/* Global Live Study Now Section */}
       <div className="pt-4 border-t border-white/10">
-        <LiveStudyNow />
+        <LiveStudyNow onSelectStudent={setSelectedStudent} />
       </div>
+
+      {/* Student Profile & Study Statistics Modal */}
+      {selectedStudent && (
+        <StudentProfileModal
+          student={selectedStudent}
+          onClose={() => setSelectedStudent(null)}
+        />
+      )}
 
     </div>
   );

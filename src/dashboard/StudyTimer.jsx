@@ -206,16 +206,20 @@ export default function StudyTimer() {
         try {
           const course = userProfile.course || 'CA';
           const level = userProfile.level || 'Foundation';
-          const attempt = userProfile.attempt || '';
-          
+          const currentContinuous = startTimestamp ? Math.floor((Date.now() - startTimestamp) / 1000) : 0;
+          const currentFocusSecs = Math.max(currentContinuous, secondsRef.current || 0);
+
           await setDoc(sessionRef, {
             studentId: currentUser.uid,
             displayName: userProfile.name || currentUser.email,
             course,
             level,
             attempt,
+            points: userProfile.points || 0,
+            subject: selectedSubject || '',
             startedAt: Date.now() - (secondsRef.current * 1000),
             lastUpdatedAt: Date.now(),
+            maxFocusSecs: currentFocusSecs,
             active: true
           }, { merge: true });
         } catch (e) {
@@ -496,6 +500,7 @@ export default function StudyTimer() {
         uid: currentUser.uid,
         subject: targetSubject || selectedSubject,
         duration: durationSecs,
+        maxFocusSecs: durationSecs,
         course: userProfile?.course || 'CA Foundation',
         date: serverTimestamp()
       });
