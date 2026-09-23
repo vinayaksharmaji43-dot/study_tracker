@@ -26,10 +26,12 @@ import AdminDevices from './tabs/AdminDevices';
 import AdminTests from './tabs/AdminTests';
 import AdminLevels from './tabs/AdminLevels';
 import AdminDiscipline from './tabs/AdminDiscipline';
+import AdminSectionLocks from './tabs/AdminSectionLocks';
 
 import { 
   LayoutDashboard,  
   Users, 
+  Lock, 
   BookOpenCheck,
   Layers,
   TrendingUp, 
@@ -61,6 +63,7 @@ export default function AdminDashboard() {
   const navItems = [
     { id: 'overview', label: 'Dashboard', icon: LayoutDashboard },
     { id: 'students', label: 'Students', icon: Users },
+    { id: 'section_locks', label: 'Section Access Control', icon: Lock },
     { id: 'discipline', label: 'Inactive / Discipline', icon: ShieldAlert },
     { id: 'syllabus', label: 'Student Progress', icon: BookOpenCheck },
     { id: 'syllabus_manager', label: 'Manage Syllabus', icon: Layers },
@@ -178,6 +181,7 @@ export default function AdminDashboard() {
           <main className="col-span-1 lg:col-span-9 space-y-6">
             {activeTab === 'overview' && <AdminOverview setActiveTab={setActiveTab} />}
             {activeTab === 'students' && <AdminStudents />}
+            {activeTab === 'section_locks' && <AdminSectionLocks />}
             {activeTab === 'discipline' && <AdminDiscipline />}
             {activeTab === 'syllabus' && <AdminSyllabus />}
             {activeTab === 'syllabus_manager' && <AdminSyllabusManager />}

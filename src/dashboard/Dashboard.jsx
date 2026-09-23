@@ -35,26 +35,43 @@ import {
   Headphones,
   Calendar as CalendarIcon,
   Megaphone,
-  MessageSquare
+  MessageSquare,
+  Lock
 } from 'lucide-react';
 import SupportModal from '../components/SupportModal';
 import FeedbackModal from '../components/FeedbackModal';
+import SectionMaintenanceModal, { SectionMaintenancePlaceholder } from '../components/SectionMaintenanceModal';
+import { useSectionLocks } from '../hooks/useSectionLocks';
+import { getSectionById } from '../config/dashboardSections';
 
 import CountdownWidget from '../components/CountdownWidget';
 import useDailyEvaluator from '../hooks/useDailyEvaluator';
 import LevelUpModal from '../components/LevelUpModal';
 
 export default function Dashboard() {
-  const { userProfile, currentUser, logout, levelInfo } = useAuth();
+  const { userProfile, currentUser, logout, levelInfo, isAdmin } = useAuth();
+  const { isSectionLocked, getMaintenanceMessage } = useSectionLocks();
+
   const [searchParams, setSearchParams] = useSearchParams();
   const [activeTab, setActiveTabState] = useState(() => {
     return searchParams.get('tab') || 'overview';
   });
   const [showSupportModal, setShowSupportModal] = useState(false);
   const [showFeedbackModal, setShowFeedbackModal] = useState(false);
+  const [maintenanceModalData, setMaintenanceModalData] = useState(null);
 
-  // Sync tab with URL search parameter
+  // Sync tab with URL search parameter with Section Lock Interception
   const setActiveTab = (tabId) => {
+    if (isSectionLocked(tabId) && !isAdmin) {
+      const sectionInfo = getSectionById(tabId);
+      setMaintenanceModalData({
+        sectionId: tabId,
+        sectionTitle: sectionInfo?.label || 'Section',
+        message: getMaintenanceMessage(tabId)
+      });
+      return;
+    }
+
     setActiveTabState(tabId);
     if (tabId === 'overview') {
       const nextParams = new URLSearchParams(searchParams);
@@ -129,22 +146,32 @@ export default function Dashboard() {
                 {navItems.map((item) => {
                   const Icon = item.icon;
                   const isActive = activeTab === item.id;
+                  const isLocked = isSectionLocked(item.id);
 
                   return (
                     <button
                       key={item.id}
                       onClick={() => setActiveTab(item.id)}
-                      className={`w-full flex items-center justify-between px-4 py-3 rounded-2xl text-sm font-semibold transition-all duration-200 ${
+                      className={`w-full flex items-center justify-between px-4 py-3 rounded-2xl text-sm font-semibold transition-all duration-200 cursor-pointer ${
                         isActive
                           ? 'bg-emerald-600/20 border border-emerald-500/40 text-emerald-400 shadow-glow-emerald'
-                          : 'text-slate-400 hover:text-white hover:bg-white/5 border border-transparent'
+                          : isLocked
+                            ? 'text-slate-400 hover:text-amber-300 hover:bg-amber-500/5 border border-transparent'
+                            : 'text-slate-400 hover:text-white hover:bg-white/5 border border-transparent'
                       }`}
                     >
                       <div className="flex items-center space-x-3">
-                        <Icon className={`w-5 h-5 ${isActive ? 'text-emerald-400' : 'text-slate-400'}`} />
+                        <Icon className={`w-5 h-5 ${isActive ? 'text-emerald-400' : isLocked ? 'text-amber-400/80' : 'text-slate-400'}`} />
                         <span>{item.label}</span>
                       </div>
-                      {isActive && <ChevronRight className="w-4 h-4 text-emerald-400" />}
+                      <div className="flex items-center gap-1.5">
+                        {isLocked && (
+                          <span title="Under Maintenance" className="p-1 rounded-md bg-amber-500/10 text-amber-400 border border-amber-500/20">
+                            <Lock className="w-3.5 h-3.5" />
+                          </span>
+                        )}
+                        {isActive && <ChevronRight className="w-4 h-4 text-emerald-400" />}
+                      </div>
                     </button>
                   );
                 })}
@@ -154,7 +181,7 @@ export default function Dashboard() {
               <div className="pt-2 border-t border-white/10 space-y-1">
                 <button
                   onClick={() => setShowSupportModal(true)}
-                  className="w-full flex items-center justify-between px-4 py-3 rounded-2xl text-sm font-bold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 hover:bg-emerald-500/20 transition-all"
+                  className="w-full flex items-center justify-between px-4 py-3 rounded-2xl text-sm font-bold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 hover:bg-emerald-500/20 transition-all cursor-pointer"
                 >
                   <div className="flex items-center space-x-3">
                     <Headphones className="w-5 h-5 text-emerald-400" />
@@ -165,7 +192,7 @@ export default function Dashboard() {
 
                 <button
                   onClick={() => setShowFeedbackModal(true)}
-                  className="w-full flex items-center justify-between px-4 py-2.5 rounded-2xl text-xs font-bold text-royal-300 bg-royal-500/10 border border-royal-500/20 hover:bg-royal-500/20 transition-all"
+                  className="w-full flex items-center justify-between px-4 py-2.5 rounded-2xl text-xs font-bold text-royal-300 bg-royal-500/10 border border-royal-500/20 hover:bg-royal-500/20 transition-all cursor-pointer"
                 >
                   <div className="flex items-center space-x-3">
                     <MessageSquare className="w-4 h-4 text-royal-400" />
@@ -176,7 +203,7 @@ export default function Dashboard() {
 
                 <button
                   onClick={logout}
-                  className="w-full flex items-center space-x-3 px-4 py-3 rounded-2xl text-sm font-semibold text-red-400 hover:bg-red-500/10 transition-colors"
+                  className="w-full flex items-center space-x-3 px-4 py-3 rounded-2xl text-sm font-semibold text-red-400 hover:bg-red-500/10 transition-colors cursor-pointer"
                 >
                   <LogOut className="w-5 h-5" />
                   <span>Log Out</span>
@@ -188,19 +215,30 @@ export default function Dashboard() {
 
           {/* Main Dashboard Workspace View */}
           <main className="col-span-1 lg:col-span-9 space-y-6">
-            {activeTab === 'overview' && <Overview setActiveTab={setActiveTab} />}
-            {activeTab === 'announcements' && <Announcements />}
-            {activeTab === 'calendar' && <Calendar />}
-            {activeTab === 'syllabus' && <Syllabus />}
-            {activeTab === 'leaderboard' && <Leaderboard />}
-            {activeTab === 'timer' && <StudyTimer setActiveTab={setActiveTab} />}
-            {activeTab === 'mentor' && <MentorSession />}
-            {activeTab === 'writing' && <WritingPractice />}
-            {activeTab === 'missions' && <WeeklyMissions />}
-            {activeTab === 'targets' && <Targets setActiveTab={setActiveTab} />}
-            {activeTab === 'notes' && <Notes />}
-            {activeTab === 'doubts' && <Doubts />}
-            {activeTab === 'profile' && <Profile />}
+            {/* Security Guard: If activeTab is locked and student directly accessed it, render maintenance placeholder */}
+            {isSectionLocked(activeTab) && !isAdmin ? (
+              <SectionMaintenancePlaceholder
+                sectionTitle={getSectionById(activeTab)?.label}
+                customMessage={getMaintenanceMessage(activeTab)}
+                onReturn={() => setActiveTab('overview')}
+              />
+            ) : (
+              <>
+                {activeTab === 'overview' && <Overview setActiveTab={setActiveTab} />}
+                {activeTab === 'announcements' && <Announcements />}
+                {activeTab === 'calendar' && <Calendar />}
+                {activeTab === 'syllabus' && <Syllabus />}
+                {activeTab === 'leaderboard' && <Leaderboard />}
+                {activeTab === 'timer' && <StudyTimer setActiveTab={setActiveTab} />}
+                {activeTab === 'mentor' && <MentorSession />}
+                {activeTab === 'writing' && <WritingPractice />}
+                {activeTab === 'missions' && <WeeklyMissions />}
+                {activeTab === 'targets' && <Targets setActiveTab={setActiveTab} />}
+                {activeTab === 'notes' && <Notes />}
+                {activeTab === 'doubts' && <Doubts />}
+                {activeTab === 'profile' && <Profile />}
+              </>
+            )}
           </main>
 
         </div>
@@ -208,6 +246,14 @@ export default function Dashboard() {
       </div>
 
       <Footer />
+
+      {/* Global Section Maintenance Modal */}
+      <SectionMaintenanceModal
+        isOpen={Boolean(maintenanceModalData)}
+        onClose={() => setMaintenanceModalData(null)}
+        sectionTitle={maintenanceModalData?.sectionTitle}
+        customMessage={maintenanceModalData?.message}
+      />
 
       {/* Global Level Up Modal */}
       <LevelUpModal />

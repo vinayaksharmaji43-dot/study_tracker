@@ -2,9 +2,12 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { collection, query, onSnapshot, where, doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../config/firebase';
-import { BookOpen, Menu, X, LayoutDashboard, LogOut, User, ChevronRight, ShieldCheck, Bell, Headphones, MoreVertical, Clock, PenLine, Flag, Video, BookOpenCheck, Trophy, Target, FileText, HelpCircle, Crown, Calendar as CalendarIcon, Megaphone } from 'lucide-react';
+import { BookOpen, Menu, X, LayoutDashboard, LogOut, User, ChevronRight, ShieldCheck, Bell, Headphones, MoreVertical, Clock, PenLine, Flag, Video, BookOpenCheck, Trophy, Target, FileText, HelpCircle, Crown, Calendar as CalendarIcon, Megaphone, Lock } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import SupportModal from './SupportModal';
+import SectionMaintenanceModal from './SectionMaintenanceModal';
+import { useSectionLocks } from '../hooks/useSectionLocks';
+import { getSectionById } from '../config/dashboardSections';
 
 function parseStream(userProfile) {
   if (!userProfile) return { course: 'CA', level: 'Foundation', attempt: '' };
@@ -31,11 +34,13 @@ export default function Navbar({ activeTab, setActiveTab }) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [mobileActionMenuOpen, setMobileActionMenuOpen] = useState(false);
   const [showSupportModal, setShowSupportModal] = useState(false);
+  const [maintenanceModalData, setMaintenanceModalData] = useState(null);
   const actionMenuRef = useRef(null);
   const [announcements, setAnnouncements] = useState([]);
   const [readIds, setReadIds] = useState(new Set());
   
   const { currentUser, userProfile, isAdmin, logout } = useAuth();
+  const { isSectionLocked, getMaintenanceMessage } = useSectionLocks();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -94,6 +99,15 @@ export default function Navbar({ activeTab, setActiveTab }) {
   const isDashboardRoute = location.pathname.startsWith('/dashboard');
 
   const handleAnnouncementClick = () => {
+    if (isSectionLocked('announcements') && !isAdmin) {
+      setMaintenanceModalData({
+        sectionId: 'announcements',
+        sectionTitle: 'Announcements',
+        message: getMaintenanceMessage('announcements')
+      });
+      return;
+    }
+
     if (isDashboardRoute && setActiveTab) {
       setActiveTab('announcements');
     } else {
@@ -144,6 +158,17 @@ export default function Navbar({ activeTab, setActiveTab }) {
   }, []);
 
   const handleDashboardNav = (id) => {
+    if (isSectionLocked(id) && !isAdmin) {
+      const sectionInfo = getSectionById(id);
+      setMaintenanceModalData({
+        sectionId: id,
+        sectionTitle: sectionInfo?.label || 'Section',
+        message: getMaintenanceMessage(id)
+      });
+      setMobileActionMenuOpen(false);
+      return;
+    }
+
     setActiveTab?.(id);
     setMobileActionMenuOpen(false);
   };
@@ -317,7 +342,22 @@ export default function Navbar({ activeTab, setActiveTab }) {
                       <div className="grid grid-cols-2 gap-2">
                         {quickJoinItems.map(item => {
                           const Icon = item.icon;
-                          return <button key={item.id} onClick={() => handleDashboardNav(item.id)} className="flex items-center gap-2 rounded-xl border border-white/5 bg-navy-950/70 p-2.5 text-left hover:border-violet-400/30 hover:bg-white/5 transition-colors"><span className={`p-1.5 rounded-lg ${item.bg} ${item.color}`}><Icon className="w-4 h-4" /></span><span className="text-[11px] font-bold text-slate-200">{item.label}</span></button>;
+                          const isLocked = isSectionLocked(item.id);
+                          return (
+                            <button 
+                              key={item.id} 
+                              onClick={() => handleDashboardNav(item.id)} 
+                              className="flex items-center justify-between gap-1.5 rounded-xl border border-white/5 bg-navy-950/70 p-2.5 text-left hover:border-violet-400/30 hover:bg-white/5 transition-colors cursor-pointer"
+                            >
+                              <div className="flex items-center gap-2 truncate">
+                                <span className={`p-1.5 rounded-lg ${item.bg} ${item.color}`}>
+                                  <Icon className="w-4 h-4" />
+                                </span>
+                                <span className="text-[11px] font-bold text-slate-200 truncate">{item.label}</span>
+                              </div>
+                              {isLocked && <Lock className="w-3 h-3 text-amber-400 shrink-0" />}
+                            </button>
+                          );
                         })}
                       </div>
                     </div>
@@ -327,7 +367,22 @@ export default function Navbar({ activeTab, setActiveTab }) {
                       {dashboardNavItems.map(item => {
                         const Icon = item.icon;
                         const isActive = activeTab === item.id;
-                        return <button key={item.id} onClick={() => handleDashboardNav(item.id)} className={`flex items-center gap-3 w-full rounded-xl px-2.5 py-2 text-xs font-semibold transition-colors ${isActive ? 'bg-violet-500/15 text-violet-200 border border-violet-400/25' : 'text-slate-300 hover:bg-white/5'}`}><Icon className="w-4 h-4" /><span>{item.label}</span></button>;
+                        const isLocked = isSectionLocked(item.id);
+                        return (
+                          <button 
+                            key={item.id} 
+                            onClick={() => handleDashboardNav(item.id)} 
+                            className={`flex items-center justify-between w-full rounded-xl px-2.5 py-2 text-xs font-semibold transition-colors cursor-pointer ${
+                              isActive ? 'bg-violet-500/15 text-violet-200 border border-violet-400/25' : 'text-slate-300 hover:bg-white/5'
+                            }`}
+                          >
+                            <div className="flex items-center gap-3 truncate">
+                              <Icon className={`w-4 h-4 ${isLocked ? 'text-amber-400' : ''}`} />
+                              <span className="truncate">{item.label}</span>
+                            </div>
+                            {isLocked && <Lock className="w-3 h-3 text-amber-400 shrink-0" />}
+                          </button>
+                        );
                       })}
                       <button onClick={() => { setMobileActionMenuOpen(false); setShowSupportModal(true); }} className="flex items-center gap-3 w-full rounded-xl px-2.5 py-2.5 text-xs font-bold text-emerald-300 bg-emerald-500/10 border border-emerald-400/20 hover:bg-emerald-500/15"><Headphones className="w-4 h-4" /><span className="flex-1 text-left">Help & Student Support</span><span className="text-[9px] font-black uppercase bg-emerald-500 text-navy-950 px-1.5 py-0.5 rounded">24/7</span></button>
                       <div className="flex items-center gap-3 w-full rounded-xl px-2.5 py-2 text-xs font-semibold text-gold-300/70 border border-gold-500/10"><Crown className="w-4 h-4" /><span className="flex-1">Premium</span><span className="text-[9px] font-bold uppercase bg-gold-500/15 px-1.5 py-0.5 rounded">Coming Soon</span></div>
@@ -444,6 +499,14 @@ export default function Navbar({ activeTab, setActiveTab }) {
 
       {/* Support Modal */}
       <SupportModal isOpen={showSupportModal} onClose={() => setShowSupportModal(false)} />
+
+      {/* Section Maintenance Modal */}
+      <SectionMaintenanceModal 
+        isOpen={Boolean(maintenanceModalData)} 
+        onClose={() => setMaintenanceModalData(null)}
+        sectionTitle={maintenanceModalData?.sectionTitle}
+        customMessage={maintenanceModalData?.message}
+      />
     </nav>
   );
 }
