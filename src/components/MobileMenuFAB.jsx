@@ -24,6 +24,15 @@ export default function MobileMenuFAB({ activeTab, setActiveTab }) {
   const [isOpen, setIsOpen] = useState(false);
   const [showSupportModal, setShowSupportModal] = useState(false);
 
+  React.useEffect(() => {
+    if (!isOpen) return undefined;
+    const originalOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = originalOverflow;
+    };
+  }, [isOpen]);
+
   const navItems = [
     { id: 'overview', label: 'Home', icon: LayoutDashboard },
     { id: 'calendar', label: 'Calendar', icon: CalendarIcon },
@@ -78,7 +87,8 @@ export default function MobileMenuFAB({ activeTab, setActiveTab }) {
       <div 
         className={`fixed bottom-0 left-0 right-0 z-[101] bg-navy-900 border-t border-white/10 rounded-t-3xl transition-transform duration-300 ease-out transform md:hidden ${
           isOpen ? 'translate-y-0' : 'translate-y-full'
-        } max-h-[85vh] overflow-y-auto custom-scrollbar`}
+        } max-h-[85vh] overflow-y-auto overscroll-contain custom-scrollbar`}
+        style={{ WebkitOverflowScrolling: 'touch', overscrollBehavior: 'contain' }}
       >
         <div className="p-6 space-y-6">
           <div className="flex items-center justify-between">
