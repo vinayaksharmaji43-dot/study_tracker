@@ -2,15 +2,23 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { collection, query, onSnapshot, where, doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../config/firebase';
-import { BookOpen, Menu, X, LayoutDashboard, LogOut, User, ChevronRight, ShieldCheck, Bell, Headphones, MoreVertical, Clock, PenLine, Flag, Video, BookOpenCheck, Trophy, Target, FileText, HelpCircle, Crown, Calendar as CalendarIcon } from 'lucide-react';
+import { BookOpen, Menu, X, LayoutDashboard, LogOut, User, ChevronRight, ShieldCheck, Bell, Headphones, MoreVertical, Clock, PenLine, Flag, Video, BookOpenCheck, Trophy, Target, FileText, HelpCircle, Crown, Calendar as CalendarIcon, Megaphone } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import SupportModal from './SupportModal';
 
 function parseStream(userProfile) {
-  const raw = (userProfile?.course || '').toUpperCase();
-  const isCMA = raw.includes('CMA');
-  const course = isCMA ? 'CMA' : 'CA';
-  const level = raw.includes('FOUNDATION') ? 'Foundation' : 'Intermediate';
+  if (!userProfile) return { course: 'CA', level: 'Foundation', attempt: '' };
+  const rawCourse = String(userProfile.course || 'CA Foundation').toUpperCase();
+  let course = 'CA';
+  let level = 'Foundation';
+  
+  if (rawCourse.includes('CMA')) course = 'CMA';
+  
+  const rawLevel = String(userProfile.level || '').toUpperCase();
+  if (rawCourse.includes('INTER') || rawLevel.includes('INTER')) level = 'Intermediate';
+  else if (rawLevel.includes('FOUND') || rawCourse.includes('FOUND')) level = 'Foundation';
+  else if (userProfile.level) level = userProfile.level; 
+  
   const attempt = userProfile?.attempt || '';
   return { course, level, attempt };
 }
@@ -84,8 +92,18 @@ export default function Navbar({ activeTab, setActiveTab }) {
   };
 
   const isDashboardRoute = location.pathname.startsWith('/dashboard');
+
+  const handleAnnouncementClick = () => {
+    if (isDashboardRoute && setActiveTab) {
+      setActiveTab('announcements');
+    } else {
+      navigate('/dashboard?tab=announcements');
+    }
+  };
+
   const dashboardNavItems = [
     { id: 'overview', label: 'Home', icon: LayoutDashboard },
+    { id: 'announcements', label: 'Announcements', icon: Megaphone },
     { id: 'calendar', label: 'Calendar', icon: CalendarIcon },
     { id: 'syllabus', label: 'Syllabus', icon: BookOpenCheck },
     { id: 'timer', label: 'Study Timer', icon: Clock },
@@ -200,12 +218,13 @@ export default function Navbar({ activeTab, setActiveTab }) {
                     <span>Support</span>
                   </button>
 
-                  {/* Announcement Bell (Students Only) */}
-                  {!isAdmin && isDashboardRoute && (
+                  {/* Announcement Bell Icon */}
+                  {currentUser && (
                     <button
-                      onClick={() => setActiveTab?.('announcements')}
-                      className="relative p-2 rounded-xl bg-rose-500/10 border border-rose-400/25 text-rose-200 hover:bg-rose-500/20 hover:border-rose-300/45 hover:text-white transition-all mr-1 shadow-[0_0_14px_rgba(244,63,94,0.12)]"
-                      title="Announcement Center"
+                      onClick={handleAnnouncementClick}
+                      className="relative p-2 rounded-xl bg-rose-500/10 border border-rose-400/25 text-rose-200 hover:bg-rose-500/20 hover:border-rose-300/45 hover:text-white transition-all mr-1 shadow-[0_0_14px_rgba(244,63,94,0.12)] cursor-pointer"
+                      title="Announcements"
+                      aria-label="Announcements"
                     >
                       <Bell className="w-5 h-5" />
                       {announcements.filter(a => !readIds.has(a.id)).length > 0 && (
@@ -259,12 +278,12 @@ export default function Navbar({ activeTab, setActiveTab }) {
                 <LayoutDashboard className="w-5 h-5" />
               </Link>
             )}
-            {currentUser && !isAdmin && isDashboardRoute && (
+            {currentUser && (
               <button
-                onClick={() => setActiveTab?.('announcements')}
-                className="relative p-2.5 rounded-xl bg-rose-500/10 border border-rose-400/25 text-rose-200 hover:bg-rose-500/20 hover:border-rose-300/45 hover:text-white transition-all duration-200 shadow-[0_0_14px_rgba(244,63,94,0.12)]"
+                onClick={handleAnnouncementClick}
+                className="relative p-2.5 rounded-xl bg-rose-500/10 border border-rose-400/25 text-rose-200 hover:bg-rose-500/20 hover:border-rose-300/45 hover:text-white transition-all duration-200 shadow-[0_0_14px_rgba(244,63,94,0.12)] cursor-pointer"
                 aria-label="Open announcements"
-                title="Announcement Center"
+                title="Announcements"
               >
                 <Bell className="w-5 h-5" />
                 {announcements.filter(a => !readIds.has(a.id)).length > 0 && (

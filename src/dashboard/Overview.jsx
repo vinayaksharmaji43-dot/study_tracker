@@ -27,10 +27,18 @@ import {
 } from 'lucide-react';
 
 function parseStream(userProfile) {
-  const raw = (userProfile?.course || '').toUpperCase();
-  const isCMA = raw.includes('CMA');
-  const course = isCMA ? 'CMA' : 'CA';
-  const level = raw.includes('FOUNDATION') ? 'Foundation' : 'Intermediate';
+  if (!userProfile) return { course: 'CA', level: 'Foundation', attempt: '' };
+  const rawCourse = String(userProfile.course || 'CA Foundation').toUpperCase();
+  let course = 'CA';
+  let level = 'Foundation';
+  
+  if (rawCourse.includes('CMA')) course = 'CMA';
+  
+  const rawLevel = String(userProfile.level || '').toUpperCase();
+  if (rawCourse.includes('INTER') || rawLevel.includes('INTER')) level = 'Intermediate';
+  else if (rawLevel.includes('FOUND') || rawCourse.includes('FOUND')) level = 'Foundation';
+  else if (userProfile.level) level = userProfile.level; 
+  
   const attempt = userProfile?.attempt || '';
   return { course, level, attempt };
 }
@@ -230,10 +238,10 @@ export default function Overview({ setActiveTab }) {
 
           <div className="flex items-center gap-3">
             <button
-              onClick={() => window.dispatchEvent(new Event('open-announcement-center'))}
+              onClick={() => setActiveTab('announcements')}
               className="relative p-3 rounded-2xl bg-rose-500/10 border border-rose-400/30 text-rose-200 hover:bg-rose-500/20 hover:border-rose-300/50 transition-all shadow-[0_0_18px_rgba(244,63,94,0.14)]"
-              title="Open Announcement Center"
-              aria-label="Open Announcement Center"
+              title="Open Announcements"
+              aria-label="Open Announcements"
             >
               <Bell className="w-5 h-5" />
               {unreadAnnouncementCount > 0 && <span className="absolute -top-1 -right-1 min-w-5 h-5 px-1 rounded-full bg-rose-500 text-white text-[10px] font-black flex items-center justify-center border-2 border-navy-950">{unreadAnnouncementCount > 9 ? '9+' : unreadAnnouncementCount}</span>}
@@ -300,41 +308,95 @@ export default function Overview({ setActiveTab }) {
       </div>
 
       {/* Latest Announcements */}
-      {announcements.length > 0 && (
-        <div className="p-5 sm:p-6 rounded-3xl glass-card border border-rose-500/25 space-y-4">
-          <div className="flex items-center justify-between gap-4">
+      <div className="p-5 sm:p-6 rounded-3xl glass-card border border-rose-500/25 space-y-4">
+        <div className="flex items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-2xl bg-rose-500/15 border border-rose-400/25 flex items-center justify-center text-rose-400 shrink-0">
+              <Megaphone className="w-5 h-5" />
+            </div>
             <div>
               <div className="text-[10px] font-bold uppercase tracking-[0.18em] text-rose-300">Official updates</div>
-              <h2 className="mt-1 text-xl font-bold text-white flex items-center gap-2"><Megaphone className="w-5 h-5 text-rose-400" />Latest Announcements</h2>
+              <h2 className="text-lg sm:text-xl font-bold text-white">Latest Announcements</h2>
             </div>
-            <button onClick={() => setActiveTab('announcements')} className="shrink-0 text-xs font-bold text-rose-300 hover:text-white transition-colors">View All <span aria-hidden="true">→</span></button>
           </div>
+          <button 
+            onClick={() => setActiveTab('announcements')} 
+            className="shrink-0 px-3.5 py-1.5 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 hover:text-white border border-rose-500/30 text-xs font-bold transition-all flex items-center gap-1.5 shadow-sm hover:scale-105"
+          >
+            <span>View All</span>
+            <span aria-hidden="true">→</span>
+          </button>
+        </div>
+
+        {sortedAnnouncements.length === 0 ? (
+          <div className="p-6 rounded-2xl bg-navy-950/60 border border-white/5 text-center space-y-2">
+            <p className="text-xs text-slate-400">No announcements right now. Official updates and exam alerts will appear here.</p>
+          </div>
+        ) : (
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-            {sortedAnnouncements.slice(0, 3).map((a) => {
+            {sortedAnnouncements.slice(0, 3).map((a, idx) => {
               const isRead = readIds.has(a.id);
+              const message = a.message || a.description || '';
               return (
                 <div 
                   key={a.id} 
-                  onClick={() => handleMarkAsRead(a.id)}
-                  className={`p-4 rounded-2xl border flex flex-col gap-3 relative overflow-hidden group cursor-pointer transition-all ${isRead ? 'bg-rose-500/5 border-rose-500/10' : 'bg-rose-500/10 border-rose-500/30'}`}
+                  onClick={() => {
+                    handleMarkAsRead(a.id);
+                    setActiveTab('announcements');
+                  }}
+                  className={`p-4 rounded-2xl border flex flex-col justify-between gap-3 relative overflow-hidden group cursor-pointer transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg ${
+                    isRead 
+                      ? 'bg-navy-950/70 border-white/10 hover:border-rose-500/30' 
+                      : 'bg-rose-500/10 border-rose-500/35 hover:border-rose-400/60 shadow-[0_0_20px_rgba(244,63,94,0.1)]'
+                  }`}
                 >
-                  <div className="absolute right-0 top-0 w-32 h-32 bg-rose-500/10 rounded-full blur-2xl pointer-events-none group-hover:bg-rose-500/20 transition-all"></div>
-                  {a.imageUrl && <img src={a.imageUrl} alt="" className="relative z-10 w-full h-28 object-cover rounded-xl border border-white/10" />}
-                  <div className="space-y-2 w-full relative z-10">
-                    <div className="flex items-center gap-2">
-                      {!isRead && <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-rose-500 text-white uppercase tracking-wider">New</span>}
-                      <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-white/10 text-white uppercase tracking-wider">Latest</span>
+                  <div className="absolute right-0 top-0 w-28 h-28 bg-rose-500/10 rounded-full blur-2xl pointer-events-none group-hover:bg-rose-500/20 transition-all"></div>
+                  
+                  {a.imageUrl && (
+                    <div className="w-full h-32 rounded-xl overflow-hidden border border-white/10 relative shrink-0 bg-navy-900">
+                      <img 
+                        src={a.imageUrl} 
+                        alt={a.title || 'Announcement'} 
+                        className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" 
+                      />
                     </div>
-                    <h4 className="text-sm font-bold text-white line-clamp-2">{a.title}</h4>
-                    <p className="text-xs text-slate-300 leading-relaxed line-clamp-2">{a.message}</p>
-                    <p className="text-[10px] text-slate-500">{formatDate(a.createdAt)}</p>
+                  )}
+
+                  <div className="space-y-2 w-full relative z-10 flex-1">
+                    <div className="flex items-center gap-2">
+                      {!isRead ? (
+                        <span className="px-2 py-0.5 rounded-full text-[9px] font-black bg-rose-500 text-white uppercase tracking-wider shadow-sm">
+                          New
+                        </span>
+                      ) : idx === 0 ? (
+                        <span className="px-2 py-0.5 rounded-full text-[9px] font-bold bg-white/10 text-rose-300 uppercase tracking-wider">
+                          Latest
+                        </span>
+                      ) : null}
+                      <span className="text-[10px] text-slate-400 font-medium">
+                        {formatDate(a.createdAt)}
+                      </span>
+                    </div>
+
+                    <h4 className="text-sm font-bold text-white line-clamp-2 group-hover:text-rose-200 transition-colors">
+                      {a.title}
+                    </h4>
+
+                    <p className="text-xs text-slate-300/90 leading-relaxed line-clamp-2">
+                      {message}
+                    </p>
+                  </div>
+
+                  <div className="pt-2 border-t border-white/5 flex items-center justify-between text-[11px] font-bold text-rose-300/80 group-hover:text-rose-200">
+                    <span>Read update</span>
+                    <span className="transition-transform group-hover:translate-x-1">→</span>
                   </div>
                 </div>
               );
             })}
           </div>
-        </div>
-      )}
+        )}
+      </div>
 
       {/* Weekly Mission Widget */}
       <div className="p-5 sm:p-6 rounded-3xl glass-card border border-rose-500/30 bg-gradient-to-r from-navy-900 to-navy-800 shadow-xl relative overflow-hidden group">

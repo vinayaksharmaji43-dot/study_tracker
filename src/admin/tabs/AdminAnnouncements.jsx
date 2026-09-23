@@ -1,22 +1,25 @@
 import React, { useState, useEffect } from 'react';
 import { collection, addDoc, doc, updateDoc, deleteDoc, serverTimestamp, onSnapshot, query, orderBy } from 'firebase/firestore';
 import { db } from '../../config/firebase';
+import { useAuth } from '../../contexts/AuthContext';
 import { formatDate } from '../../utils/helpers';
 import EmptyState from '../../components/EmptyState';
-import { Megaphone, Plus, Edit2, Trash2, CheckCircle, EyeOff, AlertCircle, ImagePlus, X } from 'lucide-react';
+import { Megaphone, Plus, Edit2, Trash2, CheckCircle, EyeOff, AlertCircle, ImagePlus, X, Link as LinkIcon } from 'lucide-react';
 
 const COURSES = ['CA', 'CMA'];
 const LEVELS = ['Foundation', 'Intermediate'];
 const CA_ATTEMPTS = ['Jan 2027', 'May 2027', 'Sep 2027'];
-const CMA_ATTEMPTS = ['June 2027', 'December 2027'];
-
-function getAttempts(course) {
-  return course === 'CMA' ? CMA_ATTEMPTS : CA_ATTEMPTS;
-}
+const DEFAULT_CMA_ATTEMPTS = ['June 2027', 'December 2027'];
 
 export default function AdminAnnouncements() {
+  const { userProfile } = useAuth();
   const [announcements, setAnnouncements] = useState([]);
+  const [cmaAttempts, setCmaAttempts] = useState(DEFAULT_CMA_ATTEMPTS);
   const [loading, setLoading] = useState(true);
+
+  function getAttempts(courseName) {
+    return courseName === 'CMA' ? cmaAttempts : CA_ATTEMPTS;
+  }
 
   // Modal State
   const [showModal, setShowModal] = useState(false);
@@ -72,7 +75,16 @@ export default function AdminAnnouncements() {
       setLoading(false);
     });
 
-    return () => unsubscribe();
+    const unsubCourses = onSnapshot(doc(db, 'settings', 'courses'), (snap) => {
+      if (snap.exists() && snap.data()?.cmaAttempts && Array.isArray(snap.data().cmaAttempts)) {
+        setCmaAttempts(snap.data().cmaAttempts);
+      }
+    });
+
+    return () => {
+      unsubscribe();
+      unsubCourses();
+    };
   }, []);
 
   const handleOpenAddModal = () => {
@@ -91,7 +103,7 @@ export default function AdminAnnouncements() {
   const handleOpenEditModal = (item) => {
     setEditingItem(item);
     setTitle(item.title || '');
-    setMessage(item.message || '');
+    setMessage(item.message || item.description || '');
     setAudienceType(item.audienceType || 'all');
     setCourse(item.course || 'CA');
     setLevel(item.level || 'Foundation');
@@ -110,6 +122,7 @@ export default function AdminAnnouncements() {
       const payload = {
         title: title.trim(),
         message: message.trim(),
+        description: message.trim(),
         audienceType: audienceType,
         imageUrl: imageUrl || '',
         ...(audienceType === 'specific' && { course, level, attempt }),
@@ -125,7 +138,7 @@ export default function AdminAnnouncements() {
           ...payload,
           published: true,
           createdAt: serverTimestamp(),
-          author: 'Platform Admin'
+          author: userProfile?.name || 'Platform Admin'
         });
       }
 
@@ -256,10 +269,14 @@ export default function AdminAnnouncements() {
                 </div>
               </div>
 
-              <p className="text-sm text-slate-300 bg-navy-950/60 p-4 rounded-2xl border border-white/5 leading-relaxed">
-                {item.message}
+              <p className="text-sm text-slate-300 bg-navy-950/60 p-4 rounded-2xl border border-white/5 leading-relaxed whitespace-pre-wrap">
+                {item.message || item.description}
               </p>
-              {item.imageUrl && <img src={item.imageUrl} alt="" className="w-full max-h-72 object-cover rounded-2xl border border-white/10" />}
+              {item.imageUrl && (
+                <div className="rounded-2xl overflow-hidden border border-white/10 max-h-72 bg-navy-900 flex items-center justify-center">
+                  <img src={item.imageUrl} alt="" className="w-full max-h-72 object-contain sm:object-cover" />
+                </div>
+              )}
             </div>
           ))}
         </div>
@@ -296,10 +313,10 @@ export default function AdminAnnouncements() {
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-2">Optional Image</label>
-                <label className="flex items-center justify-center gap-2 w-full min-h-24 rounded-xl border border-dashed border-violet-400/35 bg-violet-500/5 text-violet-200 text-sm font-semibold cursor-pointer hover:bg-violet-500/10 transition-colors">
-                  <ImagePlus className="w-5 h-5" />
-                  <span>{imageName || 'Choose an announcement image'}</span>
+                <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-2">Optional Photo / Image Attachment</label>
+                <label className="flex items-center justify-center gap-2 w-full min-h-20 rounded-xl border border-dashed border-rose-500/35 bg-rose-500/5 text-rose-200 text-xs font-semibold cursor-pointer hover:bg-rose-500/10 transition-colors p-4">
+                  <ImagePlus className="w-5 h-5 text-rose-400" />
+                  <span className="truncate">{imageName || 'Upload image file (PNG, JPG, WebP)'}</span>
                   <input
                     type="file"
                     accept="image/png,image/jpeg,image/webp"
@@ -316,6 +333,27 @@ export default function AdminAnnouncements() {
                     }}
                   />
                 </label>
+
+                <div className="flex items-center gap-2 my-2.5">
+                  <div className="h-px bg-white/10 flex-1"></div>
+                  <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">or paste image link</span>
+                  <div className="h-px bg-white/10 flex-1"></div>
+                </div>
+
+                <div className="relative">
+                  <LinkIcon className="w-3.5 h-3.5 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                  <input
+                    type="url"
+                    placeholder="https://example.com/image.jpg"
+                    value={imageUrl.startsWith('data:') ? '' : imageUrl}
+                    onChange={(e) => {
+                      setImageUrl(e.target.value);
+                      setImageName(e.target.value ? 'Direct Image URL' : '');
+                    }}
+                    className="w-full pl-9 pr-4 py-2.5 rounded-xl bg-navy-900 border border-white/10 text-white text-xs placeholder:text-slate-500 focus:outline-none focus:border-rose-500"
+                  />
+                </div>
+
                 {imageUrl && (
                   <div className="relative mt-3">
                     <img src={imageUrl} alt="Announcement preview" className="w-full max-h-44 object-cover rounded-xl border border-white/10" />

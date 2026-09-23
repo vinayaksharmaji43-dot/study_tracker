@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
@@ -43,8 +44,32 @@ import LevelUpModal from '../components/LevelUpModal';
 
 export default function Dashboard() {
   const { userProfile, currentUser, logout, levelInfo } = useAuth();
-  const [activeTab, setActiveTab] = useState('overview');
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [activeTab, setActiveTabState] = useState(() => {
+    return searchParams.get('tab') || 'overview';
+  });
   const [showSupportModal, setShowSupportModal] = useState(false);
+
+  // Sync tab with URL search parameter
+  const setActiveTab = (tabId) => {
+    setActiveTabState(tabId);
+    if (tabId === 'overview') {
+      const nextParams = new URLSearchParams(searchParams);
+      nextParams.delete('tab');
+      setSearchParams(nextParams, { replace: true });
+    } else {
+      const nextParams = new URLSearchParams(searchParams);
+      nextParams.set('tab', tabId);
+      setSearchParams(nextParams, { replace: true });
+    }
+  };
+
+  useEffect(() => {
+    const tabParam = searchParams.get('tab');
+    if (tabParam && tabParam !== activeTab) {
+      setActiveTabState(tabParam);
+    }
+  }, [searchParams]);
 
   // Run the daily evaluator when Dashboard mounts
   useDailyEvaluator(currentUser);
