@@ -193,11 +193,11 @@ export default function Dashboard() {
             {activeTab === 'calendar' && <Calendar />}
             {activeTab === 'syllabus' && <Syllabus />}
             {activeTab === 'leaderboard' && <Leaderboard />}
-            {activeTab === 'timer' && <StudyTimer />}
+            {activeTab === 'timer' && <StudyTimer setActiveTab={setActiveTab} />}
             {activeTab === 'mentor' && <MentorSession />}
             {activeTab === 'writing' && <WritingPractice />}
             {activeTab === 'missions' && <WeeklyMissions />}
-            {activeTab === 'targets' && <Targets />}
+            {activeTab === 'targets' && <Targets setActiveTab={setActiveTab} />}
             {activeTab === 'notes' && <Notes />}
             {activeTab === 'doubts' && <Doubts />}
             {activeTab === 'profile' && <Profile />}

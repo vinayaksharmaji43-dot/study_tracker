@@ -4,7 +4,8 @@ import { db } from '../config/firebase';
 import { useAuth } from '../contexts/AuthContext';
 import { formatTimerTime, formatDate, getDateKey, getMonthKey, calculateDailyPoints } from '../utils/helpers';
 import EmptyState from '../components/EmptyState';
-import { Play, Pause, Square, Clock, BookOpen, CheckCircle, Calendar, ShieldCheck, X, Zap, AlertTriangle } from 'lucide-react';
+import { Play, Pause, Square, Clock, BookOpen, CheckCircle, Calendar, ShieldCheck, X, Zap, AlertTriangle, Target } from 'lucide-react';
+import { isSubjectMatch, calculateTargetProgress } from '../utils/subjectMatcher';
 
 function normalizeAttempt(att) {
   return (att || '').toLowerCase().replace(/\s+/g, '').replace('2027', '27');
@@ -67,7 +68,12 @@ export default function StudyTimer() {
       const subjectNames = attemptFiltered.map(sub => sub.subjectName);
       setSubjects(subjectNames);
       
-      if (subjectNames.length > 0) {
+      const quickSubject = sessionStorage.getItem('quick_timer_subject');
+      if (quickSubject) {
+        const match = subjectNames.find(s => isSubjectMatch(s, quickSubject));
+        setSelectedSubject(match || quickSubject);
+        sessionStorage.removeItem('quick_timer_subject');
+      } else if (subjectNames.length > 0) {
         setSelectedSubject(prev => subjectNames.includes(prev) ? prev : subjectNames[0]);
       } else {
         setSelectedSubject('');
@@ -97,6 +103,7 @@ export default function StudyTimer() {
 
   const [todayStats, setTodayStats] = useState(null);
   const [todayTarget, setTodayTarget] = useState(null);
+  const [userTargets, setUserTargets] = useState([]);
 
   const intervalRef = useRef(null);
   const isAutoSavingRef = useRef(false);
@@ -252,10 +259,12 @@ export default function StudyTimer() {
       else setTodayStats(null);
     });
 
-    const qTarget = query(collection(db, 'targets'), where('uid', '==', uid), where('targetDate', '==', todayStr));
+    const qTarget = query(collection(db, 'targets'), where('uid', '==', uid));
     const unsubTarget = onSnapshot(qTarget, (snap) => {
-      if (!snap.empty) setTodayTarget({ id: snap.docs[0].id, ...snap.docs[0].data() });
-      else setTodayTarget(null);
+      const docs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      setUserTargets(docs);
+      const today = docs.find(d => d.targetDate === todayStr);
+      setTodayTarget(today || null);
     });
 
     return () => { unsubscribe(); unsubStats(); unsubTarget(); };
@@ -491,6 +500,23 @@ export default function StudyTimer() {
         date: serverTimestamp()
       });
 
+      // Increment studiedSeconds on matching incomplete targets
+      try {
+        const savedSub = targetSubject || selectedSubject;
+        const matchingTargets = userTargets.filter(t => 
+          (t.status !== 'completed' && !t.completed) && isSubjectMatch(t.subject, savedSub)
+        );
+        for (const t of matchingTargets) {
+          const tRef = doc(db, 'targets', t.id);
+          await updateDoc(tRef, {
+            studiedSeconds: increment(durationSecs),
+            lastStudiedAt: serverTimestamp()
+          });
+        }
+      } catch (tErr) {
+        console.warn("Could not update target studiedSeconds:", tErr);
+      }
+
       if (newMilestones.length > 0) {
         const msgs = newMilestones.map(h => getMilestoneMessage(h));
         setMilestoneMessages(msgs);
@@ -631,6 +657,19 @@ export default function StudyTimer() {
     }
   };
 
+  const activeSubjectTarget = userTargets.find(t => 
+    (t.status !== 'completed' && !t.completed) && isSubjectMatch(t.subject, selectedSubject)
+  );
+
+  const activeSubjectProgress = activeSubjectTarget
+    ? calculateTargetProgress(activeSubjectTarget, sessions, {
+        isActive,
+        startTimestamp,
+        accumulatedSeconds,
+        selectedSubject
+      })
+    : null;
+
   return (
     <div className="space-y-8">
       
@@ -669,21 +708,61 @@ export default function StudyTimer() {
             Next: {((todayStats?.completedFullHours || 0) + 1) === 6 ? '6 Hrs → +5' : ((todayStats?.completedFullHours || 0) + 1) > 6 ? `${(todayStats?.completedFullHours || 0) + 1} Hrs → +2` : '6 Hrs → +5'}
           </span>
         </div>
-        <div className="p-4 rounded-3xl bg-navy-900 border border-white/5 flex flex-col gap-1">
-          <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Daily Target</span>
-          <span className="text-sm font-bold text-white truncate">{todayTarget ? `${todayTarget.targetValue} Hrs ${todayTarget.subject || 'Target'}` : 'No Target Set'}</span>
-          <span className="text-[10px] font-semibold text-slate-500">{todayTarget?.locked ? '🔒 Locked' : ''}</span>
-        </div>
-        <div className="p-4 rounded-3xl bg-navy-900 border border-white/5 flex flex-col gap-1">
-          <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Target Status</span>
-          {todayTarget ? (
-            <span className={`text-sm font-bold ${todayTarget.status === 'completed' ? 'text-emerald-400' : 'text-amber-400'}`}>
-              {todayTarget.status === 'completed' ? '✅ Completed' : '⚠️ Pending'}
-            </span>
+        <div className="p-4 rounded-3xl bg-navy-900 border border-white/5 flex flex-col justify-between">
+          <div className="flex items-center justify-between mb-0.5">
+            <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Subject Target</span>
+            {activeSubjectProgress && (
+              <span className={`text-[10px] font-black ${activeSubjectProgress.isEligible ? 'text-emerald-400' : 'text-gold-400'}`}>
+                {activeSubjectProgress.progressPct}%
+              </span>
+            )}
+          </div>
+          {activeSubjectTarget ? (
+            <div className="space-y-1">
+              <span className="text-sm font-bold text-white truncate block" title={activeSubjectTarget.subject}>
+                {activeSubjectTarget.targetValue || activeSubjectTarget.targetHours}h {activeSubjectTarget.subject}
+              </span>
+              <div className="w-full bg-navy-950 h-1.5 rounded-full overflow-hidden border border-white/5">
+                <div 
+                  className={`h-full transition-all duration-300 ${activeSubjectProgress?.isEligible ? 'bg-emerald-400 shadow-glow-emerald' : 'bg-gold-500'}`}
+                  style={{ width: `${activeSubjectProgress?.progressPct || 0}%` }}
+                />
+              </div>
+              <span className="text-[10px] font-medium text-slate-400 block truncate">
+                {activeSubjectProgress?.studiedHuman} / {activeSubjectProgress?.targetHuman} • {activeSubjectProgress?.isEligible ? '🎯 Target Met!' : `${activeSubjectProgress?.remainingHuman} left`}
+              </span>
+            </div>
           ) : (
-            <span className="text-sm font-bold text-slate-500">-</span>
+            <div className="space-y-0.5">
+              <span className="text-sm font-bold text-slate-400 truncate block">No Target for {selectedSubject || 'Subject'}</span>
+              <span className="text-[10px] font-semibold text-slate-500 block">Set in Self-Manage Hub</span>
+            </div>
           )}
-          <span className="text-[10px] font-semibold text-slate-500">Reward: +10 Points</span>
+        </div>
+        <div className="p-4 rounded-3xl bg-navy-900 border border-white/5 flex flex-col justify-between">
+          <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider mb-0.5">Target Status</span>
+          {activeSubjectTarget ? (
+            <div className="space-y-0.5">
+              <span className={`text-sm font-bold flex items-center gap-1.5 ${activeSubjectProgress?.isEligible ? 'text-emerald-400' : 'text-amber-400'}`}>
+                {activeSubjectProgress?.isEligible ? '🎯 Ready to Complete' : '⏳ In Progress'}
+              </span>
+              <span className="text-[10px] font-semibold text-slate-400">
+                Reward: <strong className="text-emerald-400">+10 Points</strong>
+              </span>
+            </div>
+          ) : todayTarget ? (
+            <div className="space-y-0.5">
+              <span className={`text-sm font-bold ${todayTarget.status === 'completed' ? 'text-emerald-400' : 'text-amber-400'}`}>
+                {todayTarget.status === 'completed' ? '✅ Completed' : '⚠️ Pending'}
+              </span>
+              <span className="text-[10px] font-semibold text-slate-500">Reward: +10 Points</span>
+            </div>
+          ) : (
+            <div className="space-y-0.5">
+              <span className="text-sm font-bold text-slate-500">-</span>
+              <span className="text-[10px] font-semibold text-slate-500">Reward: +10 Points</span>
+            </div>
+          )}
         </div>
       </div>
 
