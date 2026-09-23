@@ -4,14 +4,88 @@ import { db } from '../config/firebase';
 import { useAuth } from '../contexts/AuthContext';
 import { formatDate } from '../utils/helpers';
 import EmptyState from '../components/EmptyState';
-import { FileText, ExternalLink, Calendar, BookOpen, Layers, Search, Download } from 'lucide-react';
+import { FileText, ExternalLink, Calendar, BookOpen, Layers, Search, Download, GraduationCap } from 'lucide-react';
+
+function parseStudentStream(userProfile) {
+  if (!userProfile) return { course: 'CA', level: 'Foundation', fullStream: 'CA Foundation', rawCourse: 'CA' };
+  const rawCourse = String(userProfile.course || 'CA Foundation').trim();
+  const rawLevel = String(userProfile.level || '').trim();
+
+  const isCMA = rawCourse.toUpperCase().includes('CMA');
+  const course = isCMA ? 'CMA' : 'CA';
+
+  let level = 'Foundation';
+  if (rawCourse.toUpperCase().includes('INTER') || rawLevel.toUpperCase().includes('INTER')) {
+    level = 'Intermediate';
+  } else if (rawLevel.toUpperCase().includes('FOUND') || rawCourse.toUpperCase().includes('FOUND')) {
+    level = 'Foundation';
+  } else if (userProfile.level) {
+    level = userProfile.level;
+  }
+
+  return {
+    course,
+    level,
+    fullStream: `${course} ${level}`,
+    rawCourse
+  };
+}
+
+function doesNoteMatchStudent(note, studentStream) {
+  if (!note || !note.course) return true;
+  
+  const noteCourse = String(note.course).trim().toUpperCase();
+  if (
+    noteCourse === 'ALL' || 
+    noteCourse === 'ALL COURSES' || 
+    noteCourse === 'ALL STREAMS' || 
+    noteCourse === 'EVERYONE' || 
+    noteCourse === ''
+  ) {
+    return true;
+  }
+
+  const studentCourse = String(studentStream.course || 'CA').toUpperCase();
+  const studentLevel = String(studentStream.level || 'Foundation').toUpperCase();
+  const studentFullStream = String(studentStream.fullStream || 'CA Foundation').toUpperCase();
+  const studentRaw = String(studentStream.rawCourse || '').toUpperCase();
+
+  // 1. Direct equality with student's full stream (e.g. "CA FOUNDATION", "CA INTERMEDIATE", "CMA FOUNDATION", "CMA INTERMEDIATE")
+  if (noteCourse === studentFullStream) return true;
+
+  // 2. Direct equality with student's rawCourse (e.g. "CMA" === "CMA" or "CA Foundation")
+  if (noteCourse === studentRaw) return true;
+
+  // 3. Generic CMA match: if note is tagged "CMA" or "CMA (ALL)", any CMA student sees it
+  if ((noteCourse === 'CMA' || noteCourse === 'CMA (ALL)') && studentCourse === 'CMA') {
+    return true;
+  }
+
+  // 4. Generic CA match: if note is tagged "CA" or "CA (ALL)", any CA student sees it
+  if ((noteCourse === 'CA' || noteCourse === 'CA (ALL)') && studentCourse === 'CA') {
+    return true;
+  }
+
+  // 5. Match if note course specifies both course & level (e.g. "CA FOUNDATION" or "CMA INTERMEDIATE")
+  const hasCourse = noteCourse.includes(studentCourse);
+  const isInterNote = noteCourse.includes('INTER');
+  const isFoundNote = noteCourse.includes('FOUND');
+
+  if (hasCourse) {
+    if (studentLevel === 'INTERMEDIATE' && isInterNote) return true;
+    if (studentLevel === 'FOUNDATION' && isFoundNote) return true;
+  }
+
+  return false;
+}
 
 export default function Notes() {
   const { userProfile, currentUser } = useAuth();
   const [notes, setNotes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedCourse, setSelectedCourse] = useState('all');
+
+  const studentStream = parseStudentStream(userProfile);
 
   useEffect(() => {
     const q = query(collection(db, 'notes'), orderBy('createdAt', 'desc'));
@@ -28,18 +102,19 @@ export default function Notes() {
     return () => unsubscribe();
   }, []);
 
-  // Show only published materials to students
+  // Show only published materials to students that match their selected stream
   const publishedNotes = notes.filter(n => n.published !== false);
 
   const filteredNotes = publishedNotes.filter(note => {
     const matchesSearch = 
       (note.title || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
       (note.subject || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (note.fileName || '').toLowerCase().includes(searchQuery.toLowerCase());
+      (note.fileName || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (note.description || '').toLowerCase().includes(searchQuery.toLowerCase());
 
-    const matchesCourse = selectedCourse === 'all' || !note.course || note.course === selectedCourse;
+    const matchesStream = doesNoteMatchStudent(note, studentStream);
 
-    return matchesSearch && matchesCourse;
+    return matchesSearch && matchesStream;
   });
 
   return (
@@ -75,31 +150,9 @@ export default function Notes() {
           />
         </div>
 
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => setSelectedCourse('all')}
-            className={`px-4 py-2.5 rounded-xl text-xs font-bold transition-all ${
-              selectedCourse === 'all' ? 'bg-purple-600 text-white shadow-glow-purple' : 'bg-navy-900 text-slate-400 hover:text-white border border-white/10'
-            }`}
-          >
-            All Courses
-          </button>
-          <button
-            onClick={() => setSelectedCourse('CA Foundation')}
-            className={`px-4 py-2.5 rounded-xl text-xs font-bold transition-all ${
-              selectedCourse === 'CA Foundation' ? 'bg-purple-600 text-white shadow-glow-purple' : 'bg-navy-900 text-slate-400 hover:text-white border border-white/10'
-            }`}
-          >
-            CA Foundation
-          </button>
-          <button
-            onClick={() => setSelectedCourse('CMA')}
-            className={`px-4 py-2.5 rounded-xl text-xs font-bold transition-all ${
-              selectedCourse === 'CMA' ? 'bg-purple-600 text-white shadow-glow-purple' : 'bg-navy-900 text-slate-400 hover:text-white border border-white/10'
-            }`}
-          >
-            CMA
-          </button>
+        <div className="flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-purple-500/10 border border-purple-500/30 text-purple-300 text-xs font-bold shrink-0 shadow-sm">
+          <GraduationCap className="w-4 h-4 text-gold-400" />
+          <span>Stream: <span className="text-white font-extrabold">{studentStream.fullStream}</span></span>
         </div>
       </div>
 
@@ -108,7 +161,7 @@ export default function Notes() {
         <EmptyState
           icon={FileText}
           title="No study materials available"
-          description={searchQuery ? "No materials matched your search criteria." : "Official study materials and PDFs uploaded by faculty will appear here."}
+          description={searchQuery ? "No materials matched your search criteria." : `Official study materials and PDFs uploaded for ${studentStream.fullStream} will appear here.`}
         />
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

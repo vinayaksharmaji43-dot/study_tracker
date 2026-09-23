@@ -34,19 +34,76 @@ import {
 
 const BUCKET_NAME = 'study-material';
 
-const CA_SUBJECTS = [
+const CA_FOUNDATION_SUBJECTS = [
   'Paper 1: Accounting',
   'Paper 2: Business Laws',
   'Paper 3: Quantitative Aptitude',
   'Paper 4: Business Economics'
 ];
 
-const CMA_SUBJECTS = [
+const CA_INTERMEDIATE_SUBJECTS = [
+  'Paper 1 — Advanced Accounting',
+  'Paper 2 — Corporate and Other Laws',
+  'Paper 3 — Taxation',
+  'Paper 4 — Cost and Management Accounting',
+  'Paper 5 — Auditing and Ethics',
+  'Paper 6 — Financial Management and Strategic Management'
+];
+
+const CMA_FOUNDATION_SUBJECTS = [
   'Financial Accounting',
   'Cost Accounting',
   'Laws & Ethics',
-  'Direct & Indirect Taxation'
+  'Business Mathematics & Statistics',
+  'Economics & Management'
 ];
+
+const CMA_INTERMEDIATE_SUBJECTS = [
+  'Financial Accounting',
+  'Laws & Ethics',
+  'Direct Taxation',
+  'Cost Accounting',
+  'Operations Management & Strategic Management',
+  'Corporate Accounting & Auditing',
+  'Financial Management & Business Data Analytics',
+  'Management Accounting'
+];
+
+const GENERAL_SUBJECTS = [
+  'General / Common Notes',
+  'Formula Sheet',
+  'Exam Strategy & Revision',
+  'Important Question Bank'
+];
+
+function getSubjectsForStream(stream) {
+  switch (stream) {
+    case 'CA Foundation':
+      return CA_FOUNDATION_SUBJECTS;
+    case 'CA Intermediate':
+      return CA_INTERMEDIATE_SUBJECTS;
+    case 'CMA Foundation':
+      return CMA_FOUNDATION_SUBJECTS;
+    case 'CMA Intermediate':
+      return CMA_INTERMEDIATE_SUBJECTS;
+    case 'CMA':
+      return [...CMA_FOUNDATION_SUBJECTS, 'Direct & Indirect Taxation'];
+    case 'All Streams':
+      return [...GENERAL_SUBJECTS, ...CA_FOUNDATION_SUBJECTS, ...CMA_FOUNDATION_SUBJECTS];
+    default:
+      return CA_FOUNDATION_SUBJECTS;
+  }
+}
+
+function getAttemptsForStream(stream) {
+  if (stream?.startsWith('CA')) {
+    return ['January 2027', 'September 2027', 'May 2027', 'All Attempts'];
+  }
+  if (stream?.startsWith('CMA')) {
+    return ['June 2027', 'December 2027', 'All Attempts'];
+  }
+  return ['All Attempts', '2026 - 2027'];
+}
 
 export default function AdminNotes() {
   const { userProfile, currentUser } = useAuth();
@@ -63,7 +120,7 @@ export default function AdminNotes() {
   const [title, setTitle] = useState('');
   const [course, setCourse] = useState('CA Foundation');
   const [attempt, setAttempt] = useState('January 2027');
-  const [subject, setSubject] = useState(CA_SUBJECTS[0]);
+  const [subject, setSubject] = useState(CA_FOUNDATION_SUBJECTS[0]);
   const [selectedFile, setSelectedFile] = useState(null);
   const [driveUrl, setDriveUrl] = useState('');
   const [uploadMode, setUploadMode] = useState('pdf'); // 'pdf' | 'drive'
@@ -91,20 +148,17 @@ export default function AdminNotes() {
   // Update available subjects and default attempt when course changes
   const handleCourseChange = (newCourse) => {
     setCourse(newCourse);
-    if (newCourse === 'CA Foundation') {
-      setSubject(CA_SUBJECTS[0]);
-      setAttempt('January 2027');
-    } else {
-      setSubject(CMA_SUBJECTS[0]);
-      setAttempt('June 2027');
-    }
+    const subs = getSubjectsForStream(newCourse);
+    const atts = getAttemptsForStream(newCourse);
+    setSubject(subs[0] || 'General / Common Notes');
+    setAttempt(atts[0] || 'All Attempts');
   };
 
   const handleOpenUploadModal = () => {
     setTitle('');
     setCourse('CA Foundation');
     setAttempt('January 2027');
-    setSubject(CA_SUBJECTS[0]);
+    setSubject(CA_FOUNDATION_SUBJECTS[0]);
     setSelectedFile(null);
     setDriveUrl('');
     setUploadMode('pdf');
@@ -246,8 +300,8 @@ export default function AdminNotes() {
     return matchesSearch && matchesCourse && matchesSubject;
   });
 
-  const availableSubjects = course === 'CA Foundation' ? CA_SUBJECTS : CMA_SUBJECTS;
-  const attemptsList = course === 'CA Foundation' ? ['January 2027', 'September 2027'] : ['June 2027', 'December 2027'];
+  const availableSubjects = getSubjectsForStream(course);
+  const attemptsList = getAttemptsForStream(course);
 
   return (
     <div className="space-y-6">
@@ -298,9 +352,13 @@ export default function AdminNotes() {
             onChange={(e) => setCourseFilter(e.target.value)}
             className="px-4 py-3 rounded-2xl bg-navy-900 border border-white/10 text-white text-xs font-bold focus:outline-none focus:border-purple-500"
           >
-            <option value="all">All Courses</option>
+            <option value="all">All Courses / Streams</option>
             <option value="CA Foundation">CA Foundation</option>
-            <option value="CMA">CMA</option>
+            <option value="CA Intermediate">CA Intermediate</option>
+            <option value="CMA Foundation">CMA Foundation</option>
+            <option value="CMA Intermediate">CMA Intermediate</option>
+            <option value="CMA">CMA (All)</option>
+            <option value="All Streams">All Streams</option>
           </select>
 
           <select
@@ -309,7 +367,13 @@ export default function AdminNotes() {
             className="px-4 py-3 rounded-2xl bg-navy-900 border border-white/10 text-white text-xs font-bold focus:outline-none focus:border-purple-500"
           >
             <option value="all">All Subjects</option>
-            {[...CA_SUBJECTS, ...CMA_SUBJECTS].map(sub => (
+            {Array.from(new Set([
+              ...CA_FOUNDATION_SUBJECTS,
+              ...CA_INTERMEDIATE_SUBJECTS,
+              ...CMA_FOUNDATION_SUBJECTS,
+              ...CMA_INTERMEDIATE_SUBJECTS,
+              ...GENERAL_SUBJECTS
+            ])).map(sub => (
               <option key={sub} value={sub}>{sub}</option>
             ))}
           </select>
@@ -475,7 +539,11 @@ export default function AdminNotes() {
                     className="w-full px-3 py-2.5 rounded-xl bg-navy-900 border border-white/10 text-white text-xs font-semibold focus:outline-none focus:border-purple-500"
                   >
                     <option value="CA Foundation">CA Foundation</option>
-                    <option value="CMA">CMA</option>
+                    <option value="CA Intermediate">CA Intermediate</option>
+                    <option value="CMA Foundation">CMA Foundation</option>
+                    <option value="CMA Intermediate">CMA Intermediate</option>
+                    <option value="CMA">CMA (All)</option>
+                    <option value="All Streams">All Streams (Everyone)</option>
                   </select>
                 </div>
 
