@@ -64,6 +64,13 @@ export const DASHBOARD_SECTIONS = [
     iconName: 'Video'
   },
   {
+    id: 'webcam_study',
+    label: 'Webcam Study',
+    description: 'Live webcam study hall with Google Meet and timer accountability',
+    category: 'Core',
+    iconName: 'Video'
+  },
+  {
     id: 'writing',
     label: 'Writing Practice',
     description: 'Daily answer writing prompts, questions, and practice submissions',

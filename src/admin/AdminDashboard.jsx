@@ -27,6 +27,7 @@ import AdminTests from './tabs/AdminTests';
 import AdminLevels from './tabs/AdminLevels';
 import AdminDiscipline from './tabs/AdminDiscipline';
 import AdminSectionLocks from './tabs/AdminSectionLocks';
+import AdminWebcamStudy from './tabs/AdminWebcamStudy';
 
 import { 
   LayoutDashboard,  
@@ -75,6 +76,7 @@ export default function AdminDashboard() {
     { id: 'writing_practice', label: 'Writing Practice', icon: PenLine },
     { id: 'missions', label: 'Weekly Missions', icon: Flag },
     { id: 'sessions', label: 'Study Sessions', icon: Clock },
+    { id: 'webcam_study', label: '🎥 Webcam Study Settings', icon: Video },
     { id: 'mentor_sessions', label: 'Mentor Sessions', icon: Video },
     { id: 'timer_subjects', label: 'Timer Subjects', icon: Clock },
     { id: 'notes', label: 'Notes', icon: FileText },
@@ -193,6 +195,7 @@ export default function AdminDashboard() {
             {activeTab === 'writing_practice' && <AdminWritingPractice />}
             { activeTab === 'missions' && <AdminWeeklyMissions /> }
             { activeTab === 'sessions' && <AdminSessions /> }
+            { activeTab === 'webcam_study' && <AdminWebcamStudy /> }
             { activeTab === 'mentor_sessions' && <AdminMentorSessions /> }
             { activeTab === 'timer_subjects' && <AdminTimerSubjects /> }
             { activeTab === 'notes' && <AdminNotes /> }

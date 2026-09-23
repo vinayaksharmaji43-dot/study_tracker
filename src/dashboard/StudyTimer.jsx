@@ -189,6 +189,22 @@ export default function StudyTimer() {
     return () => clearInterval(intervalRef.current);
   }, [isActive, startTimestamp, accumulatedSeconds, selectedSubject, storageKey]);
 
+  // Listen for programmatic start commands (e.g. from Webcam Study)
+  useEffect(() => {
+    const handleRemoteStart = (e) => {
+      const { subject, startTimestamp: remoteStart, accumulatedSeconds: remoteAccumulated } = e.detail || {};
+      if (subject) setSelectedSubject(subject);
+      setStartTimestamp(remoteStart || Date.now());
+      setAccumulatedSeconds(remoteAccumulated || 0);
+      setIsActive(true);
+      setSavedSuccess(false);
+      setAutoStoppedAlert(false);
+    };
+
+    window.addEventListener('study-timer-start-command', handleRemoteStart);
+    return () => window.removeEventListener('study-timer-start-command', handleRemoteStart);
+  }, []);
+
   // Live Study Broadcast
   const secondsRef = useRef(seconds);
   useEffect(() => {

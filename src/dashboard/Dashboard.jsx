@@ -17,6 +17,7 @@ import MentorSession from '../dashboard/MentorSession';
 import Calendar from '../dashboard/Calendar';
 import Announcements from '../dashboard/Announcements';
 import OverallLeaderboard from '../dashboard/OverallLeaderboard';
+import WebcamStudy from '../dashboard/WebcamStudy';
 
 import { 
   LayoutDashboard, 
@@ -105,6 +106,7 @@ export default function Dashboard() {
     { id: 'leaderboard', label: 'Live Leaderboard', icon: Trophy },
     { id: 'overall_leaderboard', label: '🏆 All Students', icon: Medal },
     { id: 'timer', label: 'Study Timer', icon: Clock },
+    { id: 'webcam_study', label: 'Webcam Study', icon: Video },
     { id: 'mentor', label: 'Mentor Session', icon: Video },
     { id: 'writing', label: 'Writing Practice', icon: PenLine },
     { id: 'missions', label: 'Weekly Mission', icon: Flag },
@@ -121,7 +123,7 @@ export default function Dashboard() {
       <div className="flex-grow max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
         
         {/* Exam Countdown Banner */}
-        <CountdownWidget />
+        <CountdownWidget setActiveTab={setActiveTab} />
 
         {/* Main Dashboard Layout: Sidebar + View Content */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
@@ -237,6 +239,7 @@ export default function Dashboard() {
                 {activeTab === 'leaderboard' && <Leaderboard />}
                 {activeTab === 'overall_leaderboard' && <OverallLeaderboard />}
                 {activeTab === 'timer' && <StudyTimer setActiveTab={setActiveTab} />}
+                {activeTab === 'webcam_study' && <WebcamStudy setActiveTab={setActiveTab} />}
                 {activeTab === 'mentor' && <MentorSession />}
                 {activeTab === 'writing' && <WritingPractice />}
                 {activeTab === 'missions' && <WeeklyMissions />}
