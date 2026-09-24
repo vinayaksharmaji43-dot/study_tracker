@@ -5,6 +5,7 @@ import { useAuth } from '../contexts/AuthContext';
 import EmptyState from '../components/EmptyState';
 import LoadingSpinner from '../components/LoadingSpinner';
 import { calculateStudentLevel, getDefaultStreamLevels, getStreamId, normalizeLevelConfig } from '../utils/levelSystem';
+import { getDateKey } from '../utils/helpers';
 import { 
   BookOpen, 
   CheckCircle2, 
@@ -319,12 +320,48 @@ export default function Syllabus() {
           unitsCompletedCount: increment(1)
         };
 
+        const now = new Date();
+        const dateKey = getDateKey(now);
+        const nowIso = now.toISOString();
+
         if (willAllUnitsBeComplete && !Boolean(completedMap[chapter.id])) {
           updates[`syllabusCompleted.${chapter.id}`] = true;
+          updates[`syllabusChapterCompletions.${chapter.id}`] = {
+            completed: true,
+            completedAt: nowIso,
+            dateKey: dateKey,
+            chapterId: chapter.id,
+            chapterTitle: chapter.title,
+            chapterNo: chapter.chapterNo || '',
+            subjectName: subject.subject,
+            streamId
+          };
           updates.syllabusCompletedCount = increment(1);
         }
 
         await updateDoc(userRef, updates);
+
+        // Sync completion to chapterCompletions collection for Calendar
+        if (willAllUnitsBeComplete) {
+          try {
+            const chapDocRef = doc(db, 'chapterCompletions', `${currentUser.uid}_syllabus_${chapter.id}`);
+            await setDoc(chapDocRef, {
+              uid: currentUser.uid,
+              studentId: currentUser.uid,
+              type: 'syllabus',
+              chapterId: chapter.id,
+              chapterTitle: chapter.title,
+              chapterNo: chapter.chapterNo || '',
+              subjectName: subject.subject,
+              streamId,
+              status: 'completed',
+              completedAt: serverTimestamp(),
+              dateKey
+            }, { merge: true });
+          } catch (cErr) {
+            console.warn("Calendar chapter completion sync warning:", cErr);
+          }
+        }
 
         // Audit doc in unitCompletions collection
         try {
@@ -356,28 +393,71 @@ export default function Syllabus() {
   };
 
   // Toggle chapter completion & sync with Firestore (for chapters without units)
-  const handleToggleChapter = async (chapterId, pointsReward) => {
+  const handleToggleChapter = async (chapterId, pointsReward, chapterObj, subjectObj) => {
     if (!currentUser?.uid || togglingChapterId) return;
 
     try {
       setTogglingChapterId(chapterId);
       const isCurrentlyCompleted = Boolean(completedMap[chapterId]);
       const userRef = doc(db, 'users', currentUser.uid);
+      const now = new Date();
+      const dateKey = getDateKey(now);
+      const nowIso = now.toISOString();
 
       if (isCurrentlyCompleted) {
         const newCount = Math.max(0, completedChaptersCount - 1);
         await updateDoc(userRef, {
           [`syllabusCompleted.${chapterId}`]: deleteField(),
+          [`syllabusChapterCompletions.${chapterId}`]: deleteField(),
           syllabusCompletedCount: newCount,
           points: increment(-pointsReward)
         });
+
+        try {
+          const chapDocRef = doc(db, 'chapterCompletions', `${currentUser.uid}_syllabus_${chapterId}`);
+          await setDoc(chapDocRef, {
+            status: 'uncompleted',
+            uncompletedAt: serverTimestamp()
+          }, { merge: true });
+        } catch (cErr) {
+          console.warn("Calendar chapter completion uncheck warning:", cErr);
+        }
       } else {
         const newCount = completedChaptersCount + 1;
         await updateDoc(userRef, {
           [`syllabusCompleted.${chapterId}`]: true,
+          [`syllabusChapterCompletions.${chapterId}`]: {
+            completed: true,
+            completedAt: nowIso,
+            dateKey: dateKey,
+            chapterId: chapterId,
+            chapterTitle: chapterObj?.title || '',
+            chapterNo: chapterObj?.chapterNo || '',
+            subjectName: subjectObj?.subject || '',
+            streamId
+          },
           syllabusCompletedCount: newCount,
           points: increment(pointsReward)
         });
+
+        try {
+          const chapDocRef = doc(db, 'chapterCompletions', `${currentUser.uid}_syllabus_${chapterId}`);
+          await setDoc(chapDocRef, {
+            uid: currentUser.uid,
+            studentId: currentUser.uid,
+            type: 'syllabus',
+            chapterId: chapterId,
+            chapterTitle: chapterObj?.title || '',
+            chapterNo: chapterObj?.chapterNo || '',
+            subjectName: subjectObj?.subject || '',
+            streamId,
+            status: 'completed',
+            completedAt: serverTimestamp(),
+            dateKey
+          }, { merge: true });
+        } catch (cErr) {
+          console.warn("Calendar chapter completion sync warning:", cErr);
+        }
       }
     } catch (err) {
       console.error("Error updating chapter completion:", err);
@@ -801,7 +881,7 @@ export default function Syllabus() {
                     return (
                       <div 
                         key={ch.id}
-                        onClick={() => handleToggleChapter(ch.id, pts)}
+                        onClick={() => handleToggleChapter(ch.id, pts, ch, subObj)}
                         className={`p-4 sm:px-6 flex items-center justify-between cursor-pointer transition-all duration-200 select-none ${
                           isChecked 
                             ? 'bg-emerald-500/10 hover:bg-emerald-500/15' 

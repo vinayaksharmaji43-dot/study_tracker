@@ -37,6 +37,7 @@ export default function Calendar() {
   const [writingSubs, setWritingSubs] = useState([]);
   const [missionsProgress, setMissionsProgress] = useState([]);
   const [missionsList, setMissionsList] = useState({});
+  const [chapterCompletions, setChapterCompletions] = useState([]);
   const [dayOffsSet, setDayOffsSet] = useState(new Set());
   const [loading, setLoading] = useState(true);
 
@@ -44,6 +45,8 @@ export default function Calendar() {
   const [expandWriting, setExpandWriting] = useState(false);
   const [expandMissions, setExpandMissions] = useState(false);
   const [expandSessions, setExpandSessions] = useState(false);
+  const [expandSyllabus, setExpandSyllabus] = useState(true);
+  const [expandRevision, setExpandRevision] = useState(true);
 
   // Load Real-Time Data
   useEffect(() => {
@@ -105,6 +108,12 @@ export default function Calendar() {
       setLoading(false);
     });
 
+    // 9. Chapter Completions (Syllabus & Revision)
+    const qChaps = query(collection(db, 'chapterCompletions'), where('studentId', '==', uid));
+    const unsubChaps = onSnapshot(qChaps, snap => {
+      setChapterCompletions(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+    }, err => console.error('ChapterCompletions listener error:', err));
+
     return () => {
       unsubSessions();
       unsubStats();
@@ -114,6 +123,7 @@ export default function Calendar() {
       unsubMissions();
       unsubMissionsList();
       unsubDayOffs();
+      unsubChaps();
     };
   }, [currentUser]);
 
@@ -216,10 +226,40 @@ export default function Calendar() {
       return k === dateKey;
     });
 
-    // 6. Day Off status
+    // 6. Syllabus Chapter completions on this date
+    const syllabusFromDocs = chapterCompletions.filter(c => 
+      c.type === 'syllabus' && 
+      c.status === 'completed' && 
+      (c.dateKey === dateKey || parseItemDateKey(c, 'completedAt') === dateKey)
+    );
+    const syllabusFromUser = Object.values(userProfile?.syllabusChapterCompletions || {}).filter(c => 
+      c.completed && c.dateKey === dateKey
+    );
+    const syllabusMap = {};
+    [...syllabusFromDocs, ...syllabusFromUser].forEach(item => {
+      if (item.chapterId) syllabusMap[item.chapterId] = item;
+    });
+    const daySyllabusCompletions = Object.values(syllabusMap);
+
+    // 7. Revision Chapter completions on this date
+    const revisionFromDocs = chapterCompletions.filter(c => 
+      c.type === 'revision' && 
+      c.status === 'completed' && 
+      (c.dateKey === dateKey || parseItemDateKey(c, 'completedAt') === dateKey)
+    );
+    const revisionFromUser = Object.values(userProfile?.revisionChapterCompletions || {}).filter(c => 
+      c.completed && c.dateKey === dateKey
+    );
+    const revisionMap = {};
+    [...revisionFromDocs, ...revisionFromUser].forEach(item => {
+      if (item.chapterId) revisionMap[item.chapterId] = item;
+    });
+    const dayRevisionCompletions = Object.values(revisionMap);
+
+    // 8. Day Off status
     const isDayOff = dayOffsSet.has(dateKey);
 
-    // 7. Streak as of this date (calculated using sessions up to dateKey)
+    // 9. Streak as of this date (calculated using sessions up to dateKey)
     const filteredSessionsUpToDate = sessions.filter(s => {
       const k = parseItemDateKey(s, 'date') || parseItemDateKey(s, 'createdAt');
       return k && k <= dateKey;
@@ -238,6 +278,8 @@ export default function Calendar() {
       dayTarget,
       dayWriting,
       dayMissions,
+      daySyllabusCompletions,
+      dayRevisionCompletions,
       isDayOff,
       streakForDate
     };
@@ -569,6 +611,30 @@ export default function Calendar() {
                     <div className="text-[10px] text-slate-500 font-medium">No study</div>
                   )}
                 </div>
+
+                {/* Syllabus & Revision Completion Badges */}
+                {(data.daySyllabusCompletions?.length > 0 || data.dayRevisionCompletions?.length > 0) && (
+                  <div className="flex flex-col gap-1 my-1">
+                    {data.daySyllabusCompletions?.length > 0 && (
+                      <div 
+                        className="text-[9px] sm:text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 flex items-center gap-1 truncate"
+                        title={`Syllabus Completed: ${data.daySyllabusCompletions.map(c => c.chapterTitle).join(', ')}`}
+                      >
+                        <BookOpen className="w-2.5 h-2.5 shrink-0 text-emerald-400" />
+                        <span className="truncate">Syllabus ({data.daySyllabusCompletions.length})</span>
+                      </div>
+                    )}
+                    {data.dayRevisionCompletions?.length > 0 && (
+                      <div 
+                        className="text-[9px] sm:text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-royal-500/25 text-royal-300 border border-royal-500/40 flex items-center gap-1 truncate"
+                        title={`Revision Completed: ${data.dayRevisionCompletions.map(c => c.chapterTitle).join(', ')}`}
+                      >
+                        <RotateCcw className="w-2.5 h-2.5 shrink-0 text-royal-400" />
+                        <span className="truncate">Rev ({data.dayRevisionCompletions.length})</span>
+                      </div>
+                    )}
+                  </div>
+                )}
 
                 {/* Bottom Row: Net Points or Target Indicator */}
                 <div className="flex items-center justify-between text-[10px] pt-1 border-t border-white/5">
@@ -934,6 +1000,86 @@ export default function Calendar() {
                       </div>
                     );
                   })}
+                </div>
+              )}
+            </div>
+
+            {/* Section 6: Syllabus Completed */}
+            <div className="p-4 rounded-2xl bg-navy-900/90 border border-white/10 space-y-2">
+              <div
+                onClick={() => setExpandSyllabus(!expandSyllabus)}
+                className="flex items-center justify-between text-xs font-bold text-white cursor-pointer"
+              >
+                <span className="flex items-center gap-1.5">
+                  <BookOpen className="w-4 h-4 text-emerald-400" /> Syllabus Chapters Completed ({selectedDayData.daySyllabusCompletions?.length || 0})
+                </span>
+                {selectedDayData.daySyllabusCompletions?.length > 0 && (expandSyllabus ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />)}
+              </div>
+
+              {(!selectedDayData.daySyllabusCompletions || selectedDayData.daySyllabusCompletions.length === 0) ? (
+                <div className="text-xs text-slate-400 p-2.5 rounded-xl bg-navy-950 border border-white/5">
+                  No syllabus chapters completed on this date.
+                </div>
+              ) : expandSyllabus && (
+                <div className="space-y-2 pt-2 border-t border-white/5">
+                  {selectedDayData.daySyllabusCompletions.map(ch => (
+                    <div key={ch.chapterId || ch.id} className="p-3 rounded-xl bg-navy-950 border border-emerald-500/20 flex items-center justify-between gap-3">
+                      <div className="min-w-0">
+                        <div className="text-xs font-bold text-emerald-300 truncate">
+                          Syllabus Completed: {ch.chapterNo ? `Ch ${ch.chapterNo} - ` : ''}{ch.chapterTitle || 'Chapter'} ✓
+                        </div>
+                        {ch.subjectName && (
+                          <div className="text-[11px] text-slate-400 truncate">
+                            {ch.subjectName}
+                          </div>
+                        )}
+                      </div>
+                      <span className="px-2.5 py-1 rounded-full bg-emerald-500/20 text-emerald-300 text-[10px] font-bold border border-emerald-500/30 flex items-center gap-1 shrink-0">
+                        <CheckCircle2 className="w-3 h-3 text-emerald-400" />
+                        <span>Completed ✓</span>
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Section 7: Revision Completed */}
+            <div className="p-4 rounded-2xl bg-navy-900/90 border border-white/10 space-y-2">
+              <div
+                onClick={() => setExpandRevision(!expandRevision)}
+                className="flex items-center justify-between text-xs font-bold text-white cursor-pointer"
+              >
+                <span className="flex items-center gap-1.5">
+                  <RotateCcw className="w-4 h-4 text-royal-400" /> Revision Chapters Completed ({selectedDayData.dayRevisionCompletions?.length || 0})
+                </span>
+                {selectedDayData.dayRevisionCompletions?.length > 0 && (expandRevision ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />)}
+              </div>
+
+              {(!selectedDayData.dayRevisionCompletions || selectedDayData.dayRevisionCompletions.length === 0) ? (
+                <div className="text-xs text-slate-400 p-2.5 rounded-xl bg-navy-950 border border-white/5">
+                  No revision chapters completed on this date.
+                </div>
+              ) : expandRevision && (
+                <div className="space-y-2 pt-2 border-t border-white/5">
+                  {selectedDayData.dayRevisionCompletions.map(ch => (
+                    <div key={ch.chapterId || ch.id} className="p-3 rounded-xl bg-navy-950 border border-royal-500/30 flex items-center justify-between gap-3">
+                      <div className="min-w-0">
+                        <div className="text-xs font-bold text-royal-300 truncate">
+                          Revision Completed: {ch.subjectName ? `${ch.subjectName} – ` : ''}{ch.chapterNo ? `Ch ${ch.chapterNo} - ` : ''}{ch.chapterTitle || 'Chapter'} ✓
+                        </div>
+                        {ch.subjectName && (
+                          <div className="text-[11px] text-slate-400 truncate">
+                            {ch.subjectName}
+                          </div>
+                        )}
+                      </div>
+                      <span className="px-2.5 py-1 rounded-full bg-royal-500/20 text-royal-300 text-[10px] font-bold border border-royal-500/40 flex items-center gap-1 shrink-0">
+                        <CheckCircle2 className="w-3 h-3 text-royal-400" />
+                        <span>Revision Completed ✓</span>
+                      </span>
+                    </div>
+                  ))}
                 </div>
               )}
             </div>

@@ -36,6 +36,13 @@ export const DASHBOARD_SECTIONS = [
     iconName: 'BookOpenCheck'
   },
   {
+    id: 'revision',
+    label: 'Revision',
+    description: 'Structured revision tracker, subject-wise revision chapters and progress',
+    category: 'Academic',
+    iconName: 'RotateCcw'
+  },
+  {
     id: 'leaderboard',
     label: 'Live Leaderboard',
     description: 'Peer study rankings, point leaderboards, and competitive standings',

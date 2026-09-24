@@ -5,6 +5,7 @@ import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import Overview from '../dashboard/Overview';
 import Syllabus from '../dashboard/Syllabus';
+import Revision from '../dashboard/Revision';
 import Leaderboard from '../dashboard/Leaderboard';
 import StudyTimer from '../dashboard/StudyTimer';
 import Targets from '../dashboard/Targets';
@@ -39,7 +40,8 @@ import {
   Calendar as CalendarIcon,
   Megaphone,
   MessageSquare,
-  Lock
+  Lock,
+  RotateCcw
 } from 'lucide-react';
 import SupportModal from '../components/SupportModal';
 import Support from '../dashboard/Support';
@@ -105,6 +107,7 @@ export default function Dashboard() {
     { id: 'announcements', label: 'Announcements', icon: Megaphone },
     { id: 'calendar', label: 'Calendar', icon: CalendarIcon },
     { id: 'syllabus', label: 'Syllabus & Progress', icon: BookOpenCheck },
+    { id: 'revision', label: 'Revision', icon: RotateCcw },
     { id: 'leaderboard', label: 'Live Leaderboard', icon: Trophy },
     { id: 'overall_leaderboard', label: '🏆 All Students', icon: Medal },
     { id: 'timer', label: 'Study Timer', icon: Clock },
@@ -238,6 +241,7 @@ export default function Dashboard() {
                 {activeTab === 'announcements' && <Announcements />}
                 {activeTab === 'calendar' && <Calendar />}
                 {activeTab === 'syllabus' && <Syllabus />}
+                {activeTab === 'revision' && <Revision />}
                 {activeTab === 'leaderboard' && <Leaderboard />}
                 {activeTab === 'overall_leaderboard' && <OverallLeaderboard />}
                 {activeTab === 'timer' && <StudyTimer setActiveTab={setActiveTab} />}
