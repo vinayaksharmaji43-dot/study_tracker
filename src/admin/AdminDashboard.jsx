@@ -37,6 +37,7 @@ import {
   Users, 
   Lock, 
   BookOpenCheck,
+  BookOpen,
   Layers,
   TrendingUp, 
   Trophy, 
