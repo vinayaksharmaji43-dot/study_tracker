@@ -100,7 +100,7 @@ function getAttemptsForStream(stream) {
     return ['May 27', 'January 2027', 'September 2027', 'May 2027', 'Jan 27', 'Sep 27', 'All Attempts'];
   }
   if (stream?.startsWith('CMA')) {
-    return ['June 27', 'Dec 27', 'June 2027', 'December 2027', 'All Attempts'];
+    return ['Dec 26', 'June 27', 'Dec 27', 'Dec 2026', 'June 2027', 'December 2027', 'All Attempts'];
   }
   return ['All Attempts', '2026 - 2027'];
 }

@@ -9,7 +9,7 @@ import { Megaphone, Plus, Edit2, Trash2, CheckCircle, EyeOff, AlertCircle, Image
 const COURSES = ['CA', 'CMA'];
 const LEVELS = ['Foundation', 'Intermediate'];
 const CA_ATTEMPTS = ['May 27', 'Jan 27', 'Sep 27', 'May 2027', 'Jan 2027', 'Sep 2027'];
-const DEFAULT_CMA_ATTEMPTS = ['June 27', 'Dec 27', 'June 2027', 'December 2027'];
+const DEFAULT_CMA_ATTEMPTS = ['Dec 26', 'June 27', 'Dec 27', 'Dec 2026', 'June 2027', 'December 2027'];
 
 export default function AdminAnnouncements() {
   const { userProfile } = useAuth();

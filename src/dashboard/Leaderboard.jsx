@@ -119,7 +119,12 @@ export default function Leaderboard() {
       return (
         u.courseKey === userCourseKey &&
         u.levelKey === userLevelKey &&
-        (u.attempt === activeAttempt || (activeAttempt === 'Jan 27' && u.attempt === 'January 2027') || (activeAttempt === 'Sep 27' && u.attempt === 'September 2027'))
+        (u.attempt === activeAttempt || 
+         (activeAttempt === 'Jan 27' && u.attempt === 'January 2027') || 
+         (activeAttempt === 'Sep 27' && u.attempt === 'September 2027') ||
+         (activeAttempt === 'Dec 26' && (u.attempt === 'December 2026' || u.attempt === 'Dec 2026')) ||
+         (activeAttempt === 'Dec 27' && (u.attempt === 'December 2027' || u.attempt === 'Dec 2027')) ||
+         (activeAttempt === 'June 27' && (u.attempt === 'June 2027')))
       );
     })
     .map((u, index) => ({

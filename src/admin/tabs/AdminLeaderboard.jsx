@@ -192,6 +192,7 @@ export default function AdminLeaderboard() {
           className="px-3.5 py-2 rounded-xl bg-navy-900 border border-white/10 text-white font-bold text-xs focus:outline-none focus:border-gold-500"
         >
           <option value="all">All Attempts</option>
+          <option value="Dec 26">Dec 26</option>
           <option value="Jan 27">Jan 27</option>
           <option value="May 27">May 27</option>
           <option value="Sep 27">Sep 27</option>
