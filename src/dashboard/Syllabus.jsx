@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { doc, onSnapshot, updateDoc, deleteField, increment } from 'firebase/firestore';
+import { doc, onSnapshot, updateDoc, deleteField, increment, setDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../config/firebase';
 import { useAuth } from '../contexts/AuthContext';
 import EmptyState from '../components/EmptyState';
@@ -33,9 +33,12 @@ export default function Syllabus() {
   const { currentUser, userProfile } = useAuth();
   
   const [completedMap, setCompletedMap] = useState({});
+  const [unitCompletionsMap, setUnitCompletionsMap] = useState({});
   const [currentUserData, setCurrentUserData] = useState(null);
   const [activeTab, setActiveTab] = useState('syllabus');
   const [togglingChapterId, setTogglingChapterId] = useState(null);
+  const [togglingUnitId, setTogglingUnitId] = useState(null);
+  const [expandedChapters, setExpandedChapters] = useState({});
 
   // Dynamic syllabus from Firestore
   const [syllabusDoc, setSyllabusDoc] = useState(null);
@@ -86,7 +89,7 @@ export default function Syllabus() {
     return () => unsubLevel();
   }, [streamId]);
 
-  // 3. Real-time listener for student's live user data (points, completed chapters)
+  // 3. Real-time listener for student's live user data (points, completed chapters & units)
   useEffect(() => {
     if (!currentUser?.uid) return;
     const unsubUser = onSnapshot(doc(db, 'users', currentUser.uid), (snapshot) => {
@@ -94,40 +97,110 @@ export default function Syllabus() {
         const data = snapshot.data();
         setCurrentUserData(data);
         setCompletedMap(data.syllabusCompleted || {});
+        setUnitCompletionsMap(data.unitCompletions || {});
       }
     }, (err) => console.error("Error subscribing to syllabus progress:", err));
     return () => unsubUser();
   }, [currentUser]);
 
-  // Calculate actual progress statistics from dynamic syllabus
-  const { subjects, totalChaptersCount, totalSyllabusPoints, chapterPointsMap } = useMemo(() => {
+  // Calculate actual progress statistics from dynamic syllabus including Units and PTS
+  const { 
+    subjects, 
+    totalChaptersCount, 
+    totalUnitsCount,
+    totalSyllabusPoints, 
+    chapterPointsMap,
+    unitPointsMap,
+    totalProgressItems,
+    completedProgressItems
+  } = useMemo(() => {
     let subjs = syllabusDoc?.subjects || [];
-    let count = 0;
+    let chapCount = 0;
+    let unitCount = 0;
     let points = 0;
-    let pointMap = {};
+    let chPointMap = {};
+    let uPointMap = {};
+    let totalItems = 0;
+    let doneItems = 0;
 
     subjs.forEach(s => {
       s.chapters?.forEach(ch => {
-        count++;
-        const chPts = Number(ch.points) || 0;
-        points += chPts;
-        pointMap[ch.id] = chPts;
+        chapCount++;
+        const activeUnits = (ch.units || []).filter(u => u.isActive !== false);
+
+        if (activeUnits.length > 0) {
+          totalItems += activeUnits.length;
+          activeUnits.forEach(u => {
+            unitCount++;
+            const uPts = Number(u.points) || 0;
+            points += uPts;
+            uPointMap[u.id] = uPts;
+            if (unitCompletionsMap[u.id]?.completed) {
+              doneItems++;
+            }
+          });
+        } else {
+          totalItems++;
+          const chPts = Number(ch.points) || 0;
+          points += chPts;
+          chPointMap[ch.id] = chPts;
+          if (completedMap[ch.id]) {
+            doneItems++;
+          }
+        }
       });
     });
-    return { subjects: subjs, totalChaptersCount: count, totalSyllabusPoints: points, chapterPointsMap: pointMap };
-  }, [syllabusDoc]);
 
-  const completedChaptersCount = Object.keys(completedMap).filter(id => Boolean(completedMap[id])).length;
+    return { 
+      subjects: subjs, 
+      totalChaptersCount: chapCount, 
+      totalUnitsCount: unitCount,
+      totalSyllabusPoints: points, 
+      chapterPointsMap: chPointMap,
+      unitPointsMap: uPointMap,
+      totalProgressItems: totalItems,
+      completedProgressItems: doneItems
+    };
+  }, [syllabusDoc, completedMap, unitCompletionsMap]);
+
+  // Overall syllabus completion percentage
+  const completionPercentage = totalProgressItems > 0 
+    ? Math.min(100, Math.round((completedProgressItems / totalProgressItems) * 100))
+    : 0;
+
+  // Completed chapters count (either marked in completedMap OR all active units completed)
+  const completedChaptersCount = useMemo(() => {
+    let count = 0;
+    subjects.forEach(s => {
+      s.chapters?.forEach(ch => {
+        const activeUnits = (ch.units || []).filter(u => u.isActive !== false);
+        if (activeUnits.length > 0) {
+          if (activeUnits.every(u => Boolean(unitCompletionsMap[u.id]?.completed))) {
+            count++;
+          }
+        } else if (completedMap[ch.id]) {
+          count++;
+        }
+      });
+    });
+    return count;
+  }, [subjects, completedMap, unitCompletionsMap]);
+
+  const completedUnitsCount = Object.keys(unitCompletionsMap).filter(id => Boolean(unitCompletionsMap[id]?.completed)).length;
   const remainingChaptersCount = Math.max(0, totalChaptersCount - completedChaptersCount);
   
+  // Total points earned
   let pointsEarned = 0;
-  Object.keys(completedMap).forEach(id => {
-    if (completedMap[id]) pointsEarned += (chapterPointsMap[id] || 0);
+  Object.keys(unitCompletionsMap).forEach(id => {
+    if (unitCompletionsMap[id]?.completed) {
+      pointsEarned += Number(unitCompletionsMap[id]?.earnedPts ?? unitPointsMap[id] ?? 0);
+    }
   });
-
-  const completionPercentage = totalChaptersCount > 0 
-    ? Math.min(100, Math.round((completedChaptersCount / totalChaptersCount) * 100))
-    : 0;
+  Object.keys(completedMap).forEach(id => {
+    if (completedMap[id] && chapterPointsMap[id]) {
+      pointsEarned += (chapterPointsMap[id] || 0);
+    }
+  });
 
   // Live student points & gamified level calculations
   const studentPoints = Number(currentUserData?.points ?? userProfile?.points ?? 0);
@@ -156,7 +229,133 @@ export default function Syllabus() {
     });
   }, [levelConfig, studentPoints, levelFilter, levelSearch, levelInfo.currentLevelNumber]);
 
-  // Toggle chapter completion & sync with Firestore
+  // Expand / collapse chapter units
+  const handleToggleExpandChapter = (chapterId) => {
+    setExpandedChapters(prev => ({
+      ...prev,
+      [chapterId]: prev[chapterId] === undefined ? false : !prev[chapterId]
+    }));
+  };
+
+  // Toggle unit completion & sync with Firestore
+  const handleToggleUnit = async (unit, chapter, subject) => {
+    if (!currentUser?.uid || togglingUnitId) return;
+
+    const unitId = unit.id;
+    try {
+      setTogglingUnitId(unitId);
+      const userRef = doc(db, 'users', currentUser.uid);
+      const existingCompletion = unitCompletionsMap[unitId];
+      const isCurrentlyCompleted = Boolean(existingCompletion?.completed);
+
+      if (isCurrentlyCompleted) {
+        // UNCHECKING UNIT: Deduct the EXACT pts that were recorded when checked
+        const ptsToDeduct = Number(existingCompletion?.earnedPts ?? unit.points ?? 0);
+
+        const activeUnits = (chapter.units || []).filter(u => u.isActive !== false);
+        const willRemainingUnitsBeComplete = activeUnits.length > 0 && activeUnits.every(u => {
+          if (u.id === unitId) return false;
+          return Boolean(unitCompletionsMap[u.id]?.completed);
+        });
+
+        const updates = {
+          [`unitCompletions.${unitId}`]: deleteField(),
+          points: increment(-ptsToDeduct),
+          unitsCompletedCount: increment(-1)
+        };
+
+        if (!willRemainingUnitsBeComplete && Boolean(completedMap[chapter.id])) {
+          updates[`syllabusCompleted.${chapter.id}`] = deleteField();
+          updates.syllabusCompletedCount = increment(-1);
+        }
+
+        await updateDoc(userRef, updates);
+
+        // Audit doc in unitCompletions collection
+        try {
+          const auditRef = doc(db, 'unitCompletions', `${currentUser.uid}_${unitId}`);
+          await setDoc(auditRef, {
+            userId: currentUser.uid,
+            userEmail: currentUser.email || '',
+            userName: userProfile?.name || '',
+            stream: streamId,
+            subjectId: subject.id || '',
+            chapterId: chapter.id,
+            unitId: unitId,
+            unitTitle: unit.title || '',
+            unitNo: unit.unitNo || '',
+            status: 'uncompleted',
+            uncompletedAt: serverTimestamp(),
+            earnedPts: 0
+          }, { merge: true });
+        } catch (auditErr) {
+          console.warn("Audit update log non-critical:", auditErr);
+        }
+      } else {
+        // CHECKING UNIT
+        const ptsToAdd = Number(unit.points) || 0;
+
+        const activeUnits = (chapter.units || []).filter(u => u.isActive !== false);
+        const willAllUnitsBeComplete = activeUnits.length > 0 && activeUnits.every(u => {
+          if (u.id === unitId) return true;
+          return Boolean(unitCompletionsMap[u.id]?.completed);
+        });
+
+        const completionData = {
+          completed: true,
+          completedAt: new Date().toISOString(),
+          earnedPts: ptsToAdd,
+          streamId,
+          subjectId: subject.id || '',
+          chapterId: chapter.id,
+          unitId: unitId,
+          unitTitle: unit.title || '',
+          unitNo: unit.unitNo || ''
+        };
+
+        const updates = {
+          [`unitCompletions.${unitId}`]: completionData,
+          points: increment(ptsToAdd),
+          unitsCompletedCount: increment(1)
+        };
+
+        if (willAllUnitsBeComplete && !Boolean(completedMap[chapter.id])) {
+          updates[`syllabusCompleted.${chapter.id}`] = true;
+          updates.syllabusCompletedCount = increment(1);
+        }
+
+        await updateDoc(userRef, updates);
+
+        // Audit doc in unitCompletions collection
+        try {
+          const auditRef = doc(db, 'unitCompletions', `${currentUser.uid}_${unitId}`);
+          await setDoc(auditRef, {
+            userId: currentUser.uid,
+            userEmail: currentUser.email || '',
+            userName: userProfile?.name || '',
+            stream: streamId,
+            subjectId: subject.id || '',
+            chapterId: chapter.id,
+            unitId: unitId,
+            unitTitle: unit.title || '',
+            unitNo: unit.unitNo || '',
+            status: 'completed',
+            completedAt: serverTimestamp(),
+            earnedPts: ptsToAdd
+          }, { merge: true });
+        } catch (auditErr) {
+          console.warn("Audit write log non-critical:", auditErr);
+        }
+      }
+    } catch (err) {
+      console.error("Error updating unit completion:", err);
+      alert("Failed to update unit completion. Please check your internet connection.");
+    } finally {
+      setTogglingUnitId(null);
+    }
+  };
+
+  // Toggle chapter completion & sync with Firestore (for chapters without units)
   const handleToggleChapter = async (chapterId, pointsReward) => {
     if (!currentUser?.uid || togglingChapterId) return;
 
@@ -166,7 +365,6 @@ export default function Syllabus() {
       const userRef = doc(db, 'users', currentUser.uid);
 
       if (isCurrentlyCompleted) {
-        // Uncheck chapter: remove from map and deduct specific chapter points
         const newCount = Math.max(0, completedChaptersCount - 1);
         await updateDoc(userRef, {
           [`syllabusCompleted.${chapterId}`]: deleteField(),
@@ -174,7 +372,6 @@ export default function Syllabus() {
           points: increment(-pointsReward)
         });
       } else {
-        // Check chapter: add to map and add specific chapter points
         const newCount = completedChaptersCount + 1;
         await updateDoc(userRef, {
           [`syllabusCompleted.${chapterId}`]: true,
@@ -307,23 +504,29 @@ export default function Syllabus() {
           {/* 4 Analytics Metric Cards */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-2">
             <div className="p-3.5 rounded-2xl bg-navy-900/60 border border-white/5 space-y-1">
-              <div className="text-[11px] font-bold text-slate-400 uppercase">Total Chapters</div>
-              <div className="text-xl font-black text-white">{totalChaptersCount}</div>
+              <div className="text-[11px] font-bold text-slate-400 uppercase">Chapters & Units</div>
+              <div className="text-base sm:text-xl font-black text-white">
+                {totalChaptersCount} <span className="text-xs text-slate-400 font-normal">Ch</span>
+                {totalUnitsCount > 0 && <span className="text-xs text-royal-400 ml-1 font-mono font-bold">• {totalUnitsCount} Units</span>}
+              </div>
             </div>
 
             <div className="p-3.5 rounded-2xl bg-navy-900/60 border border-white/5 space-y-1">
               <div className="text-[11px] font-bold text-slate-400 uppercase">Completed</div>
-              <div className="text-xl font-black text-emerald-400">{completedChaptersCount}</div>
+              <div className="text-base sm:text-xl font-black text-emerald-400">
+                {completedChaptersCount} <span className="text-xs text-slate-400 font-normal">Ch</span>
+                {completedUnitsCount > 0 && <span className="text-xs text-emerald-300 ml-1 font-mono font-bold">• {completedUnitsCount} Units</span>}
+              </div>
             </div>
 
             <div className="p-3.5 rounded-2xl bg-navy-900/60 border border-white/5 space-y-1">
               <div className="text-[11px] font-bold text-slate-400 uppercase">Remaining</div>
-              <div className="text-xl font-black text-amber-400">{remainingChaptersCount}</div>
+              <div className="text-base sm:text-xl font-black text-amber-400">{remainingChaptersCount} Ch</div>
             </div>
 
             <div className="p-3.5 rounded-2xl bg-navy-900/60 border border-white/5 space-y-1">
               <div className="text-[11px] font-bold text-slate-400 uppercase">Points Earned</div>
-              <div className="text-xl font-black text-gold-400 font-mono">+{pointsEarned} PTS</div>
+              <div className="text-base sm:text-xl font-black text-gold-400 font-mono">+{pointsEarned} PTS</div>
             </div>
           </div>
         </div>
@@ -373,16 +576,30 @@ export default function Syllabus() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {subjects.map((subObj) => {
             const subjectChapters = subObj.chapters || [];
-            const subTotal = subjectChapters.length;
-            const subCompleted = subjectChapters.filter(ch => Boolean(completedMap[ch.id])).length;
-            const subPct = subTotal > 0 ? Math.round((subCompleted / subTotal) * 100) : 0;
+            let subTotalItems = 0;
+            let subCompletedItems = 0;
+
+            subjectChapters.forEach(ch => {
+              const activeUnits = (ch.units || []).filter(u => u.isActive !== false);
+              if (activeUnits.length > 0) {
+                subTotalItems += activeUnits.length;
+                activeUnits.forEach(u => {
+                  if (unitCompletionsMap[u.id]?.completed) subCompletedItems++;
+                });
+              } else {
+                subTotalItems++;
+                if (completedMap[ch.id]) subCompletedItems++;
+              }
+            });
+
+            const subPct = subTotalItems > 0 ? Math.round((subCompletedItems / subTotalItems) * 100) : 0;
 
             return (
               <div key={subObj.id} className="p-5 rounded-2xl glass-card border border-white/10 space-y-3 shadow-md">
                 <div className="flex items-center justify-between gap-3">
                   <div className="font-bold text-white text-sm truncate">{subObj.subject}</div>
                   <div className="text-xs font-black text-emerald-400 font-mono shrink-0">
-                    {subCompleted} / {subTotal} ({subPct}%)
+                    {subCompletedItems} / {subTotalItems} ({subPct}%)
                   </div>
                 </div>
 
@@ -402,13 +619,27 @@ export default function Syllabus() {
       <div className="space-y-6">
         <h3 className="text-lg font-bold text-white flex items-center gap-2">
           <CheckCircle2 className="w-5 h-5 text-emerald-400" />
-          <span>Detailed Chapter Completion Checklist</span>
+          <span>Detailed Chapter & Unit Completion Checklist</span>
         </h3>
 
         <div className="space-y-6">
           {subjects.map((subObj) => {
             const subjectChapters = subObj.chapters || [];
-            const subCompleted = subjectChapters.filter(ch => Boolean(completedMap[ch.id])).length;
+            let subTotalItems = 0;
+            let subCompletedItems = 0;
+
+            subjectChapters.forEach(ch => {
+              const activeUnits = (ch.units || []).filter(u => u.isActive !== false);
+              if (activeUnits.length > 0) {
+                subTotalItems += activeUnits.length;
+                activeUnits.forEach(u => {
+                  if (unitCompletionsMap[u.id]?.completed) subCompletedItems++;
+                });
+              } else {
+                subTotalItems++;
+                if (completedMap[ch.id]) subCompletedItems++;
+              }
+            });
 
             return (
               <div key={subObj.id} className="glass-card rounded-3xl border border-white/10 overflow-hidden shadow-xl">
@@ -422,13 +653,148 @@ export default function Syllabus() {
                     <span className="font-bold text-base text-white">{subObj.subject}</span>
                   </div>
                   <span className="px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-300 text-xs font-bold border border-emerald-500/30">
-                    {subCompleted} / {subjectChapters.length} Completed
+                    {subCompletedItems} / {subTotalItems} Completed
                   </span>
                 </div>
 
-                {/* Chapter Checkbox Items */}
+                {/* Chapter & Unit Items */}
                 <div className="divide-y divide-white/5">
                   {subjectChapters.map((ch) => {
+                    const activeUnits = (ch.units || []).filter(u => u.isActive !== false);
+                    const hasUnits = activeUnits.length > 0;
+
+                    if (hasUnits) {
+                      const completedUnitsInCh = activeUnits.filter(u => Boolean(unitCompletionsMap[u.id]?.completed)).length;
+                      const chPct = Math.round((completedUnitsInCh / activeUnits.length) * 100);
+                      const isChCompleted = completedUnitsInCh === activeUnits.length && activeUnits.length > 0;
+                      const chPtsTotal = activeUnits.reduce((sum, u) => sum + (Number(u.points) || 0), 0);
+                      const isExpanded = expandedChapters[ch.id] !== false; // default expanded
+
+                      return (
+                        <div key={ch.id} className="border-b border-white/5 last:border-b-0">
+                          {/* Chapter Accordion Header */}
+                          <div 
+                            onClick={() => handleToggleExpandChapter(ch.id)}
+                            className={`p-4 sm:px-6 flex items-center justify-between cursor-pointer transition-all duration-200 select-none ${
+                              isChCompleted ? 'bg-emerald-500/10 hover:bg-emerald-500/15' : 'hover:bg-white/5'
+                            }`}
+                          >
+                            <div className="flex items-center space-x-3.5 pr-4 min-w-0">
+                              <button
+                                type="button"
+                                className="p-1.5 rounded-lg bg-navy-950 border border-white/10 text-slate-400 hover:text-white shrink-0 transition-colors"
+                              >
+                                {isExpanded ? <ChevronUp className="w-4 h-4 text-royal-400" /> : <ChevronDown className="w-4 h-4 text-slate-400" />}
+                              </button>
+
+                              <div className="min-w-0">
+                                <div className={`text-sm font-bold transition-all truncate ${
+                                  isChCompleted ? 'text-emerald-200' : 'text-slate-200'
+                                }`}>
+                                  {ch.chapterNo ? `Ch ${ch.chapterNo}: ${ch.title}` : ch.title}
+                                </div>
+                                <div className="text-[11px] text-slate-400 font-medium">
+                                  Progress: {completedUnitsInCh}/{activeUnits.length} Units — {chPct}%
+                                </div>
+                              </div>
+                            </div>
+
+                            <div className="flex items-center gap-2.5 shrink-0">
+                              {isChCompleted ? (
+                                <span className="px-2.5 py-1 rounded-full bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 text-xs font-bold flex items-center gap-1">
+                                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+                                  <span className="hidden sm:inline">Chapter Completed ✓</span>
+                                  <span className="sm:hidden">Done ✓</span>
+                                </span>
+                              ) : (
+                                <span className="px-2.5 py-1 rounded-full bg-navy-900 border border-white/10 text-slate-300 text-xs font-mono font-bold">
+                                  {chPct}%
+                                </span>
+                              )}
+
+                              <span className="text-xs font-mono font-bold px-2.5 py-1 rounded-lg bg-navy-900 border border-white/5 text-gold-400">
+                                {chPtsTotal} PTS
+                              </span>
+                            </div>
+                          </div>
+
+                          {/* Progress Line Bar Under Chapter Header */}
+                          <div className="w-full bg-navy-950 h-1 overflow-hidden">
+                            <div 
+                              className={`h-full transition-all duration-300 ${
+                                isChCompleted ? 'bg-emerald-400 shadow-glow-emerald' : 'bg-gradient-to-r from-royal-500 to-emerald-400'
+                              }`}
+                              style={{ width: `${chPct}%` }}
+                            />
+                          </div>
+
+                          {/* Expanded Units List */}
+                          {isExpanded && (
+                            <div className="bg-navy-950/40 divide-y divide-white/5 pl-4 sm:pl-12 pr-4 sm:pr-6 py-2">
+                              {activeUnits.map((unit) => {
+                                const isUnitChecked = Boolean(unitCompletionsMap[unit.id]?.completed);
+                                const uPts = Number(unit.points) || 0;
+
+                                return (
+                                  <div
+                                    key={unit.id}
+                                    onClick={() => handleToggleUnit(unit, ch, subObj)}
+                                    className={`p-3 sm:px-4 rounded-xl flex items-center justify-between cursor-pointer transition-all duration-150 select-none ${
+                                      isUnitChecked 
+                                        ? 'bg-emerald-500/10 hover:bg-emerald-500/15 border border-emerald-500/20' 
+                                        : 'hover:bg-white/5 border border-transparent'
+                                    }`}
+                                  >
+                                    <div className="flex items-center space-x-3 pr-4 min-w-0">
+                                      <button
+                                        type="button"
+                                        disabled={togglingUnitId === unit.id}
+                                        className="focus:outline-none shrink-0"
+                                      >
+                                        {isUnitChecked ? (
+                                          <CheckCircle2 className="w-5 h-5 text-emerald-400 fill-emerald-500/20" />
+                                        ) : (
+                                          <Circle className="w-5 h-5 text-slate-500 hover:text-slate-300 transition-colors" />
+                                        )}
+                                      </button>
+
+                                      <span className="text-[11px] font-mono font-bold px-2 py-0.5 rounded bg-navy-900 border border-white/10 text-royal-300 shrink-0">
+                                        {unit.unitNo || 'Unit'}
+                                      </span>
+
+                                      <div className="min-w-0">
+                                        <span className={`text-xs sm:text-sm font-medium transition-all block truncate ${
+                                          isUnitChecked 
+                                            ? 'text-emerald-200 line-through decoration-emerald-500/50' 
+                                            : 'text-slate-200'
+                                        }`}>
+                                          {unit.title}
+                                        </span>
+                                        {unit.description && (
+                                          <p className="text-[10px] text-slate-400 truncate max-w-sm sm:max-w-lg">
+                                            {unit.description}
+                                          </p>
+                                        )}
+                                      </div>
+                                    </div>
+
+                                    <span className={`text-xs font-mono font-bold shrink-0 px-2.5 py-1 rounded-lg border transition-all ${
+                                      isUnitChecked 
+                                        ? 'bg-emerald-500/20 border-emerald-500/40 text-emerald-300' 
+                                        : 'bg-navy-900 border-white/5 text-gold-400'
+                                    }`}>
+                                      {isUnitChecked ? `+${uPts} PTS ✓` : `+${uPts} PTS`}
+                                    </span>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    }
+
+                    // FALLBACK FOR CHAPTERS WITHOUT UNITS (100% Backward Compatible)
                     const isChecked = Boolean(completedMap[ch.id]);
                     const pts = Number(ch.points) || 0;
 

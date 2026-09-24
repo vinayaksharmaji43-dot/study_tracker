@@ -325,12 +325,16 @@ export function getStudentSyllabus(userCourse, userLevel) {
   const subjects = SYLLABUS_DATA[courseKey]?.[levelKey] || SYLLABUS_DATA.CA.Foundation;
   
   let totalChaptersCount = 0;
+  let totalUnitsCount = 0;
   const allChapterIds = [];
 
   subjects.forEach(sub => {
     sub.chapters.forEach(ch => {
       totalChaptersCount++;
       allChapterIds.push(ch.id);
+      if (ch.units && Array.isArray(ch.units)) {
+        totalUnitsCount += ch.units.filter(u => u.isActive !== false).length;
+      }
     });
   });
 
@@ -339,6 +343,142 @@ export function getStudentSyllabus(userCourse, userLevel) {
     levelKey,
     subjects,
     totalChaptersCount,
+    totalUnitsCount,
     allChapterIds
   };
 }
+
+// Preset standard units generator according to ICSI / ICAI academic syllabus structure
+export function getDefaultUnitsForChapter(streamId, chapterTitle, chapterNo = 1, chapterId = '') {
+  const normTitle = (chapterTitle || '').toLowerCase();
+  const baseId = chapterId || `ch_${Date.now()}`;
+
+  // Accounting Theoretical Framework
+  if (normTitle.includes('theoretical framework')) {
+    return [
+      { id: `${baseId}_u1`, unitNo: 'Unit 1', order: 1, title: 'Meaning and Scope of Accounting', description: 'Definitions, objective, functions, bookkeeping vs accounting', points: 10, isActive: true },
+      { id: `${baseId}_u2`, unitNo: 'Unit 2', order: 2, title: 'Accounting Concepts, Principles and Conventions', description: 'Going concern, consistency, accrual, conservatism, materiality', points: 15, isActive: true },
+      { id: `${baseId}_u3`, unitNo: 'Unit 3', order: 3, title: 'Terms Used in Accounting', description: 'Assets, liabilities, equity, revenues, expenses, valuation principles', points: 10, isActive: true },
+      { id: `${baseId}_u4`, unitNo: 'Unit 4', order: 4, title: 'Capital and Revenue Expenditures & Receipts', description: 'Classification of expenditures and receipts with criteria', points: 15, isActive: true },
+      { id: `${baseId}_u5`, unitNo: 'Unit 5', order: 5, title: 'Contingent Assets and Contingent Liabilities', description: 'Present obligations, probable outflows and disclosures', points: 10, isActive: true },
+      { id: `${baseId}_u6`, unitNo: 'Unit 6', order: 6, title: 'Accounting Policies', description: 'Selection and changes in accounting policies', points: 10, isActive: true },
+      { id: `${baseId}_u7`, unitNo: 'Unit 7', order: 7, title: 'Accounting Standards & Ind AS', description: 'Standard setting process, overview of AS and IFRS convergence', points: 15, isActive: true }
+    ];
+  }
+
+  // Accounting Process
+  if (normTitle.includes('accounting process')) {
+    return [
+      { id: `${baseId}_u1`, unitNo: 'Unit 1', order: 1, title: 'Journal Entries & Books of Original Entry', description: 'Double entry system, rules of debit and credit, compound entries', points: 15, isActive: true },
+      { id: `${baseId}_u2`, unitNo: 'Unit 2', order: 2, title: 'Ledger Posting and Balancing', description: 'Sub-ledgers, personal, real and nominal account balancing', points: 10, isActive: true },
+      { id: `${baseId}_u3`, unitNo: 'Unit 3', order: 3, title: 'Trial Balance Preparation & Analysis', description: 'Objectives, limitations and methods of preparation', points: 10, isActive: true },
+      { id: `${baseId}_u4`, unitNo: 'Unit 4', order: 4, title: 'Subsidiary Books & Triple Column Cash Book', description: 'Purchase book, sales book, petty cash and discounts', points: 15, isActive: true },
+      { id: `${baseId}_u5`, unitNo: 'Unit 5', order: 5, title: 'Rectification of Errors', description: 'Errors before & after trial balance, suspense account treatment', points: 20, isActive: true }
+    ];
+  }
+
+  // Bank Reconciliation Statement
+  if (normTitle.includes('bank reconciliation')) {
+    return [
+      { id: `${baseId}_u1`, unitNo: 'Unit 1', order: 1, title: 'Causes of Differences Between Cash Book and Pass Book', description: 'Timing differences, transactions recorded by bank, errors', points: 10, isActive: true },
+      { id: `${baseId}_u2`, unitNo: 'Unit 2', order: 2, title: 'Preparation of BRS without Adjusted Cash Book', description: 'Starting with favorable/overdraft balances', points: 15, isActive: true },
+      { id: `${baseId}_u3`, unitNo: 'Unit 3', order: 3, title: 'Preparation of BRS with Adjusted (Amended) Cash Book', description: 'Adjusting errors and omissions before reconciling', points: 20, isActive: true }
+    ];
+  }
+
+  // Inventories
+  if (normTitle.includes('inventories') || normTitle.includes('inventory')) {
+    return [
+      { id: `${baseId}_u1`, unitNo: 'Unit 1', order: 1, title: 'Meaning, Nature and Scope of Inventory Valuation', description: 'Applicability of AS 2 / Ind AS 2, cost elements', points: 10, isActive: true },
+      { id: `${baseId}_u2`, unitNo: 'Unit 2', order: 2, title: 'Inventory Valuation Methods (FIFO, Weighted Average)', description: 'Periodic vs perpetual inventory recording methods', points: 15, isActive: true },
+      { id: `${baseId}_u3`, unitNo: 'Unit 3', order: 3, title: 'Net Realisable Value (NRV) & Physical Stock Taking', description: 'Valuation at lower of cost and net realisable value', points: 20, isActive: true }
+    ];
+  }
+
+  // Depreciation
+  if (normTitle.includes('depreciation')) {
+    return [
+      { id: `${baseId}_u1`, unitNo: 'Unit 1', order: 1, title: 'Concepts, Methods (Straight Line & WDV Methods)', description: 'Factors determining depreciation, cost basis, salvage value', points: 15, isActive: true },
+      { id: `${baseId}_u2`, unitNo: 'Unit 2', order: 2, title: 'Change in Depreciation Method and Useful Life', description: 'Prospective treatment as per revised AS 10', points: 15, isActive: true },
+      { id: `${baseId}_u3`, unitNo: 'Unit 3', order: 3, title: 'Asset Disposal, Provision for Depreciation & Revaluation', description: 'Accounting for disposal and accumulated depreciation accounts', points: 20, isActive: true }
+    ];
+  }
+
+  // Bills of Exchange
+  if (normTitle.includes('bills of exchange')) {
+    return [
+      { id: `${baseId}_u1`, unitNo: 'Unit 1', order: 1, title: 'Definition, Specimen and Essential Characteristics', description: 'Drawer, drawee, payee, days of grace, maturity date', points: 10, isActive: true },
+      { id: `${baseId}_u2`, unitNo: 'Unit 2', order: 2, title: 'Accounting for Retaining, Discounting and Endorsement', description: 'Journal entries in drawer and drawee books', points: 15, isActive: true },
+      { id: `${baseId}_u3`, unitNo: 'Unit 3', order: 3, title: 'Dishonour, Noting Charges and Renewal of Bills', description: 'Treatment of interest and new bill acceptance', points: 15, isActive: true },
+      { id: `${baseId}_u4`, unitNo: 'Unit 4', order: 4, title: 'Accommodation Bills & Insolvency of Drawee', description: 'Mutual accommodation sharing proceeds and bad debts', points: 20, isActive: true }
+    ];
+  }
+
+  // Final Accounts
+  if (normTitle.includes('final accounts')) {
+    return [
+      { id: `${baseId}_u1`, unitNo: 'Unit 1', order: 1, title: 'Preparation of Trading and Profit & Loss Account', description: 'Gross profit, operating expenses, net profit determination', points: 15, isActive: true },
+      { id: `${baseId}_u2`, unitNo: 'Unit 2', order: 2, title: 'Balance Sheet Marshalling and Classification', description: 'Order of permanence vs liquidity, grouping of items', points: 15, isActive: true },
+      { id: `${baseId}_u3`, unitNo: 'Unit 3', order: 3, title: 'Comprehensive Year-End Adjustments', description: 'Outstanding, prepaid, depreciation, bad debts provision', points: 20, isActive: true }
+    ];
+  }
+
+  // Partnership
+  if (normTitle.includes('partnership')) {
+    return [
+      { id: `${baseId}_u1`, unitNo: 'Unit 1', order: 1, title: 'Fundamentals & Profit and Loss Appropriation', description: 'Interest on capital, drawings, partners loan, guarantee of profit', points: 15, isActive: true },
+      { id: `${baseId}_u2`, unitNo: 'Unit 2', order: 2, title: 'Treatment of Goodwill in Partnership Accounts', description: 'Average profit, super profit, capitalisation methods', points: 15, isActive: true },
+      { id: `${baseId}_u3`, unitNo: 'Unit 3', order: 3, title: 'Admission of a New Partner', description: 'Sacrificing ratio, revaluation of assets and liabilities, hidden goodwill', points: 20, isActive: true },
+      { id: `${baseId}_u4`, unitNo: 'Unit 4', order: 4, title: 'Retirement and Death of a Partner', description: 'Gaining ratio, joint life policy, loan account settlement', points: 20, isActive: true },
+      { id: `${baseId}_u5`, unitNo: 'Unit 5', order: 5, title: 'Dissolution of Partnership Firm', description: 'Realisation account, settlement of accounts, Garner vs Murray rule', points: 20, isActive: true }
+    ];
+  }
+
+  // Company Accounts
+  if (normTitle.includes('company accounts') || normTitle.includes('shares')) {
+    return [
+      { id: `${baseId}_u1`, unitNo: 'Unit 1', order: 1, title: 'Issue of Shares at Par, Premium & Calls in Arrear/Advance', description: 'Application, allotment, calls, interest calculations', points: 15, isActive: true },
+      { id: `${baseId}_u2`, unitNo: 'Unit 2', order: 2, title: 'Forfeiture and Re-issue of Shares', description: 'Capital reserve computation on reissue of forfeited shares', points: 20, isActive: true },
+      { id: `${baseId}_u3`, unitNo: 'Unit 3', order: 3, title: 'Issue and Redemption of Debentures', description: 'Collateral security, discount write-off, debenture redemption reserve', points: 15, isActive: true }
+    ];
+  }
+
+  // Contract Act
+  if (normTitle.includes('contract act')) {
+    return [
+      { id: `${baseId}_u1`, unitNo: 'Unit 1', order: 1, title: 'Nature and Essential Elements of Valid Contracts', description: 'Offer, acceptance, legal relationship, consensus ad idem', points: 10, isActive: true },
+      { id: `${baseId}_u2`, unitNo: 'Unit 2', order: 2, title: 'Consideration & Capacity of Parties', description: 'Doctrine of privity of contract, minor agreement rules', points: 15, isActive: true },
+      { id: `${baseId}_u3`, unitNo: 'Unit 3', order: 3, title: 'Free Consent (Coercion, Undue Influence, Fraud)', description: 'Misrepresentation, bilateral and unilateral mistakes', points: 15, isActive: true },
+      { id: `${baseId}_u4`, unitNo: 'Unit 4', order: 4, title: 'Performance, Discharge and Remedies for Breach', description: 'Anticipatory vs actual breach, suit for damages, injunction', points: 20, isActive: true },
+      { id: `${baseId}_u5`, unitNo: 'Unit 5', order: 5, title: 'Contingent and Quasi Contracts', description: 'Sections 68 to 72, quantum meruit principles', points: 15, isActive: true }
+    ];
+  }
+
+  // Sale of Goods Act
+  if (normTitle.includes('sale of goods')) {
+    return [
+      { id: `${baseId}_u1`, unitNo: 'Unit 1', order: 1, title: 'Formation of Contract of Sale', description: 'Sale vs agreement to sell, existing and future goods', points: 10, isActive: true },
+      { id: `${baseId}_u2`, unitNo: 'Unit 2', order: 2, title: 'Conditions and Warranties (Express & Implied)', description: 'Caveat emptor and its modern exceptions', points: 15, isActive: true },
+      { id: `${baseId}_u3`, unitNo: 'Unit 3', order: 3, title: 'Transfer of Property & Passing of Risk', description: 'Nemo dat quod non habet rule and exceptions', points: 15, isActive: true },
+      { id: `${baseId}_u4`, unitNo: 'Unit 4', order: 4, title: 'Rights of Unpaid Seller against Goods and Buyer', description: 'Lien, stoppage in transit, right of resale', points: 20, isActive: true }
+    ];
+  }
+
+  // Economics
+  if (normTitle.includes('economics') || normTitle.includes('demand') || normTitle.includes('market')) {
+    return [
+      { id: `${baseId}_u1`, unitNo: 'Unit 1', order: 1, title: 'Theoretical Framework and Fundamentals', description: 'Micro vs macro concepts, elasticity and utility analysis', points: 10, isActive: true },
+      { id: `${baseId}_u2`, unitNo: 'Unit 2', order: 2, title: 'Applied Principles & Graphical Equilibrium', description: 'Laws of returns, cost curves, market price determination', points: 15, isActive: true },
+      { id: `${baseId}_u3`, unitNo: 'Unit 3', order: 3, title: 'Case Analysis & Examination Exercises', description: 'Numerical problems, shifts in equilibrium, policy impacts', points: 15, isActive: true }
+    ];
+  }
+
+  // Standard Default 4 Units for any other chapter
+  return [
+    { id: `${baseId}_u1`, unitNo: 'Unit 1', order: 1, title: 'Basic Concepts & Conceptual Framework', description: `Key terminology, scope and basic concepts of ${chapterTitle}`, points: 10, isActive: true },
+    { id: `${baseId}_u2`, unitNo: 'Unit 2', order: 2, title: 'Statutory Provisions & Methodologies', description: `In-depth analysis and technical provisions of ${chapterTitle}`, points: 15, isActive: true },
+    { id: `${baseId}_u3`, unitNo: 'Unit 3', order: 3, title: 'Practical Illustrations & Numerical Problems', description: `Practical examples, working notes and step-by-step problem solving`, points: 20, isActive: true },
+    { id: `${baseId}_u4`, unitNo: 'Unit 4', order: 4, title: 'Past Examination Questions & Revision', description: `ICSI / ICAI exam questions, RTP and comprehensive review`, points: 15, isActive: true }
+  ];
+}
+

@@ -7,6 +7,7 @@ import AdminOverview from './tabs/AdminOverview';
 import AdminStudents from './tabs/AdminStudents';
 import AdminSyllabus from './tabs/AdminSyllabus';
 import AdminSyllabusManager from './tabs/AdminSyllabusManager';
+import AdminChaptersUnits from './tabs/AdminChaptersUnits';
 import AdminAnalytics from './tabs/AdminAnalytics';
 import AdminLeaderboard from './tabs/AdminLeaderboard';
 import AdminTargets from './tabs/AdminTargets';
@@ -72,6 +73,7 @@ export default function AdminDashboard() {
     { id: 'discipline', label: 'Inactive / Discipline', icon: ShieldAlert },
     { id: 'syllabus', label: 'Student Progress', icon: BookOpenCheck },
     { id: 'syllabus_manager', label: 'Manage Syllabus', icon: Layers },
+    { id: 'chapters_units', label: 'Chapters & Units', icon: BookOpen },
     { id: 'analytics', label: 'Analytics', icon: TrendingUp },
     { id: 'leaderboard', label: 'Leaderboard', icon: Trophy },
     { id: 'targets', label: 'Targets', icon: Target },
@@ -193,6 +195,7 @@ export default function AdminDashboard() {
             {activeTab === 'discipline' && <AdminDiscipline />}
             {activeTab === 'syllabus' && <AdminSyllabus />}
             {activeTab === 'syllabus_manager' && <AdminSyllabusManager />}
+            {activeTab === 'chapters_units' && <AdminChaptersUnits />}
             {activeTab === 'analytics' && <AdminAnalytics />}
             {activeTab === 'leaderboard' && <AdminLeaderboard />}
             {activeTab === 'targets' && <AdminTargets />}

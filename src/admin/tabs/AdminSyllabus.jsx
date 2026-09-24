@@ -77,9 +77,18 @@ export default function AdminSyllabus() {
   
   const subjects = studentSyllabus?.subjects || [];
   let totalChaptersCount = 0;
-  subjects.forEach(s => totalChaptersCount += (s.chapters?.length || 0));
-
   const completedMap = selectedStudent?.syllabusCompleted || {};
+  const unitCompletions = selectedStudent?.unitCompletions || {};
+  const completedUnitsCount = Object.keys(unitCompletions).filter(id => Boolean(unitCompletions[id]?.completed)).length;
+  
+  let totalUnitsCount = 0;
+  subjects.forEach(s => {
+    s.chapters?.forEach(ch => {
+      const activeUnits = (ch.units || []).filter(u => u.isActive !== false);
+      totalUnitsCount += activeUnits.length;
+    });
+  });
+
   const completedChaptersCount = Object.keys(completedMap).filter(id => Boolean(completedMap[id])).length;
   const remainingChaptersCount = Math.max(0, totalChaptersCount - completedChaptersCount);
   const completionPercentage = totalChaptersCount > 0 
@@ -309,12 +318,22 @@ export default function AdminSyllabus() {
                       {subjects.map(subObj => 
                         (subObj.chapters || [])
                           .filter(ch => Boolean(completedMap[ch.id]))
-                          .map(ch => (
-                            <div key={ch.id} className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-xs text-emerald-200 flex items-center justify-between">
-                              <span className="font-medium">{ch.chapterNo ? `Ch ${ch.chapterNo}: ${ch.title}` : ch.title}</span>
-                              <span className="font-bold text-emerald-400 shrink-0 ml-2">+{ch.points || 0} PTS ✓</span>
-                            </div>
-                          ))
+                          .map(ch => {
+                            const activeUnits = (ch.units || []).filter(u => u.isActive !== false);
+                            return (
+                              <div key={ch.id} className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-xs text-emerald-200 flex items-center justify-between">
+                                <div className="min-w-0 pr-2">
+                                  <div className="font-medium truncate">{ch.chapterNo ? `Ch ${ch.chapterNo}: ${ch.title}` : ch.title}</div>
+                                  {activeUnits.length > 0 && (
+                                    <div className="text-[10px] text-emerald-300/80 font-mono">
+                                      All {activeUnits.length} Units Completed ✓
+                                    </div>
+                                  )}
+                                </div>
+                                <span className="font-bold text-emerald-400 shrink-0 ml-2">+{ch.points || 0} PTS ✓</span>
+                              </div>
+                            );
+                          })
                       )}
                     </div>
                   )}
@@ -336,12 +355,25 @@ export default function AdminSyllabus() {
                       {subjects.map(subObj => 
                         (subObj.chapters || [])
                           .filter(ch => !Boolean(completedMap[ch.id]))
-                          .map(ch => (
-                            <div key={ch.id} className="p-3 rounded-xl bg-navy-900/60 border border-white/5 text-xs text-slate-300 flex items-center justify-between">
-                              <span className="font-medium">{ch.chapterNo ? `Ch ${ch.chapterNo}: ${ch.title}` : ch.title}</span>
-                              <span className="text-slate-500 shrink-0 ml-2">Pending</span>
-                            </div>
-                          ))
+                          .map(ch => {
+                            const activeUnits = (ch.units || []).filter(u => u.isActive !== false);
+                            const doneUnits = activeUnits.filter(u => Boolean(unitCompletions[u.id]?.completed)).length;
+                            return (
+                              <div key={ch.id} className="p-3 rounded-xl bg-navy-900/60 border border-white/5 text-xs text-slate-300 flex items-center justify-between">
+                                <div className="min-w-0 pr-2">
+                                  <div className="font-medium truncate">{ch.chapterNo ? `Ch ${ch.chapterNo}: ${ch.title}` : ch.title}</div>
+                                  {activeUnits.length > 0 && (
+                                    <div className="text-[10px] text-slate-400 font-mono">
+                                      Units: {doneUnits}/{activeUnits.length} completed
+                                    </div>
+                                  )}
+                                </div>
+                                <span className={`shrink-0 ml-2 font-mono text-[11px] ${doneUnits > 0 ? 'text-amber-400 font-bold' : 'text-slate-500'}`}>
+                                  {activeUnits.length > 0 && doneUnits > 0 ? `${Math.round((doneUnits/activeUnits.length)*100)}% Done` : 'Pending'}
+                                </span>
+                              </div>
+                            );
+                          })
                       )}
                     </div>
                   )}

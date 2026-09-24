@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { doc, onSnapshot, setDoc, updateDoc } from 'firebase/firestore';
 import { db } from '../../config/firebase';
-import { SYLLABUS_DATA } from '../../data/syllabusData';
+import { SYLLABUS_DATA, getDefaultUnitsForChapter } from '../../data/syllabusData';
 import EmptyState from '../../components/EmptyState';
 import { 
   Layers, 
@@ -84,12 +84,16 @@ export default function AdminSyllabusManager() {
       const mappedSubjects = defaultSubjects.map((sub, sIdx) => ({
         id: `sub_${Date.now()}_${sIdx}`,
         subject: sub.subject,
-        chapters: sub.chapters.map((ch, cIdx) => ({
-          id: ch.id || `ch_${Date.now()}_${sIdx}_${cIdx}`,
-          chapterNo: cIdx + 1,
-          title: ch.title,
-          points: 10
-        }))
+        chapters: sub.chapters.map((ch, cIdx) => {
+          const chId = ch.id || `ch_${Date.now()}_${sIdx}_${cIdx}`;
+          return {
+            id: chId,
+            chapterNo: cIdx + 1,
+            title: ch.title,
+            points: ch.points || 10,
+            units: ch.units || getDefaultUnitsForChapter(streamId, ch.title, cIdx + 1, chId)
+          };
+        })
       }));
 
       const docRef = doc(db, 'syllabi', streamId);
@@ -154,7 +158,8 @@ export default function AdminSyllabusManager() {
             id: `ch_${Date.now()}`,
             chapterNo: newChapNo.trim(),
             title: newChapTitle.trim(),
-            points: pointsNum
+            points: pointsNum,
+            units: []
           }]
         };
       }
@@ -442,6 +447,13 @@ export default function AdminSyllabusManager() {
                           
                           <div className="flex items-center gap-3 shrink-0">
                             <div className="flex items-center gap-2">
+                              <span className={`text-[10px] font-mono font-bold px-2 py-1 rounded-md border ${
+                                (ch.units?.length || 0) > 0 
+                                  ? 'bg-emerald-500/20 border-emerald-500/30 text-emerald-300' 
+                                  : 'bg-slate-800 border-white/5 text-slate-400'
+                              }`}>
+                                {ch.units?.length || 0} Units
+                              </span>
                               <span className="text-[10px] text-slate-400 font-bold uppercase">Pts:</span>
                               <input 
                                 type="number" 
