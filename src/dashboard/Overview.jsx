@@ -26,6 +26,7 @@ import {
   Bell,
   Sparkles
 } from 'lucide-react';
+import { useEffectiveMotivation } from '../hooks/useEffectiveMotivation';
 
 function parseStream(userProfile) {
   if (!userProfile) return { course: 'CA', level: 'Foundation', attempt: '' };
@@ -165,17 +166,8 @@ export default function Overview({ setActiveTab }) {
     };
   }, [currentUser, userProfile?.course, userProfile?.level, userProfile?.attempt]);
 
-  // Daily rotating motivational quote
-  const motivationQuotes = [
-    'Discipline is choosing what you want most over what you want now.',
-    'Consistency beats intensity when intensity fades away.',
-    'Small daily wins are the real foundation of greatness.',
-    'Your future self will thank you for the hours you protect today.',
-    'Study with intention, and progress will become visible.',
-    'Success is built one focused session at a time.'
-  ];
-  const motivationIndex = new Date().getDate() % motivationQuotes.length;
-  const dailyMotivation = motivationQuotes[motivationIndex];
+  // Effective Motivation (Manual Specific > Manual All Streams > Automatic Rotating Quotes)
+  const { effectiveMotivation } = useEffectiveMotivation(userProfile);
 
   const handleMarkAsRead = async (announcementId) => {
     if (readIds.has(announcementId) || !currentUser) return;
@@ -299,12 +291,22 @@ export default function Overview({ setActiveTab }) {
 
       {/* Daily Motivation Quote */}
       <div className="p-5 sm:p-6 rounded-3xl border border-gold-500/25 bg-gradient-to-r from-gold-500/10 via-amber-500/10 to-orange-500/10 shadow-[0_0_20px_rgba(245,158,11,0.18)]">
-        <div className="text-[10px] font-bold uppercase tracking-[0.2em] text-gold-300/90">Daily Motivation</div>
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
+            <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-gold-300/90">Daily Motivation</span>
+            {effectiveMotivation?.isManual && (
+              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-gold-500/20 text-gold-300 border border-gold-500/30 text-[9px] font-extrabold tracking-normal">
+                <Sparkles className="w-2.5 h-2.5" />
+                <span>{effectiveMotivation.type === 'manual_specific' ? effectiveMotivation.targetStream : 'All Streams'}</span>
+              </span>
+            )}
+          </div>
+        </div>
         <p className="mt-3 text-lg sm:text-xl font-semibold italic text-gold-200 leading-relaxed">
-          “{dailyMotivation}”
+          “{effectiveMotivation?.text}”
         </p>
         <div className="mt-3 text-right text-xs sm:text-sm font-medium text-slate-300">
-          ~ Mentor MADHAV
+          ~ {effectiveMotivation?.author || 'Mentor MADHAV'}
         </div>
       </div>
 

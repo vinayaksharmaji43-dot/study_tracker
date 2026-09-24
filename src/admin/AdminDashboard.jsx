@@ -28,6 +28,7 @@ import AdminLevels from './tabs/AdminLevels';
 import AdminDiscipline from './tabs/AdminDiscipline';
 import AdminSectionLocks from './tabs/AdminSectionLocks';
 import AdminWebcamStudy from './tabs/AdminWebcamStudy';
+import AdminMotivation from './tabs/AdminMotivation';
 
 import { 
   LayoutDashboard,  
@@ -53,7 +54,8 @@ import {
   Video,
   MonitorSmartphone,
   Award,
-  ShieldAlert
+  ShieldAlert,
+  Sparkles
 } from 'lucide-react';
 
 
@@ -82,6 +84,7 @@ export default function AdminDashboard() {
     { id: 'notes', label: 'Notes', icon: FileText },
     { id: 'doubts', label: 'Doubts', icon: HelpCircle },
     { id: 'announcements', label: 'Announcements', icon: Megaphone },
+    { id: 'motivation', label: 'Motivation', icon: Sparkles },
     { id: 'feedback', label: 'Student Feedback', icon: MessageSquare },
     { id: 'study_groups', label: 'Study Groups', icon: Users },
     { id: 'courses', label: 'Courses & Attempts', icon: Calendar },
@@ -201,6 +204,7 @@ export default function AdminDashboard() {
             { activeTab === 'notes' && <AdminNotes /> }
             {activeTab === 'doubts' && <AdminDoubts />}
             {activeTab === 'announcements' && <AdminAnnouncements />}
+            {activeTab === 'motivation' && <AdminMotivation />}
             {activeTab === 'feedback' && <AdminFeedback />}
             {activeTab === 'study_groups' && <AdminStudyGroups />}
             {activeTab === 'courses' && <AdminCourses />}
