@@ -1136,7 +1136,7 @@ export default function StudyTimer() {
                 <span><strong>7+ Hours:</strong> +2 Points per additional hour</span>
               </li>
               <li className="flex items-start gap-2 text-xs text-slate-400 mt-2">
-                Note: Milestones (1-5 hours) give no points, only messages. Each timer session auto-stops at 5 hours; press Start again to continue. Streaks grow only on days with 5+ hours studied.
+                Note: Milestones (1-5 hours) give no points, only messages. Each timer session auto-stops at 5 hours; press Start again to continue. Streaks grow only on days with 4+ hours studied.
               </li>
             </ul>
           </div>

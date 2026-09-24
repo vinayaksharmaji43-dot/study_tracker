@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { collection, query, where, onSnapshot, doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../config/firebase';
 import { useAuth } from '../contexts/AuthContext';
@@ -27,6 +27,7 @@ import {
   Sparkles
 } from 'lucide-react';
 import { useEffectiveMotivation } from '../hooks/useEffectiveMotivation';
+import { useRealStudyTimer } from '../hooks/useRealStudyTimer';
 
 function parseStream(userProfile) {
   if (!userProfile) return { course: 'CA', level: 'Foundation', attempt: '' };
@@ -186,23 +187,43 @@ export default function Overview({ setActiveTab }) {
   if (!currentUser?.uid || !userProfile) return null;
 
 
-  // Today's study time calculation (in seconds)
-  const todayStr = new Date().toISOString().split('T')[0];
-  const todaySeconds = sessions.reduce((acc, curr) => {
+  // Live Study Timer auto-detection
+  const { isTimerRunning, elapsedSeconds, currentSubject } = useRealStudyTimer(currentUser, userProfile);
+
+  // Today's study time calculation (in seconds) - uses local dateKey to prevent timezone skew
+  const todayKey = getDateKey(new Date());
+  const savedTodaySeconds = sessions.reduce((acc, curr) => {
+    if (!curr.date) return acc;
     const sDate = curr.date?.toDate ? curr.date.toDate() : new Date(curr.date);
-    if (sDate && sDate.toISOString().split('T')[0] === todayStr) {
-      return acc + (curr.duration || 0);
+    if (getDateKey(sDate) === todayKey) {
+      return acc + (Number(curr.duration) || 0);
     }
     return acc;
   }, 0);
+
+  // Auto-detect live running study timer into today's total study time
+  const activeTimerSeconds = isTimerRunning && elapsedSeconds > 0 ? elapsedSeconds : 0;
+  const todaySeconds = savedTodaySeconds + activeTimerSeconds;
 
   // Target completion %
   const totalTargets = targets.length;
   const completedTargets = targets.filter(t => t.completed).length;
   const targetCompletionPct = totalTargets > 0 ? Math.round((completedTargets / totalTargets) * 100) : 0;
 
-  // Streak
-  const currentStreak = calculateStreak(sessions, dayOffs.map(dayOff => dayOff.dateKey));
+  // Auto-detect ongoing active study timer for real-time streak calculation
+  const sessionsForStreak = useMemo(() => {
+    if (!isTimerRunning || !elapsedSeconds || elapsedSeconds <= 0) return sessions;
+    return [
+      ...sessions,
+      {
+        date: new Date(),
+        duration: elapsedSeconds
+      }
+    ];
+  }, [sessions, isTimerRunning, elapsedSeconds]);
+
+  // Streak (auto-detects 4 hours / 14400s threshold from saved + live study timer)
+  const currentStreak = calculateStreak(sessionsForStreak, dayOffs.map(dayOff => dayOff.dateKey));
   const unreadAnnouncementCount = announcements.filter(announcement => !readIds.has(announcement.id)).length;
   const sortedAnnouncements = [...announcements].sort((a, b) => {
     const getTime = item => item.createdAt?.toMillis ? item.createdAt.toMillis() : new Date(item.createdAt || 0).getTime();
@@ -444,8 +465,16 @@ export default function Overview({ setActiveTab }) {
           <div className="text-3xl font-black text-white font-mono">
             {formatTimerTime(todaySeconds)}
           </div>
-          <div className="text-xs text-slate-400">
-            {todaySeconds > 0 ? `${(todaySeconds / 3600).toFixed(1)} hours completed today` : 'No study logged yet today'}
+          <div className="text-xs text-slate-400 flex items-center justify-between">
+            <span>
+              {todaySeconds > 0 ? `${(todaySeconds / 3600).toFixed(1)} hours completed today` : 'No study logged yet today'}
+            </span>
+            {isTimerRunning && (
+              <span className="text-[10px] text-emerald-400 font-bold flex items-center gap-1 animate-pulse">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                Live Timer
+              </span>
+            )}
           </div>
         </div>
 
@@ -486,18 +515,48 @@ export default function Overview({ setActiveTab }) {
         <div className="p-6 rounded-2xl glass-card border border-white/10 relative overflow-hidden space-y-4">
           <div className="flex items-center justify-between">
             <span className="text-xs font-bold uppercase tracking-wider text-slate-400">Current Streak</span>
-            <div className="w-10 h-10 rounded-xl bg-amber-500/20 text-amber-400 flex items-center justify-center">
-              <Flame className="w-5 h-5" />
+            <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${todaySeconds >= 14400 ? 'bg-amber-500/25 text-amber-400 shadow-glow-gold' : 'bg-amber-500/15 text-amber-400'}`}>
+              <Flame className={`w-5 h-5 ${todaySeconds >= 14400 ? 'animate-bounce' : ''}`} />
             </div>
           </div>
-          <div className="text-3xl font-black text-white">
-            {currentStreak} <span className="text-sm font-bold text-slate-400">Days</span>
+          <div className="flex items-baseline justify-between">
+            <div className="text-3xl font-black text-white">
+              {currentStreak} <span className="text-sm font-bold text-slate-400">Days</span>
+            </div>
+            {isTimerRunning && (
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-[10px] font-bold animate-pulse">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                <span>Timer Running</span>
+              </span>
+            )}
           </div>
-          <div className="text-xs text-amber-400 font-medium">
-            {currentStreak > 0 ? 'Consistency streak active!' : 'Study today to build a streak'}
+
+          <div className="space-y-1.5">
+            <div className="flex items-center justify-between text-xs">
+              <span className={todaySeconds >= 14400 ? 'text-emerald-400 font-bold' : 'text-amber-400 font-medium'}>
+                {todaySeconds >= 14400 
+                  ? '🔥 4h goal completed today!' 
+                  : isTimerRunning 
+                  ? 'Studying now to extend streak' 
+                  : currentStreak > 0 
+                  ? 'Consistency streak active!' 
+                  : 'Study today to build a streak'}
+              </span>
+              <span className="text-[11px] text-slate-400 font-bold">
+                {(todaySeconds / 3600).toFixed(1)}h / 4h
+              </span>
+            </div>
+            {/* 4-Hour Daily Streak Progress Bar */}
+            <div className="w-full bg-navy-950 rounded-full h-1.5 overflow-hidden">
+              <div 
+                className={`h-full rounded-full transition-all duration-500 ${todaySeconds >= 14400 ? 'bg-gradient-to-r from-emerald-500 to-teal-400' : 'bg-gradient-to-r from-amber-500 to-gold-400'}`}
+                style={{ width: `${Math.min(100, Math.round((todaySeconds / 14400) * 100))}%` }}
+              />
+            </div>
           </div>
-          <div className="text-[10px] text-slate-500 font-medium pt-2 border-t border-white/5">
-            ⚠️ Requires minimum 5 hours of total study per day to grow streak.
+
+          <div className="text-[10px] text-slate-500 font-medium pt-2 border-t border-white/5 flex items-center justify-between">
+            <span>⚠️ Requires minimum 4 hours of total study per day to grow streak.</span>
           </div>
         </div>
 

@@ -31,7 +31,10 @@ export function formatDate(timestamp) {
 
 export function getDateKey(date = new Date()) {
   const value = date?.toDate ? date.toDate() : new Date(date);
-  return value.toISOString().split('T')[0];
+  const year = value.getFullYear();
+  const month = String(value.getMonth() + 1).padStart(2, '0');
+  const day = String(value.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
 }
 
 export function getMonthKey(date = new Date()) {
@@ -51,8 +54,8 @@ export function calculateStreak(sessions = [], protectedDates = []) {
     dailyDurations[dateKey] = (dailyDurations[dateKey] || 0) + duration;
   });
 
-  // A study day is one where total duration >= 18000 seconds (5 hours)
-  const validStudyDates = Object.keys(dailyDurations).filter(k => dailyDurations[k] >= 18000);
+  // A study day is one where total duration >= 14400 seconds (4 hours)
+  const validStudyDates = Object.keys(dailyDurations).filter(k => dailyDurations[k] >= 14400);
   
   if (validStudyDates.length === 0) return 0;
 

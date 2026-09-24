@@ -252,8 +252,8 @@ export default function Calendar() {
     const { totalStudySeconds, negativePoints, netPoints, isDayOff } = data;
 
     if (isDayOff) return 'dayoff';
-    if (totalStudySeconds >= 18000 || (netPoints > 0 && totalStudySeconds >= 14400)) return 'green'; // 5+ hours
-    if (totalStudySeconds >= 3600 && negativePoints === 0) return 'yellow'; // 1-5 hours
+    if (totalStudySeconds >= 14400) return 'green'; // 4+ hours
+    if (totalStudySeconds >= 3600 && negativePoints === 0) return 'yellow'; // 1-4 hours
     if (totalStudySeconds > 0 && (totalStudySeconds < 3600 || negativePoints < 0)) return 'red';
     if (dateKey < todayKey && totalStudySeconds < 14400) return 'red'; // missed 4 hours in past
     return 'neutral';
@@ -651,7 +651,7 @@ export default function Calendar() {
                     className={`w-full max-w-[36px] rounded-t-xl transition-all duration-300 ${
                       isSelectedDay
                         ? 'bg-gradient-to-t from-emerald-600 to-teal-400 shadow-glow-emerald'
-                        : day.studySecs >= 18000
+                        : day.studySecs >= 14400
                         ? 'bg-gradient-to-t from-emerald-600/80 to-emerald-400/80 hover:from-emerald-500 hover:to-emerald-300'
                         : day.studySecs > 0
                         ? 'bg-gradient-to-t from-amber-600/80 to-amber-400/80 hover:from-amber-500 hover:to-amber-300'
