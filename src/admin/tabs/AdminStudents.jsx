@@ -350,6 +350,7 @@ export default function AdminStudents() {
             className="px-4 py-3 rounded-2xl bg-navy-900 border border-white/10 text-white font-semibold text-xs focus:outline-none focus:border-emerald-500"
           >
             <option value="all">All Attempts</option>
+            <option value="Dec 26">Dec 26</option>
             <option value="Jan 27">Jan 27</option>
             <option value="May 27">May 27</option>
             <option value="Sep 27">Sep 27</option>

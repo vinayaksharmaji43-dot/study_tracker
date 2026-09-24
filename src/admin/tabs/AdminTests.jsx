@@ -26,7 +26,7 @@ async function uploadToImgBB(file) {
 const COURSES = ['CA', 'CMA'];
 const LEVELS = ['Foundation', 'Intermediate'];
 const CA_ATTEMPTS = ['All Attempts', 'May 27', 'Jan 27', 'Sep 27', 'May 2027', 'Jan 2027', 'Sep 2027'];
-const CMA_ATTEMPTS = ['All Attempts', 'June 27', 'Dec 27', 'June 2027', 'December 2027'];
+const CMA_ATTEMPTS = ['All Attempts', 'Dec 26', 'June 27', 'Dec 27', 'Dec 2026', 'June 2027', 'December 2027'];
 
 const ALL_SUBJECTS = [
   'Paper 1: Accounting',

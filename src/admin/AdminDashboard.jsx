@@ -29,6 +29,7 @@ import AdminDiscipline from './tabs/AdminDiscipline';
 import AdminSectionLocks from './tabs/AdminSectionLocks';
 import AdminWebcamStudy from './tabs/AdminWebcamStudy';
 import AdminMotivation from './tabs/AdminMotivation';
+import AdminLevelGifts from './tabs/AdminLevelGifts';
 
 import { 
   LayoutDashboard,  
@@ -55,7 +56,8 @@ import {
   MonitorSmartphone,
   Award,
   ShieldAlert,
-  Sparkles
+  Sparkles,
+  Gift
 } from 'lucide-react';
 
 
@@ -75,6 +77,7 @@ export default function AdminDashboard() {
     { id: 'targets', label: 'Targets', icon: Target },
     { id: 'tests', label: 'Test Papers', icon: FileText },
     { id: 'levels', label: 'Levels & Badges', icon: Award },
+    { id: 'level_gifts', label: 'Level Gifts', icon: Gift },
     { id: 'writing_practice', label: 'Writing Practice', icon: PenLine },
     { id: 'missions', label: 'Weekly Missions', icon: Flag },
     { id: 'sessions', label: 'Study Sessions', icon: Clock },
@@ -195,6 +198,7 @@ export default function AdminDashboard() {
             {activeTab === 'targets' && <AdminTargets />}
             {activeTab === 'tests' && <AdminTests />}
             {activeTab === 'levels' && <AdminLevels />}
+            {activeTab === 'level_gifts' && <AdminLevelGifts />}
             {activeTab === 'writing_practice' && <AdminWritingPractice />}
             { activeTab === 'missions' && <AdminWeeklyMissions /> }
             { activeTab === 'sessions' && <AdminSessions /> }

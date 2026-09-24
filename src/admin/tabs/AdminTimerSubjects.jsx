@@ -57,7 +57,7 @@ export default function AdminTimerSubjects() {
 
   const getAttemptsForCourse = (course) => {
     if (course === 'CA') return ['May 27', 'Jan 27', 'Sep 27', 'May 2027', 'Jan 2027', 'Sep 2027'];
-    if (course === 'CMA') return ['June 27', 'Dec 27', 'June 2027', 'December 2027'];
+    if (course === 'CMA') return ['Dec 26', 'June 27', 'Dec 27', 'Dec 2026', 'June 2027', 'December 2027'];
     return [];
   };
 

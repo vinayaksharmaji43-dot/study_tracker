@@ -134,7 +134,7 @@ export default function Leaderboard() {
   // Available attempts for switching within student's stream
   const availableAttempts = userCourseKey === 'CA' 
     ? ['Jan 27', 'May 27', 'Sep 27']
-    : ['June 27', 'Dec 27'];
+    : ['Dec 26', 'June 27', 'Dec 27'];
 
   return (
     <div className="space-y-6">

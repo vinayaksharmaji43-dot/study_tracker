@@ -17,7 +17,7 @@ function parseStream(userProfile) {
 }
 
 function normalizeAttempt(att) {
-  return (att || '').toLowerCase().replace(/\s+/g, '').replace('2027', '27');
+  return (att || '').toLowerCase().replace(/\s+/g, '').replace('2027', '27').replace('2026', '26');
 }
 
 async function uploadToImgBB(file) {

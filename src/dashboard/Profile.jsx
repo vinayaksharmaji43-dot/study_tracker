@@ -5,6 +5,8 @@ import { useAuth } from '../contexts/AuthContext';
 import { formatDate, formatHours } from '../utils/helpers';
 import { User, Mail, GraduationCap, Calendar, Award, BookOpen, LogOut, CheckCircle, ShieldCheck, Edit3, BookOpenCheck, Sparkles, Trophy, Flame, Crown, ChevronRight } from 'lucide-react';
 import { collection, query, orderBy, onSnapshot } from 'firebase/firestore';
+import { useLevelGifts } from '../hooks/useLevelGifts';
+import { Gift, Lock as LockIcon } from 'lucide-react';
 
 export default function Profile() {
   const { userProfile, currentUser, logout, levelInfo } = useAuth();
@@ -16,6 +18,8 @@ export default function Profile() {
   const [updating, setUpdating] = useState(false);
   const [successMsg, setSuccessMsg] = useState('');
   const [deviceSlots, setDeviceSlots] = useState({ desktop: null, mobile: null });
+
+  const { availableGifts, claimedGifts, loading: giftsLoading } = useLevelGifts();
 
   useEffect(() => {
     if (userProfile) {
@@ -46,7 +50,7 @@ export default function Profile() {
     if (newCourse === 'CA') {
       if (!['Jan 27', 'May 27', 'Sep 27'].includes(attempt)) setAttempt('Jan 27');
     } else {
-      if (!['June 27', 'Dec 27'].includes(attempt)) setAttempt('June 27');
+      if (!['Dec 26', 'June 27', 'Dec 27'].includes(attempt)) setAttempt('Dec 26');
     }
   };
 
@@ -218,6 +222,90 @@ export default function Profile() {
 
       </div>
 
+      {/* Level Rewards / Gifts Section */}
+      <div className="glass-card p-6 sm:p-8 rounded-3xl border border-emerald-500/30 relative overflow-hidden shadow-2xl space-y-6">
+        <div className="absolute top-0 left-0 w-80 h-80 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
+        
+        <div className="relative z-10 flex items-center justify-between">
+          <h3 className="text-xl font-bold text-white flex items-center gap-2">
+            <Gift className="w-6 h-6 text-emerald-400" />
+            <span>My Rewards & Level Gifts</span>
+          </h3>
+        </div>
+
+        {giftsLoading ? (
+          <div className="relative z-10 text-slate-400 text-sm animate-pulse">Loading rewards...</div>
+        ) : availableGifts.length === 0 ? (
+          <div className="relative z-10 text-slate-400 text-sm">No level gifts configured for your stream yet. Keep leveling up!</div>
+        ) : (
+          <div className="relative z-10 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {availableGifts.map(gift => {
+              const isUnlocked = levelInfo.currentLevelNumber >= gift.levelNumber;
+              return (
+                <div 
+                  key={gift.id} 
+                  className={`p-4 rounded-2xl border ${isUnlocked ? 'bg-emerald-900/20 border-emerald-500/30 shadow-glow-emerald' : 'bg-navy-900/60 border-white/5 opacity-75'} flex flex-col justify-between`}
+                >
+                  <div className="space-y-2 mb-4">
+                    <div className="flex items-center justify-between">
+                      <span className={`text-xs font-black uppercase tracking-wider ${isUnlocked ? 'text-emerald-400' : 'text-slate-500'}`}>
+                        Level {gift.levelNumber} Reward
+                      </span>
+                      {isUnlocked ? (
+                        <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 text-[10px] font-bold border border-emerald-500/30 flex items-center gap-1">
+                          <CheckCircle className="w-3 h-3" /> Unlocked
+                        </span>
+                      ) : (
+                        <span className="px-2 py-0.5 rounded-full bg-slate-800 text-slate-400 text-[10px] font-bold border border-white/10 flex items-center gap-1">
+                          <LockIcon className="w-3 h-3" /> Locked
+                        </span>
+                      )}
+                    </div>
+                    <h4 className={`text-base font-bold ${isUnlocked ? 'text-white' : 'text-slate-300'}`}>
+                      {gift.title}
+                    </h4>
+                    {gift.description && (
+                      <p className="text-xs text-slate-400 line-clamp-2">
+                        {gift.description}
+                      </p>
+                    )}
+                    {gift.extraPoints > 0 && (
+                      <div className="inline-flex items-center gap-1 text-xs font-bold text-gold-400 mt-1">
+                        <Award className="w-3.5 h-3.5" /> +{gift.extraPoints} XP Bonus
+                      </div>
+                    )}
+                  </div>
+                  
+                  {isUnlocked ? (
+                    <div className="flex items-center gap-2">
+                      {(gift.type === 'pdf' || gift.type === 'both') && gift.googleDriveUrl && (
+                        <a 
+                          href={gift.googleDriveUrl} 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          className="flex-1 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition-colors flex items-center justify-center gap-2"
+                        >
+                          📄 View Gift
+                        </a>
+                      )}
+                      {(gift.type === 'points') && (
+                        <div className="flex-1 py-2 rounded-xl bg-gold-500/20 text-gold-400 border border-gold-500/30 text-xs font-bold flex items-center justify-center gap-2">
+                          <CheckCircle className="w-3.5 h-3.5" /> Points Claimed
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="w-full py-2 rounded-xl bg-navy-950 border border-white/5 text-slate-500 text-xs font-bold text-center">
+                      🔒 Unlock at Level {gift.levelNumber}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
       {/* Profile Form & Quick Stats */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
         
@@ -351,6 +439,7 @@ export default function Profile() {
                     </>
                   ) : (
                     <>
+                      <option value="Dec 26">Dec 26</option>
                       <option value="June 27">June 27</option>
                       <option value="Dec 27">Dec 27</option>
                     </>

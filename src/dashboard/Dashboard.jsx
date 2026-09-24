@@ -42,6 +42,7 @@ import {
   Lock
 } from 'lucide-react';
 import SupportModal from '../components/SupportModal';
+import Support from '../dashboard/Support';
 import FeedbackModal from '../components/FeedbackModal';
 import SectionMaintenanceModal, { SectionMaintenancePlaceholder } from '../components/SectionMaintenanceModal';
 import { useSectionLocks } from '../hooks/useSectionLocks';
@@ -50,6 +51,7 @@ import { getSectionById } from '../config/dashboardSections';
 import CountdownWidget from '../components/CountdownWidget';
 import useDailyEvaluator from '../hooks/useDailyEvaluator';
 import LevelUpModal from '../components/LevelUpModal';
+import ErrorBoundary from '../components/ErrorBoundary';
 
 export default function Dashboard() {
   const { userProfile, currentUser, logout, levelInfo, isAdmin } = useAuth();
@@ -186,7 +188,7 @@ export default function Dashboard() {
               {/* Support & Logout Buttons */}
               <div className="pt-2 border-t border-white/10 space-y-1">
                 <button
-                  onClick={() => setShowSupportModal(true)}
+                  onClick={() => { setActiveTab('support'); if(typeof setMobileMenuOpen === 'function'){setMobileMenuOpen(false);} }}
                   className="w-full flex items-center justify-between px-4 py-3 rounded-2xl text-sm font-bold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 hover:bg-emerald-500/20 transition-all cursor-pointer"
                 >
                   <div className="flex items-center space-x-3">
@@ -231,7 +233,7 @@ export default function Dashboard() {
                 onAdminOverride={() => setAdminOverrideTab(activeTab)}
               />
             ) : (
-              <>
+              <ErrorBoundary key={activeTab} fallbackMessage={`Failed to load the ${activeTab} section. Please try again.`}>
                 {activeTab === 'overview' && <Overview setActiveTab={setActiveTab} />}
                 {activeTab === 'announcements' && <Announcements />}
                 {activeTab === 'calendar' && <Calendar />}
@@ -247,7 +249,8 @@ export default function Dashboard() {
                 {activeTab === 'notes' && <Notes />}
                 {activeTab === 'doubts' && <Doubts />}
                 {activeTab === 'profile' && <Profile />}
-              </>
+                {activeTab === 'support' && <Support setActiveTab={setActiveTab} />}
+              </ErrorBoundary>
             )}
           </main>
 

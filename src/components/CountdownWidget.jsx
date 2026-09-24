@@ -41,7 +41,13 @@ export default function CountdownWidget({ setActiveTab }) {
     // CMA Logic
     else if (isCMA) {
       if (hasMonth('jun')) targetDate = new Date('2027-05-01T00:00:00');
-      else if (hasMonth('dec')) targetDate = new Date('2027-11-30T00:00:00');
+      else if (hasMonth('dec')) {
+        if (attempt.includes('26')) {
+          targetDate = new Date('2026-11-30T00:00:00');
+        } else {
+          targetDate = new Date('2027-11-30T00:00:00');
+        }
+      }
     }
 
     if (targetDate) {
@@ -62,11 +68,17 @@ export default function CountdownWidget({ setActiveTab }) {
         setDaysLeft(diffDays);
       }
 
-      // Format display string e.g. CA Foundation • Jan 2027
+      // Format display string e.g. CA Foundation • Jan 2027, CMA Intermediate • Dec 2026
       const formatAttempt = (att) => {
           if(!att) return '';
-          let a = att.replace('27', '2027');
-          if(!a.includes('2027') && !a.includes('27')) a += ' 2027';
+          let a = att;
+          if (a.includes('26')) {
+            a = a.replace('26', '2026');
+          } else if (a.includes('27')) {
+            a = a.replace('27', '2027');
+          } else if (!a.includes('2026') && !a.includes('2027')) {
+            a += ' 2027';
+          }
           return a.charAt(0).toUpperCase() + a.slice(1);
       };
       

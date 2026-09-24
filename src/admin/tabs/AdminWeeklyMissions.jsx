@@ -8,7 +8,7 @@ import EmptyState from '../../components/EmptyState';
 const COURSES = ['CA', 'CMA'];
 const LEVELS = ['Foundation', 'Intermediate'];
 const CA_ATTEMPTS = ['May 27', 'Jan 27', 'Sep 27', 'May 2027', 'Jan 2027', 'Sep 2027'];
-const CMA_ATTEMPTS = ['June 27', 'Dec 27', 'June 2027', 'December 2027'];
+const CMA_ATTEMPTS = ['Dec 26', 'June 27', 'Dec 27', 'Dec 2026', 'June 2027', 'December 2027'];
 
 function getAttempts(course) {
   return course === 'CMA' ? CMA_ATTEMPTS : CA_ATTEMPTS;

@@ -12,10 +12,13 @@ import ForgotPassword from './pages/ForgotPassword';
 import Dashboard from './dashboard/Dashboard';
 import AdminDashboard from './admin/AdminDashboard';
 
+import ErrorBoundary from './components/ErrorBoundary';
+
 export default function App() {
   return (
-    <AuthProvider>
-      <Routes>
+    <ErrorBoundary fallbackMessage="The application encountered an unexpected error. Please refresh the page.">
+      <AuthProvider>
+        <Routes>
         {/* Public Routes */}
         <Route path="/" element={<Home />} />
         <Route path="/login" element={<Login />} />
@@ -48,5 +51,6 @@ export default function App() {
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </AuthProvider>
+    </ErrorBoundary>
   );
 }

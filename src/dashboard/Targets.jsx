@@ -98,6 +98,11 @@ export default function Targets({ setActiveTab }) {
   const [subject, setSubject] = useState(defaultSubjects[0]);
   const [targetHours, setTargetHours] = useState('2.0');
   const [submitting, setSubmitting] = useState(false);
+  const [category, setCategory] = useState('stream');
+  const [customSubject, setCustomSubject] = useState('');
+  const [topicName, setTopicName] = useState('');
+  const [tasksRequired, setTasksRequired] = useState({ mcq: false, dpp: false, notes: false, practice: false });
+  const [plannedTime, setPlannedTime] = useState('');
 
   // Lock body scroll when any modal is open
   useEffect(() => {
@@ -266,14 +271,17 @@ export default function Targets({ setActiveTab }) {
     };
   }, [currentUser]);
 
-  const handleReviewTarget = (e) => {
-    e.preventDefault();
+  
+  const handleConfirmTarget = async (e) => {
+    if(e && e.preventDefault) e.preventDefault();
     if (!title.trim()) return;
-    setShowAddModal(false);
-    setShowWarningModal(true);
-  };
+    
+    const finalSubject = category === 'stream' ? subject : customSubject.trim();
+    if (!finalSubject) {
+      alert("Please enter or select a subject.");
+      return;
+    }
 
-  const handleConfirmTarget = async () => {
     try {
       setSubmitting(true);
       const todayStr = getDateKey(new Date());
@@ -281,13 +289,17 @@ export default function Targets({ setActiveTab }) {
       await addDoc(collection(db, 'targets'), {
         uid: currentUser.uid,
         title: title.trim(),
-        subject,
+        category,
+        subject: finalSubject,
+        topicName: topicName.trim(),
+        tasks: tasksRequired,
+        plannedTime: plannedTime ? parseFloat(plannedTime) : null,
         targetValue: parseFloat(targetHours) || 1.0,
         targetHours: parseFloat(targetHours) || 1.0,
         targetDate: todayStr,
         status: 'pending',
         studiedSeconds: 0,
-        locked: true,
+        locked: false,
         targetRewardGranted: false,
         targetPenaltyApplied: false,
         course: userProfile?.course || 'CA Foundation',
@@ -297,7 +309,12 @@ export default function Targets({ setActiveTab }) {
 
       setTitle('');
       setTargetHours('2.0');
-      setShowWarningModal(false);
+      setCategory('stream');
+      setCustomSubject('');
+      setTopicName('');
+      setTasksRequired({ mcq: false, dpp: false, notes: false, practice: false });
+      setPlannedTime('');
+      setShowAddModal(false);
     } catch (err) {
       console.error("Error creating target:", err);
       alert("Failed to add target. Please try again.");
@@ -307,25 +324,9 @@ export default function Targets({ setActiveTab }) {
   };
 
   // Prevent false completion: Check if student has genuinely met the target study time
-  const handleTargetAction = (target, progress) => {
-    // If completed or missed, action is blocked
-    if (target.isCompleted || target.isMissed) return;
-
-    if (!progress.isEligible) {
-      // PREVENT false completion: show explicit warning with remaining duration
-      setIncompleteModalData({ target, progress });
-      return;
-    }
-
-    // Target duration genuinely met on subject timer! Complete and reward (+3 Pts)
-    completeTarget(target);
-  };
-
-  const completeTarget = async (target) => {
-    // Strict mutual exclusivity guard: never reward twice, never reward a missed target
-    if (target.status === 'completed' || target.status === 'missed' || target.completed || target.targetRewardGranted || target.targetPenaltyApplied) {
-      return;
-    }
+  
+  const markTarget = async (target, statusAction) => {
+    if (target.status === 'completed' || target.status === 'half_completed' || target.status === 'missed') return;
 
     try {
       const batch = writeBatch(db);
@@ -334,42 +335,78 @@ export default function Targets({ setActiveTab }) {
       const txRef = doc(collection(db, 'pointTransactions'));
       const todayStr = getDateKey(new Date());
 
-      // Update target doc
+      const todayKey = getDateKey(new Date());
+      const todaySessions = sessions.filter(s => s.date === todayKey);
+      let totalStudiedTodaySeconds = todaySessions.reduce((acc, curr) => acc + (curr.duration || 0), 0);
+      
+      if (activeTimerState?.isActive && activeTimerState.startTime) {
+        const elapsed = Math.floor((Date.now() - activeTimerState.startTime) / 1000);
+        totalStudiedTodaySeconds += elapsed;
+      }
+      
+      let pointsToAward = 0;
+      let reason = '';
+      let newStatus = '';
+      let isPenalty = false;
+
+      if (statusAction === 'done') {
+        newStatus = 'completed';
+        if (totalStudiedTodaySeconds >= 14400) {
+          pointsToAward = 10;
+          reason = 'Daily Target Completed (>= 4 hrs)';
+        }
+      } else if (statusAction === 'half_done') {
+        newStatus = 'half_completed';
+        if (totalStudiedTodaySeconds >= 14400) {
+          pointsToAward = 5;
+          reason = 'Daily Target Half Done (>= 4 hrs)';
+        }
+      } else if (statusAction === 'missed') {
+        newStatus = 'missed';
+        pointsToAward = -3;
+        reason = 'Daily Target Missed';
+        isPenalty = true;
+      }
+
       batch.update(targetRef, {
-        status: 'completed',
-        completed: true,
-        targetRewardGranted: true,
+        status: newStatus,
+        completed: statusAction === 'done' || statusAction === 'half_done',
+        targetRewardGranted: pointsToAward > 0,
+        targetPenaltyApplied: isPenalty,
         completedAt: serverTimestamp()
       });
 
-      // Update user points: +3 Points
-      batch.update(userRef, {
-        points: increment(3)
-      });
+      if (pointsToAward !== 0) {
+        batch.update(userRef, {
+          points: increment(pointsToAward)
+        });
 
-      // Log transaction: +3 Points
-      batch.set(txRef, {
-        studentId: currentUser.uid,
-        amount: 3,
-        type: 'reward',
-        reason: 'Daily Target Completed',
-        sourceId: target.id,
-        targetTitle: target.title,
-        subject: target.subject,
-        date: todayStr,
-        createdAt: serverTimestamp()
-      });
+        batch.set(txRef, {
+          studentId: currentUser.uid,
+          amount: pointsToAward,
+          type: isPenalty ? 'penalty' : 'reward',
+          reason: reason,
+          sourceId: target.id,
+          targetTitle: target.title,
+          subject: target.subject,
+          date: todayStr,
+          createdAt: serverTimestamp()
+        });
+      }
 
       await batch.commit();
 
-      setRewardToast({
-        title: target.title,
-        subject: target.subject
-      });
-      setTimeout(() => setRewardToast(null), 4500);
+      if (pointsToAward !== 0) {
+        setRewardToast({
+          title: target.title,
+          subject: target.subject,
+          points: pointsToAward
+        });
+        setTimeout(() => setRewardToast(null), 4500);
+      }
     } catch (err) {
       console.error("Error updating target status:", err);
-      alert("Failed to claim target. Please try again.");
+      alert("Failed to update target. Please try again.");
     }
   };
 
@@ -388,17 +425,38 @@ export default function Targets({ setActiveTab }) {
   const enrichedTargets = targets.map(t => {
     const targetDateKey = t.targetDate || (t.createdAt?.toDate ? getDateKey(t.createdAt.toDate()) : todayKey);
     const isCompleted = t.status === 'completed' || t.completed === true || t.targetRewardGranted === true;
-    const isMissed = !isCompleted && (t.status === 'missed' || t.targetPenaltyApplied === true || (targetDateKey && targetDateKey < todayKey));
-    const isPending = !isCompleted && !isMissed;
+    const isHalfCompleted = t.status === 'half_completed';
+    const isMissed = !isCompleted && !isHalfCompleted && (t.status === 'missed' || t.targetPenaltyApplied === true || (targetDateKey && targetDateKey < todayKey));
+    const isPending = !isCompleted && !isHalfCompleted && !isMissed;
     const progress = calculateTargetProgress(t, sessions, activeTimerState);
+
+    let subjectStudiedSeconds = 0;
+    const todaySessions = sessions.filter(s => s.date === todayKey);
+    todaySessions.forEach(s => {
+      if (isSubjectMatch(s.subject, t.subject)) {
+        subjectStudiedSeconds += (s.duration || 0);
+      }
+    });
+    if (activeTimerState?.isActive && activeTimerState.startTime && isSubjectMatch(activeTimerState.selectedSubject, t.subject)) {
+      const elapsed = Math.floor((Date.now() - activeTimerState.startTime) / 1000);
+      subjectStudiedSeconds += elapsed;
+    }
+
+    const requiresTimer = t.category !== 'other';
+    const has20Mins = subjectStudiedSeconds >= 1200;
+    const isLocked = requiresTimer && !has20Mins;
 
     return {
       ...t,
       isCompleted,
+      isHalfCompleted,
       isMissed,
       isPending,
       targetDateKey,
-      progress
+      progress,
+      isLocked,
+      requiresTimer,
+      subjectStudiedSeconds
     };
   });
 
@@ -452,9 +510,9 @@ export default function Targets({ setActiveTab }) {
         {hubTab === 'targets' && (
           <div className="flex items-center gap-3 p-3 rounded-2xl glass-card border border-purple-500/20 text-xs">
             <div className="flex items-center gap-3 text-slate-300">
-              <div>Attempted: <strong className="text-white">{testSummary.attempted}</strong></div>
-              <div>Avg: <strong className="text-purple-300">{testSummary.avgScore.toFixed(0)}%</strong></div>
-              <div>Best: <strong className="text-emerald-400">{testSummary.bestScore.toFixed(0)}%</strong></div>
+              <div>Attempted: <strong className="text-white">{testSummary?.attempted ?? 0}</strong></div>
+              <div>Avg: <strong className="text-purple-300">{Number(testSummary?.avgScore || 0).toFixed(0)}%</strong></div>
+              <div>Best: <strong className="text-emerald-400">{Number(testSummary?.bestScore || 0).toFixed(0)}%</strong></div>
             </div>
             <button
               onClick={() => setHubTab('test_tracker')}
@@ -502,43 +560,52 @@ export default function Targets({ setActiveTab }) {
             </div>
           </div>
 
-          {/* OFFICIAL TARGET POINTS RULES BANNER */}
-          <div className="p-4 sm:p-5 rounded-3xl bg-gradient-to-r from-emerald-500/10 via-navy-900 to-rose-500/10 border border-white/10 flex flex-col md:flex-row md:items-center justify-between gap-4 shadow-xl">
-            <div className="flex items-start sm:items-center gap-3.5">
-              <div className="w-12 h-12 rounded-2xl bg-gold-500/20 text-gold-400 border border-gold-500/30 flex items-center justify-center font-black text-xl shrink-0 shadow-[0_0_15px_rgba(245,158,11,0.2)]">
-                🎯
+          {/* 📋 TARGET RULES PANEL */}
+          <div className="p-5 rounded-3xl bg-gradient-to-br from-navy-900 to-navy-950 border border-emerald-500/20 shadow-xl mb-6">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center font-black shadow-[0_0_15px_rgba(16,185,129,0.2)]">
+                📋
               </div>
-              <div className="space-y-0.5">
-                <div className="flex items-center gap-2">
-                  <h3 className="text-sm font-black text-white tracking-wide">Target Points System</h3>
-                  <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-gold-500/20 text-gold-300 border border-gold-500/30">
-                    Official
-                  </span>
-                </div>
-                <p className="text-xs text-slate-300">
-                  Scores are computed exclusively from verified <strong className="text-white">subject study timer</strong> hours logged on the assigned day.
-                </p>
+              <div>
+                <h3 className="text-base font-black text-white">Target Rules</h3>
+                <p className="text-xs text-slate-400">Strictly enforced for verified points</p>
               </div>
             </div>
-
-            {/* Visual Points Rule Pills */}
-            <div className="flex flex-wrap items-center gap-3 shrink-0">
-              <div className="flex items-center gap-2.5 px-4 py-2.5 rounded-2xl bg-emerald-500/15 border border-emerald-500/40 text-emerald-300 shadow-sm">
-                <span className="text-lg">🎯</span>
-                <div className="text-left">
-                  <div className="text-[10px] uppercase font-bold text-emerald-400/90">Target Reward</div>
-                  <div className="text-sm font-black text-emerald-300">+3 Points</div>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-2.5 px-4 py-2.5 rounded-2xl bg-rose-500/15 border border-rose-500/40 text-rose-300 shadow-sm">
-                <span className="text-lg">⚠️</span>
-                <div className="text-left">
-                  <div className="text-[10px] uppercase font-bold text-rose-400/90">Target Missed</div>
-                  <div className="text-sm font-black text-rose-300">-3 Points</div>
-                </div>
-              </div>
-            </div>
+            
+            <ul className="space-y-2.5 text-sm text-slate-300">
+              <li className="flex items-start gap-2">
+                <span className="text-emerald-400 mt-0.5">•</span>
+                <span><strong className="text-white">Minimum 4 hours</strong> verified study daily is mandatory to earn points for targets.</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="text-emerald-400 mt-0.5">•</span>
+                <span>Every Subject Target requires at least <strong className="text-emerald-400">20 minutes</strong> of verified study on that same subject.</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="text-emerald-400 mt-0.5">•</span>
+                <span>The 20 minutes must be recorded through the <strong className="text-white">Study Timer</strong>.</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="text-emerald-400 mt-0.5">•</span>
+                <span>The Done button unlocks <strong className="text-amber-400">only after</strong> the 20-minute requirement is completed.</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="text-emerald-400 mt-0.5">•</span>
+                <span>Subject timer minutes are calculated separately for each subject.</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="text-emerald-400 mt-0.5">•</span>
+                <span>All verified subject study time contributes toward the daily 4-hour requirement.</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="text-emerald-400 mt-0.5">•</span>
+                <span>"Other" Targets have no timer requirement and can be completed directly.</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="text-emerald-400 mt-0.5">•</span>
+                <span>Only verified Study Timer time counts toward study hours.</span>
+              </li>
+            </ul>
           </div>
 
           {/* Quick Stats Grid */}
@@ -552,11 +619,11 @@ export default function Targets({ setActiveTab }) {
               <span className="text-xl font-black text-royal-400">{pendingTargets.length}</span>
             </div>
             <div className="p-3.5 rounded-2xl glass-card border border-emerald-500/20 bg-emerald-500/5 flex flex-col gap-0.5">
-              <span className="text-[10px] font-black uppercase tracking-wider text-emerald-400">Completed (+3)</span>
+              <span className="text-[10px] font-black uppercase tracking-wider text-emerald-400">Completed / Half Done</span>
               <span className="text-xl font-black text-emerald-400">{completedTargets.length}</span>
             </div>
             <div className="p-3.5 rounded-2xl glass-card border border-rose-500/20 bg-rose-500/5 flex flex-col gap-0.5">
-              <span className="text-[10px] font-black uppercase tracking-wider text-rose-400">Missed (-3)</span>
+              <span className="text-[10px] font-black uppercase tracking-wider text-rose-400">Missed</span>
               <span className="text-xl font-black text-rose-400">{missedTargets.length}</span>
             </div>
           </div>
@@ -571,12 +638,12 @@ export default function Targets({ setActiveTab }) {
                 <div>
                   <h4 className="text-sm font-bold text-white">Target Completed! 🎉</h4>
                   <p className="text-xs text-emerald-300">
-                    <strong className="text-white">+3 Points</strong> added to your profile for <strong className="text-white">{rewardToast.subject}</strong> ({rewardToast.title}).
+                    <strong className="text-white">+{rewardToast.points} Points</strong> added to your profile for <strong className="text-white">{rewardToast.subject}</strong> ({rewardToast.title}).
                   </p>
                 </div>
               </div>
               <span className="text-xs font-black px-3 py-1.5 rounded-xl bg-emerald-500 text-navy-950">
-                +3 PTS
+                +{rewardToast.points} PTS
               </span>
             </div>
           )}
@@ -590,8 +657,8 @@ export default function Targets({ setActiveTab }) {
             {[
               { id: 'all', label: `All (${targets.length})` },
               { id: 'pending', label: `Pending (${pendingTargets.length})` },
-              { id: 'completed', label: `Completed (+3) (${completedTargets.length})` },
-              { id: 'missed', label: `Missed (-3) (${missedTargets.length})` }
+              { id: 'completed', label: `Completed (${completedTargets.length})` },
+              { id: 'missed', label: `Missed (${missedTargets.length})` }
             ].map((f) => (
               <button
                 key={f.id}
@@ -669,12 +736,14 @@ export default function Targets({ setActiveTab }) {
                                   : 'bg-royal-500/20 text-royal-300 border border-royal-500/30'
                           }`}>
                             {isCompleted 
-                              ? '✅ Completed (+3)' 
-                              : isMissed
-                                ? '❌ Missed (-3)'
-                                : progress.isEligible 
-                                  ? '🎯 Ready to Complete (+3)' 
-                                  : '⏳ Pending'
+                              ? '✅ Completed' 
+                              : isHalfCompleted
+                                ? '✅ Half Done'
+                                : isMissed
+                                  ? '❌ Missed'
+                                  : progress.isEligible 
+                                    ? '🎯 Ready to Complete' 
+                                    : '⏳ Pending'
                             }
                           </span>
 
@@ -686,7 +755,7 @@ export default function Targets({ setActiveTab }) {
                           )}
                         </div>
 
-                        {isCompleted ? (
+                        {isCompleted || isHalfCompleted ? (
                           <Award className="w-5 h-5 text-emerald-400 shrink-0" />
                         ) : isMissed ? (
                           <XCircle className="w-5 h-5 text-rose-400 shrink-0" />
@@ -696,7 +765,7 @@ export default function Targets({ setActiveTab }) {
                       </div>
 
                       {/* Title & Subject */}
-                      <h3 className={`text-base font-bold mb-1.5 leading-snug ${isCompleted ? 'text-slate-300 line-through' : isMissed ? 'text-slate-400' : 'text-white'}`}>
+                      <h3 className={`text-base font-bold mb-1.5 leading-snug ${isCompleted || isHalfCompleted ? 'text-slate-300 line-through' : isMissed ? 'text-slate-400' : 'text-white'}`}>
                         {target.title}
                       </h3>
 
@@ -720,7 +789,7 @@ export default function Targets({ setActiveTab }) {
                         <div className="w-full bg-navy-900 h-2.5 rounded-full overflow-hidden border border-white/10 p-0.5">
                           <div 
                             className={`h-full rounded-full transition-all duration-500 ${
-                              isCompleted || progress.isEligible 
+                              isCompleted || isHalfCompleted || progress.isEligible 
                                 ? 'bg-gradient-to-r from-emerald-500 to-teal-400 shadow-glow-emerald' 
                                 : isMissed
                                   ? 'bg-gradient-to-r from-rose-500 to-red-600'
@@ -732,18 +801,20 @@ export default function Targets({ setActiveTab }) {
 
                         <div className="flex items-center justify-between text-[11px] pt-0.5">
                           <span className={`font-black ${
-                            isCompleted ? 'text-emerald-400' : isMissed ? 'text-rose-400' : progress.isEligible ? 'text-emerald-400' : 'text-gold-400'
+                            (isCompleted || isHalfCompleted) ? 'text-emerald-400' : isMissed ? 'text-rose-400' : progress.isEligible ? 'text-emerald-400' : 'text-gold-400'
                           }`}>
-                            {progress.progressPct}% {isCompleted ? 'Achieved' : isMissed ? 'Incomplete' : 'Complete'}
+                            {progress.progressPct}% {(isCompleted || isHalfCompleted) ? 'Achieved' : isMissed ? 'Incomplete' : 'Complete'}
                           </span>
 
                           <span className="font-semibold text-slate-400">
                             {isCompleted ? (
-                              <span className="text-emerald-400 font-bold">Target Completed +3 Points</span>
+                              <span className="text-emerald-400 font-bold">Completed (+10 Points)</span>
+                            ) : isHalfCompleted ? (
+                              <span className="text-emerald-400 font-bold">Half Done (+5 Points)</span>
                             ) : isMissed ? (
-                              <span className="text-rose-400 font-bold">Target Missed -3 Points</span>
+                              <span className="text-rose-400 font-bold">Target Missed (-3 Points)</span>
                             ) : progress.isEligible ? (
-                              <span className="text-emerald-400 font-bold">Ready to Claim (+3 Pts)!</span>
+                              <span className="text-emerald-400 font-bold">Ready to Claim!</span>
                             ) : (
                               <span>Remaining: <strong className="text-amber-300">{progress.remainingHuman}</strong></span>
                             )}
@@ -752,13 +823,29 @@ export default function Targets({ setActiveTab }) {
                       </div>
 
                       {/* Target Meta Details */}
-                      <div className="text-[11px] text-slate-500 flex items-center justify-between mb-4">
-                        <span>Assigned Date: {target.targetDateKey || 'Today'}</span>
-                        <span className={`font-bold ${
-                          isCompleted ? 'text-emerald-400' : isMissed ? 'text-rose-400' : 'text-gold-400'
-                        }`}>
-                          {isCompleted ? 'Rewarded: +3 Pts' : isMissed ? 'Deducted: -3 Pts' : 'Reward: +3 Pts'}
-                        </span>
+                      <div className="text-[11px] text-slate-500 flex flex-col gap-1 mb-4">
+                        <div className="flex items-center justify-between">
+                          <span>Assigned Date: {target.targetDateKey || 'Today'}</span>
+                          <span className={`font-bold ${
+                            isCompleted || isHalfCompleted ? 'text-emerald-400' : isMissed ? 'text-rose-400' : 'text-gold-400'
+                          }`}>
+                            {isCompleted ? 'Done' : isHalfCompleted ? 'Half Done' : isMissed ? 'Missed' : 'Pending'}
+                          </span>
+                        </div>
+                        {target.topicName && (
+                          <div><span className="text-slate-400 font-bold">Topic:</span> <span className="text-white">{target.topicName}</span></div>
+                        )}
+                        {target.plannedTime && (
+                          <div><span className="text-slate-400 font-bold">Planned Time:</span> <span className="text-white">{target.plannedTime} hrs</span></div>
+                        )}
+                        {target.tasks && typeof target.tasks === 'object' && Object.values(target.tasks).some(Boolean) && (
+                          <div className="flex gap-1.5 flex-wrap mt-1">
+                             {(target.tasks || {}).mcq && <span className="px-1.5 py-0.5 rounded bg-white/5 border border-white/10 text-[9px]">MCQ</span>}
+                             {(target.tasks || {}).dpp && <span className="px-1.5 py-0.5 rounded bg-white/5 border border-white/10 text-[9px]">DPP</span>}
+                             {(target.tasks || {}).notes && <span className="px-1.5 py-0.5 rounded bg-white/5 border border-white/10 text-[9px]">Notes</span>}
+                             {(target.tasks || {}).practice && <span className="px-1.5 py-0.5 rounded bg-white/5 border border-white/10 text-[9px]">Practice</span>}
+                          </div>
+                        )}
                       </div>
                     </div>
 
@@ -767,7 +854,12 @@ export default function Targets({ setActiveTab }) {
                       {isCompleted ? (
                         <div className="w-full py-2.5 rounded-xl bg-emerald-500/10 text-emerald-400 text-xs font-black flex items-center justify-center gap-1.5 border border-emerald-500/20 cursor-default">
                           <CheckCircle2 className="w-4 h-4" />
-                          <span>Target Completed (+3 Points)</span>
+                          <span>Target Completed (+10 Points)</span>
+                        </div>
+                      ) : isHalfCompleted ? (
+                        <div className="w-full py-2.5 rounded-xl bg-teal-500/10 text-teal-400 text-xs font-black flex items-center justify-center gap-1.5 border border-teal-500/20 cursor-default">
+                          <CheckCircle2 className="w-4 h-4" />
+                          <span>Target Half Done (+5 Points)</span>
                         </div>
                       ) : isMissed ? (
                         <div className="w-full py-2.5 rounded-xl bg-rose-500/10 text-rose-400 text-xs font-black flex items-center justify-center gap-1.5 border border-rose-500/20 cursor-default">
@@ -776,34 +868,42 @@ export default function Targets({ setActiveTab }) {
                         </div>
                       ) : (
                         <>
-                          {progress.isEligible ? (
-                            /* Unlocked: Ready to complete */
-                            <button
-                              onClick={() => completeTarget(target)}
-                              className="w-full py-3 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-400 hover:from-emerald-400 hover:to-teal-300 text-navy-950 text-xs font-black shadow-glow-emerald flex items-center justify-center gap-1.5 transition-all cursor-pointer animate-bounce-subtle"
-                            >
-                              <Sparkles className="w-4 h-4" />
-                              <span>✨ Claim Target (+3 Points)</span>
-                            </button>
+                          {target.isLocked ? (
+                            <div className="w-full py-2.5 rounded-xl bg-navy-800 border border-white/10 text-slate-400 text-xs font-bold flex items-center justify-center gap-1.5 cursor-not-allowed">
+                              <Lock className="w-3.5 h-3.5 text-slate-500" />
+                              <span>🔒 Study 20 min to complete</span>
+                            </div>
                           ) : (
-                            /* Locked: Clicking triggers prevent false completion warning */
-                            <button
-                              onClick={() => handleTargetAction(target, progress)}
-                              className="w-full py-2.5 rounded-xl bg-navy-800 hover:bg-navy-700/80 border border-white/10 text-slate-300 text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer group"
-                            >
-                              <Lock className="w-3.5 h-3.5 text-amber-400 group-hover:scale-110 transition-transform" />
-                              <span>Complete (+3 Points)</span>
-                              <span className="text-[10px] text-amber-400/80 font-medium">({progress.remainingHuman} left)</span>
-                            </button>
+                            <div className="grid grid-cols-2 gap-2">
+                              <button
+                                onClick={() => markTarget(target, 'done')}
+                                className="w-full py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-400 hover:from-emerald-400 hover:to-teal-300 text-navy-950 text-xs font-black shadow-glow-emerald flex items-center justify-center gap-1.5 transition-all cursor-pointer"
+                              >
+                                <span>✅ Done</span>
+                              </button>
+                              <button
+                                onClick={() => markTarget(target, 'half_done')}
+                                className="w-full py-2.5 rounded-xl bg-teal-500/20 hover:bg-teal-500/30 text-teal-300 border border-teal-500/30 text-xs font-bold flex items-center justify-center transition-all cursor-pointer"
+                              >
+                                <span>Half Done</span>
+                              </button>
+                            </div>
                           )}
+
+                          <button
+                            onClick={() => markTarget(target, 'missed')}
+                            className="w-full py-2 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20 text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer mt-2"
+                          >
+                            <span>Mark Missed</span>
+                          </button>
 
                           {/* Quick Start Timer Button for this Subject */}
                           <button
                             onClick={() => handleQuickStudy(target.subject)}
-                            className="w-full py-2 rounded-xl bg-royal-600/20 hover:bg-royal-600/30 text-royal-300 hover:text-white border border-royal-500/30 text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer"
+                            className="w-full py-2 rounded-xl bg-royal-600/20 hover:bg-royal-600/30 text-royal-300 hover:text-white border border-royal-500/30 text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer mt-2"
                           >
                             <Play className="w-3 h-3 fill-current" />
-                            <span>Study {target.subject.split(':')[0]} on Timer</span>
+                            <span>Study {(target.subject || 'Subject').split(':')[0]} on Timer</span>
                           </button>
                         </>
                       )}
@@ -831,7 +931,17 @@ export default function Targets({ setActiveTab }) {
                   </button>
                 </div>
 
-                <form onSubmit={handleReviewTarget} className="space-y-4">
+                <form onSubmit={handleConfirmTarget} className="space-y-4">
+                  <div className="p-3 rounded-xl bg-navy-950 border border-white/5 space-y-2">
+                    <h3 className="text-xs font-bold text-white mb-2">Points System</h3>
+                    <p className="text-[11px] text-slate-400">You must complete <strong>&gt;= 4 hours of total study time today</strong> to qualify for points when marking a target as DONE or HALF DONE.</p>
+                    <ul className="text-[11px] text-slate-300 list-disc list-inside">
+                      <li>DONE (4+ hrs today) = <strong>+10 Points</strong></li>
+                      <li>HALF DONE (4+ hrs today) = <strong>+5 Points</strong></li>
+                      <li>MARK MISSED / PENDING = <strong>-3 Points</strong></li>
+                    </ul>
+                  </div>
+
                   <div className="space-y-1.5">
                     <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Target Title / Description</label>
                     <input
@@ -839,46 +949,103 @@ export default function Targets({ setActiveTab }) {
                       required
                       value={title}
                       onChange={(e) => setTitle(e.target.value)}
-                      placeholder="e.g. Complete Chapter 4 Practice Problems"
+                      placeholder="e.g. Complete Chapter 4"
                       className="w-full px-4 py-3 rounded-xl bg-navy-900 border border-white/10 text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500/50 transition-colors"
                     />
                   </div>
 
                   <div className="space-y-1.5">
-                    <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Target Subject (Connected to Timer)</label>
+                    <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Category</label>
                     <select
-                      value={subject}
-                      onChange={(e) => setSubject(e.target.value)}
+                      value={category}
+                      onChange={(e) => setCategory(e.target.value)}
                       className="w-full px-4 py-3 rounded-xl bg-navy-900 border border-white/10 text-white focus:outline-none focus:border-emerald-500/50 transition-colors appearance-none cursor-pointer"
                     >
-                      {subjects.map(s => (
-                        <option key={s} value={s}>{s}</option>
-                      ))}
+                      <option value="stream">Your Stream</option>
+                      <option value="other">Other (Optional)</option>
                     </select>
-                    <p className="text-[11px] text-slate-500">
-                      Only study timer hours logged for this specific subject will count towards this target.
-                    </p>
+                  </div>
+
+                  {category === 'stream' ? (
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Subject</label>
+                      <select
+                        value={subject}
+                        onChange={(e) => setSubject(e.target.value)}
+                        className="w-full px-4 py-3 rounded-xl bg-navy-900 border border-white/10 text-white focus:outline-none focus:border-emerald-500/50 transition-colors appearance-none cursor-pointer"
+                      >
+                        {subjects.map(s => (
+                          <option key={s} value={s}>{s}</option>
+                        ))}
+                      </select>
+                    </div>
+                  ) : (
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Custom Subject</label>
+                      <input
+                        type="text"
+                        required
+                        value={customSubject}
+                        onChange={(e) => setCustomSubject(e.target.value)}
+                        placeholder="e.g. Graduation subject"
+                        className="w-full px-4 py-3 rounded-xl bg-navy-900 border border-white/10 text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500/50 transition-colors"
+                      />
+                    </div>
+                  )}
+
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Topic Name (Optional)</label>
+                    <input
+                      type="text"
+                      value={topicName}
+                      onChange={(e) => setTopicName(e.target.value)}
+                      placeholder="e.g. Differentiation"
+                      className="w-full px-4 py-3 rounded-xl bg-navy-900 border border-white/10 text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500/50 transition-colors"
+                    />
                   </div>
 
                   <div className="space-y-1.5">
-                    <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Required Study Duration (Hours)</label>
+                    <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Optional Tasks</label>
+                    <div className="grid grid-cols-2 gap-2 text-sm text-slate-300">
+                      <label className="flex items-center gap-2 cursor-pointer">
+                        <input type="checkbox" checked={tasksRequired.mcq} onChange={(e) => setTasksRequired({...tasksRequired, mcq: e.target.checked})} className="accent-emerald-500" /> MCQ
+                      </label>
+                      <label className="flex items-center gap-2 cursor-pointer">
+                        <input type="checkbox" checked={tasksRequired.dpp} onChange={(e) => setTasksRequired({...tasksRequired, dpp: e.target.checked})} className="accent-emerald-500" /> DPP
+                      </label>
+                      <label className="flex items-center gap-2 cursor-pointer">
+                        <input type="checkbox" checked={tasksRequired.notes} onChange={(e) => setTasksRequired({...tasksRequired, notes: e.target.checked})} className="accent-emerald-500" /> Notes Revision
+                      </label>
+                      <label className="flex items-center gap-2 cursor-pointer">
+                        <input type="checkbox" checked={tasksRequired.practice} onChange={(e) => setTasksRequired({...tasksRequired, practice: e.target.checked})} className="accent-emerald-500" /> Practice Questions
+                      </label>
+                    </div>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Planned Study Time (hrs, optional)</label>
                     <input
                       type="number"
-                      required
-                      min="0.5"
+                      min="0"
                       step="0.5"
-                      max="12"
-                      value={targetHours}
-                      onChange={(e) => setTargetHours(e.target.value)}
-                      className="w-full px-4 py-3 rounded-xl bg-navy-900 border border-white/10 text-white focus:outline-none focus:border-emerald-500/50 transition-colors"
+                      value={plannedTime}
+                      onChange={(e) => setPlannedTime(e.target.value)}
+                      placeholder="e.g. 2.5"
+                      className="w-full px-4 py-3 rounded-xl bg-navy-900 border border-white/10 text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500/50 transition-colors"
                     />
+                  </div>
+                  
+                  {/* Keep old required targetHours for backward compatibility */}
+                  <div className="space-y-1.5 hidden">
+                     <input type="hidden" value={targetHours} onChange={()=>{}} />
                   </div>
 
                   <button
                     type="submit"
-                    className="w-full mt-2 py-3.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-navy-950 font-black text-sm transition-colors cursor-pointer shadow-glow-emerald"
+                    disabled={submitting}
+                    className="w-full mt-2 py-3.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-navy-950 font-black text-sm transition-colors cursor-pointer shadow-glow-emerald disabled:opacity-50"
                   >
-                    Review & Set Target
+                    {submitting ? 'Saving...' : 'Create Target'}
                   </button>
                 </form>
               </div>
@@ -988,11 +1155,11 @@ export default function Targets({ setActiveTab }) {
 
                   <div className="flex flex-col gap-2.5 pt-2">
                     <button
-                      onClick={() => handleQuickStudy(incompleteModalData.target.subject)}
+                      onClick={() => handleQuickStudy(incompleteModalData.target?.subject)}
                       className="w-full py-3.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-400 hover:from-emerald-400 hover:to-teal-300 text-navy-950 font-black text-sm transition-all flex items-center justify-center gap-2 cursor-pointer shadow-glow-emerald"
                     >
                       <Play className="w-4 h-4 fill-current" />
-                      <span>Start {incompleteModalData.target.subject.split(':')[0]} Timer Now</span>
+                      <span>Start {(incompleteModalData.target?.subject || 'Subject').split(':')[0]} Timer Now</span>
                     </button>
                     <button
                       onClick={() => setIncompleteModalData(null)}

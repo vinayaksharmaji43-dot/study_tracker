@@ -249,7 +249,7 @@ export default function Navbar({ activeTab, setActiveTab }) {
                 <div className="flex items-center space-x-3 pl-2 border-l border-white/10">
                   {/* Support Button */}
                   <button
-                    onClick={() => setShowSupportModal(true)}
+                    onClick={() => navigate('/dashboard?tab=support')}
                     title="Student Support & Help"
                     className="p-2 rounded-xl text-emerald-400 hover:text-emerald-300 hover:bg-emerald-500/10 transition-colors flex items-center gap-1.5 text-xs font-bold border border-emerald-500/20 bg-emerald-500/5"
                   >
@@ -436,7 +436,7 @@ export default function Navbar({ activeTab, setActiveTab }) {
                           
                           <div className="pt-2 space-y-2">
                             <button 
-                              onClick={() => { setMobileActionMenuOpen(false); setShowSupportModal(true); }} 
+                              onClick={() => { setMobileActionMenuOpen(false); navigate('/dashboard?tab=support'); }} 
                               className="flex items-center gap-3 w-full rounded-xl px-3 py-2.5 text-xs font-bold text-emerald-300 bg-emerald-950/80 border border-emerald-500/40 hover:bg-emerald-900/80 transition-all cursor-pointer shadow-sm"
                             >
                               <Headphones className="w-4 h-4 text-emerald-400 shrink-0" />

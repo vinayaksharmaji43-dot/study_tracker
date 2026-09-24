@@ -64,7 +64,7 @@ export default function Register() {
   const attemptOptions = selectedCourse === 'CA'
     ? ['Jan 27', 'May 27', 'Sep 27']
     : selectedCourse === 'CMA'
-      ? ['June 27', 'Dec 27']
+      ? ['Dec 26', 'June 27', 'Dec 27']
       : [];
 
   const handleSubmit = async (e) => {
@@ -341,11 +341,11 @@ export default function Register() {
                 </div>
               )}
 
-              {/* STEP 3 — ATTEMPT (Jan 27 / May 27 / Sep 27 or June 27 / Dec 27) - Visible after Level select */}
+              {/* STEP 3 — ATTEMPT (Jan 27 / May 27 / Sep 27 or Dec 26 / June 27 / Dec 27) - Visible after Level select */}
               {selectedCourse && selectedLevel && (
                 <div className="animate-in fade-in duration-200 pt-1">
                   <div className="text-[11px] font-semibold text-slate-400 mb-2">Select Attempt:</div>
-                  <div className={`grid gap-2.5 ${selectedCourse === 'CA' ? 'grid-cols-3' : 'grid-cols-2'}`}>
+                  <div className="grid grid-cols-3 gap-2 sm:gap-2.5">
                     {attemptOptions.map((att) => (
                       <button
                         key={att}
