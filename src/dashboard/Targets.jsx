@@ -99,6 +99,17 @@ export default function Targets({ setActiveTab }) {
   const [targetHours, setTargetHours] = useState('2.0');
   const [submitting, setSubmitting] = useState(false);
 
+  // Lock body scroll when any modal is open
+  useEffect(() => {
+    if (showAddModal || showWarningModal || incompleteModalData || showHistoryModal) {
+      const originalOverflow = document.body.style.overflow;
+      document.body.style.overflow = 'hidden';
+      return () => {
+        document.body.style.overflow = originalOverflow;
+      };
+    }
+  }, [showAddModal, showWarningModal, incompleteModalData, showHistoryModal]);
+
   // 1. Fetch subjects from timerSubjects to ensure exact subject matching with Study Timer
   useEffect(() => {
     if (!userProfile) return;
@@ -806,7 +817,7 @@ export default function Targets({ setActiveTab }) {
           {/* Create Target Modal */}
           {showAddModal && (
             <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-navy-950/85 backdrop-blur-sm">
-              <div className="glass-card w-full max-w-md p-6 rounded-3xl border border-emerald-500/20 animate-in zoom-in-95 duration-200 shadow-2xl">
+              <div className="glass-card w-full max-w-md max-h-[90vh] overflow-y-auto custom-scrollbar p-6 rounded-3xl border border-emerald-500/20 animate-in zoom-in-95 duration-200 shadow-2xl">
                 <div className="flex items-center justify-between mb-6">
                   <h2 className="text-xl font-bold text-white flex items-center gap-2">
                     <Target className="w-5 h-5 text-emerald-400" />
@@ -877,7 +888,7 @@ export default function Targets({ setActiveTab }) {
           {/* Target Lock Warning Confirmation Modal */}
           {showWarningModal && (
             <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-navy-950/90 backdrop-blur-md">
-              <div className="w-full max-w-md bg-navy-900 border border-amber-500/40 rounded-3xl overflow-hidden shadow-2xl animate-in zoom-in-95 duration-200">
+              <div className="w-full max-w-md max-h-[90vh] overflow-y-auto custom-scrollbar bg-navy-900 border border-amber-500/40 rounded-3xl shadow-2xl animate-in zoom-in-95 duration-200">
                 <div className="bg-amber-500/10 p-6 border-b border-amber-500/20 text-center">
                   <div className="w-12 h-12 rounded-full bg-amber-500/20 flex items-center justify-center mx-auto mb-3 shadow-[0_0_15px_rgba(245,158,11,0.2)]">
                     <AlertTriangle className="w-6 h-6 text-amber-400" />
@@ -934,7 +945,7 @@ export default function Targets({ setActiveTab }) {
           {/* Prevent False Completion Alert Modal */}
           {incompleteModalData && (
             <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-navy-950/90 backdrop-blur-md animate-in fade-in duration-150">
-              <div className="w-full max-w-md bg-navy-900 border border-rose-500/40 rounded-3xl overflow-hidden shadow-2xl animate-in zoom-in-95 duration-200">
+              <div className="w-full max-w-md max-h-[90vh] overflow-y-auto custom-scrollbar bg-navy-900 border border-rose-500/40 rounded-3xl shadow-2xl animate-in zoom-in-95 duration-200">
                 <div className="bg-rose-500/10 p-6 border-b border-rose-500/20 text-center">
                   <div className="w-14 h-14 rounded-full bg-rose-500/20 flex items-center justify-center mx-auto mb-3 shadow-[0_0_20px_rgba(244,63,94,0.3)]">
                     <AlertTriangle className="w-7 h-7 text-rose-400 animate-pulse" />

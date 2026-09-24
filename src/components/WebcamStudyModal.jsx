@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Video, 
   Clock, 
@@ -38,6 +38,16 @@ export default function WebcamStudyModal({
   } = useRealStudyTimer(currentUser, userProfile);
 
   const [startingTimer, setStartingTimer] = useState(false);
+
+  useEffect(() => {
+    if (isOpen) {
+      const originalOverflow = document.body.style.overflow;
+      document.body.style.overflow = 'hidden';
+      return () => {
+        document.body.style.overflow = originalOverflow;
+      };
+    }
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
@@ -86,7 +96,7 @@ export default function WebcamStudyModal({
       onClick={onClose}
     >
       <div 
-        className="w-full max-w-md rounded-3xl glass-card border border-white/10 bg-navy-900/95 shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200 relative text-white"
+        className="w-full max-w-md max-h-[90vh] overflow-y-auto custom-scrollbar rounded-3xl glass-card border border-white/10 bg-navy-900/95 shadow-2xl relative text-white"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Close Button */}

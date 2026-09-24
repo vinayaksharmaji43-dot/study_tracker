@@ -1,9 +1,19 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Mail, Send, X, Copy, Check, Headphones, ExternalLink, MessageSquare } from 'lucide-react';
 
 export default function SupportModal({ isOpen, onClose, onOpenFeedback }) {
   const [copiedEmail, setCopiedEmail] = useState(false);
   const [copiedTelegram, setCopiedTelegram] = useState(false);
+
+  useEffect(() => {
+    if (isOpen) {
+      const originalOverflow = document.body.style.overflow;
+      document.body.style.overflow = 'hidden';
+      return () => {
+        document.body.style.overflow = originalOverflow;
+      };
+    }
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
@@ -24,7 +34,7 @@ export default function SupportModal({ isOpen, onClose, onOpenFeedback }) {
 
   return (
     <div className="fixed inset-0 z-[120] flex items-center justify-center p-4 bg-navy-950/85 backdrop-blur-md animate-in fade-in duration-200">
-      <div className="glass-card p-6 sm:p-8 rounded-3xl border border-emerald-500/30 max-w-md w-full shadow-2xl space-y-6 relative overflow-hidden">
+      <div className="glass-card p-6 sm:p-8 rounded-3xl border border-emerald-500/30 max-w-md w-full max-h-[90vh] overflow-y-auto custom-scrollbar shadow-2xl space-y-6 relative">
         {/* Glow backdrop */}
         <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
 

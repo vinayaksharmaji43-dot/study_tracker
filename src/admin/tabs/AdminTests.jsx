@@ -25,8 +25,8 @@ async function uploadToImgBB(file) {
 
 const COURSES = ['CA', 'CMA'];
 const LEVELS = ['Foundation', 'Intermediate'];
-const CA_ATTEMPTS = ['All Attempts', 'Jan 2027', 'May 2027', 'Sep 2027'];
-const CMA_ATTEMPTS = ['All Attempts', 'Jun 2027', 'Dec 2027'];
+const CA_ATTEMPTS = ['All Attempts', 'May 27', 'Jan 27', 'Sep 27', 'May 2027', 'Jan 2027', 'Sep 2027'];
+const CMA_ATTEMPTS = ['All Attempts', 'June 27', 'Dec 27', 'June 2027', 'December 2027'];
 
 const ALL_SUBJECTS = [
   'Paper 1: Accounting',
@@ -101,6 +101,17 @@ export default function AdminTests() {
 
     return () => unsub();
   }, []);
+
+  // Prevent background scroll when modal is open
+  useEffect(() => {
+    if (showModal || deletingId || viewPdfUrl) {
+      const originalOverflow = document.body.style.overflow;
+      document.body.style.overflow = 'hidden';
+      return () => {
+        document.body.style.overflow = originalOverflow;
+      };
+    }
+  }, [showModal, deletingId, viewPdfUrl]);
 
   const resetForm = () => {
     setEditItem(null);
@@ -389,7 +400,7 @@ export default function AdminTests() {
 
       {/* CREATE / EDIT ADMIN TEST MODAL */}
       {showModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-navy-950/85 backdrop-blur-md">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-navy-950/85 backdrop-blur-md overflow-hidden">
           <div className="glass-card p-6 sm:p-8 rounded-3xl border border-emerald-500/30 max-w-lg w-full shadow-2xl space-y-5 max-h-[90vh] overflow-y-auto relative">
             <div className="flex items-center justify-between border-b border-white/10 pb-4">
               <h3 className="text-lg font-bold text-white flex items-center gap-2">

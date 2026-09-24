@@ -37,7 +37,7 @@ function parseStream(userProfile) {
 }
 
 function normalizeAttempt(attempt) {
-  return (attempt || '').toLowerCase().replace(/\s+/g, '').replace('2027', '27');
+  return (attempt || '').toLowerCase().replace(/[^a-z0-9]/g, '').replace('2027', '27').replace('december', 'dec');
 }
 
 function announcementTime(announcement) {
@@ -59,6 +59,17 @@ export default function Announcements() {
   const [filterType, setFilterType] = useState('all'); // 'all' | 'unread' | 'images'
   const [activeImageModal, setActiveImageModal] = useState(null);
   const [markingAll, setMarkingAll] = useState(false);
+
+  // Prevent background scroll when image preview modal is open
+  useEffect(() => {
+    if (activeImageModal) {
+      const originalOverflow = document.body.style.overflow;
+      document.body.style.overflow = 'hidden';
+      return () => {
+        document.body.style.overflow = originalOverflow;
+      };
+    }
+  }, [activeImageModal]);
 
   useEffect(() => {
     if (!currentUser?.uid || !userProfile) return undefined;

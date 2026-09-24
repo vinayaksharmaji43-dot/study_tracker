@@ -64,6 +64,17 @@ export default function AdminSyllabusManager() {
     return () => unsub();
   }, [streamId]);
 
+  // Prevent background scroll when modal is open
+  useEffect(() => {
+    if (activeSubjectId) {
+      const originalOverflow = document.body.style.overflow;
+      document.body.style.overflow = 'hidden';
+      return () => {
+        document.body.style.overflow = originalOverflow;
+      };
+    }
+  }, [activeSubjectId]);
+
   // Handle initializing from local static data
   const handleInitializeDefault = async () => {
     try {
@@ -461,8 +472,8 @@ export default function AdminSyllabusManager() {
 
       {/* Add Chapter Modal */}
       {activeSubjectId && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-navy-950/85 backdrop-blur-md">
-          <div className="glass-card p-6 sm:p-8 rounded-3xl border border-white/15 max-w-md w-full shadow-2xl space-y-6">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-navy-950/85 backdrop-blur-md overflow-hidden">
+          <div className="glass-card p-6 sm:p-8 rounded-3xl border border-white/15 max-w-md w-full shadow-2xl space-y-6 max-h-[90vh] overflow-y-auto">
             
             <div className="flex items-center justify-between border-b border-white/10 pb-4">
               <h3 className="text-xl font-bold text-white flex items-center gap-2">

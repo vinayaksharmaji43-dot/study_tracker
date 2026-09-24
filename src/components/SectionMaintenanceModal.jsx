@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Wrench, Lock, X, ShieldAlert, ArrowLeft } from 'lucide-react';
 import { DEFAULT_MAINTENANCE_MESSAGE } from '../config/dashboardSections';
 
@@ -10,6 +10,16 @@ export default function SectionMaintenanceModal({
   isAdmin,
   onAdminOverride
 }) {
+  useEffect(() => {
+    if (isOpen) {
+      const originalOverflow = document.body.style.overflow;
+      document.body.style.overflow = 'hidden';
+      return () => {
+        document.body.style.overflow = originalOverflow;
+      };
+    }
+  }, [isOpen]);
+
   if (!isOpen) return null;
 
   return (
@@ -18,7 +28,7 @@ export default function SectionMaintenanceModal({
       onClick={onClose}
     >
       <div 
-        className="w-full max-w-md rounded-3xl glass-card border border-amber-500/30 bg-navy-900/95 shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200"
+        className="w-full max-w-md max-h-[90vh] overflow-y-auto custom-scrollbar rounded-3xl glass-card border border-amber-500/30 bg-navy-900/95 shadow-2xl relative animate-in zoom-in-95 duration-200"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Modal Header & Icon */}

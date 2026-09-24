@@ -7,8 +7,8 @@ import EmptyState from '../../components/EmptyState';
 
 const COURSES = ['CA', 'CMA'];
 const LEVELS = ['Foundation', 'Intermediate'];
-const CA_ATTEMPTS = ['Jan 2027', 'May 2027', 'Sep 2027'];
-const CMA_ATTEMPTS = ['June 2027', 'December 2027'];
+const CA_ATTEMPTS = ['May 27', 'Jan 27', 'Sep 27', 'May 2027', 'Jan 2027', 'Sep 2027'];
+const CMA_ATTEMPTS = ['June 27', 'Dec 27', 'June 2027', 'December 2027'];
 
 function getAttempts(course) {
   return course === 'CMA' ? CMA_ATTEMPTS : CA_ATTEMPTS;
@@ -35,8 +35,19 @@ export default function AdminWeeklyMissions() {
   const [audienceType, setAudienceType] = useState('all');
   const [course, setCourse] = useState('CA');
   const [level, setLevel] = useState('Foundation');
-  const [attempt, setAttempt] = useState('Jan 2027');
+  const [attempt, setAttempt] = useState('May 27');
   const [submitting, setSubmitting] = useState(false);
+
+  // Prevent background scroll when modal is open
+  useEffect(() => {
+    if (showModal || reviewModal) {
+      const originalOverflow = document.body.style.overflow;
+      document.body.style.overflow = 'hidden';
+      return () => {
+        document.body.style.overflow = originalOverflow;
+      };
+    }
+  }, [showModal, reviewModal]);
 
   // Review State
   const [reviewModal, setReviewModal] = useState(null);
@@ -217,8 +228,8 @@ export default function AdminWeeklyMissions() {
 
       {/* Create Modal */}
       {showModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-navy-950/85 backdrop-blur-md overflow-y-auto">
-          <div className="glass-card p-6 sm:p-8 rounded-3xl border border-white/15 max-w-xl w-full shadow-2xl space-y-6 my-8">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-navy-950/85 backdrop-blur-md overflow-hidden">
+          <div className="glass-card p-6 sm:p-8 rounded-3xl border border-white/15 max-w-xl w-full shadow-2xl space-y-6 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between border-b border-white/10 pb-4">
               <h3 className="text-xl font-bold text-white flex items-center gap-2"><Target className="w-5 h-5 text-rose-400" /><span>Create Mission</span></h3>
               <button onClick={() => setShowModal(false)} className="text-slate-400 hover:text-white font-bold">✕</button>
@@ -302,8 +313,8 @@ export default function AdminWeeklyMissions() {
 
       {/* Review Modal */}
       {reviewModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-navy-950/85 backdrop-blur-md overflow-y-auto">
-          <div className="glass-card p-6 rounded-3xl border border-white/15 max-w-lg w-full space-y-6">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-navy-950/85 backdrop-blur-md overflow-hidden">
+          <div className="glass-card p-6 rounded-3xl border border-white/15 max-w-lg w-full space-y-6 max-h-[90vh] overflow-y-auto">
             <h3 className="text-lg font-bold text-white border-b border-white/10 pb-4">Review Proof - {reviewModal.studentName}</h3>
             {reviewModal.proofUrl ? (
               <img src={reviewModal.proofUrl} alt="Proof" className="w-full rounded-xl border border-white/10 max-h-80 object-contain bg-navy-900" />

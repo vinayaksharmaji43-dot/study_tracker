@@ -80,6 +80,15 @@ export default function StudentProfileModal({ student, activeSession: initialAct
   const [currentMonthDate, setCurrentMonthDate] = useState(() => new Date());
   const [selectedDateKey, setSelectedDateKey] = useState(() => getDateKey(new Date()));
 
+  // Lock body scroll while modal is open
+  useEffect(() => {
+    const originalOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = originalOverflow;
+    };
+  }, []);
+
   const studentId = student?.studentId || student?.uid || student?.id;
 
   // 1. Level Configs Listener

@@ -32,11 +32,22 @@ export default function AdminMentorSessions() {
     audienceType: 'all', // 'all' or 'specific'
     course: 'CA',
     level: 'Foundation',
-    attempt: 'Jan 2027',
+    attempt: 'May 27',
     published: true,
   });
 
   const [saving, setSaving] = useState(false);
+
+  // Prevent background scroll when modal is open
+  useEffect(() => {
+    if (isModalOpen) {
+      const originalOverflow = document.body.style.overflow;
+      document.body.style.overflow = 'hidden';
+      return () => {
+        document.body.style.overflow = originalOverflow;
+      };
+    }
+  }, [isModalOpen]);
 
   useEffect(() => {
     const q = query(collection(db, 'mentorSessions'));
@@ -55,8 +66,8 @@ export default function AdminMentorSessions() {
   }, []);
 
   const getAttemptsForCourse = (course) => {
-    if (course === 'CA') return ['Jan 2027', 'May 2027', 'Sep 2027'];
-    if (course === 'CMA') return ['June 2027', 'December 2027'];
+    if (course === 'CA') return ['May 27', 'Jan 27', 'Sep 27', 'May 2027', 'Jan 2027', 'Sep 2027'];
+    if (course === 'CMA') return ['June 27', 'Dec 27', 'June 2027', 'December 2027'];
     return [];
   };
 
@@ -305,18 +316,24 @@ export default function AdminMentorSessions() {
       </div>
 
       {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-navy-950/85 backdrop-blur-sm overflow-y-auto">
-          <div className="bg-navy-900 border border-white/10 rounded-2xl w-full max-w-2xl shadow-2xl overflow-hidden my-8">
-            <div className="px-6 py-4 border-b border-white/10 flex justify-between items-center bg-navy-800/50 sticky top-0 z-10">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-navy-950/85 backdrop-blur-sm overflow-hidden">
+          <div className="bg-navy-900 border border-white/10 rounded-2xl w-full max-w-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh] sm:max-h-[85vh] animate-in fade-in zoom-in-95 duration-200">
+            <div className="px-6 py-4 border-b border-white/10 flex justify-between items-center bg-navy-800/50 shrink-0">
               <h3 className="text-lg font-bold text-white">
                 {editingSession ? 'Edit Mentor Session' : 'Create Mentor Session'}
               </h3>
-              <button onClick={() => setIsModalOpen(false)} className="text-slate-400 hover:text-white">
+              <button 
+                type="button"
+                onClick={() => setIsModalOpen(false)} 
+                className="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-white/5 transition-colors"
+                aria-label="Close"
+              >
                 <XCircle className="w-5 h-5" />
               </button>
             </div>
             
-            <form onSubmit={handleSubmit} className="p-6 space-y-4">
+            <form onSubmit={handleSubmit} className="flex flex-col flex-1 min-h-0 overflow-hidden">
+              <div className="p-6 space-y-4 overflow-y-auto flex-1 custom-scrollbar">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-1">
                   <label className="text-xs font-semibold text-slate-300">Session Title</label>
@@ -476,19 +493,20 @@ export default function AdminMentorSessions() {
                   <span className="text-sm font-medium text-white">Publish immediately</span>
                 </label>
               </div>
+            </div>
 
-              <div className="flex gap-3 pt-4">
+            <div className="flex gap-3 px-6 py-4 border-t border-white/10 bg-navy-900/90 shrink-0">
                 <button
                   type="button"
                   onClick={() => setIsModalOpen(false)}
-                  className="flex-1 py-3 rounded-xl border border-white/10 text-slate-300 text-sm font-bold hover:bg-white/5 transition"
+                  className="flex-1 py-3 rounded-xl border border-white/10 text-slate-300 text-sm font-bold hover:bg-white/5 transition-colors"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={saving}
-                  className="flex-1 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-bold transition disabled:opacity-50"
+                  className="flex-1 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-bold transition-colors disabled:opacity-50"
                 >
                   {saving ? 'Saving...' : 'Save Mentor Session'}
                 </button>

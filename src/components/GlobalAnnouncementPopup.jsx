@@ -6,7 +6,7 @@ import { Megaphone, CheckCircle, Clock } from 'lucide-react';
 import { formatDate } from '../utils/helpers';
 
 function normalizeAttempt(att) {
-  return (att || '').toLowerCase().replace(/\s+/g, '').replace('2027', '27');
+  return (att || '').toLowerCase().replace(/[^a-z0-9]/g, '').replace('2027', '27').replace('december', 'dec');
 }
 
 function parseStream(userProfile) {
@@ -33,6 +33,18 @@ export default function GlobalAnnouncementPopup() {
   const [loading, setLoading] = useState(true);
   const [markingRead, setMarkingRead] = useState(false);
   const [isAnnouncementPopupOpen, setIsAnnouncementPopupOpen] = useState(true);
+
+  const isModalVisible = !loading && !!unreadAnnouncement && isAnnouncementPopupOpen;
+
+  useEffect(() => {
+    if (isModalVisible) {
+      const originalOverflow = document.body.style.overflow;
+      document.body.style.overflow = 'hidden';
+      return () => {
+        document.body.style.overflow = originalOverflow;
+      };
+    }
+  }, [isModalVisible]);
 
   useEffect(() => {
     if (!currentUser?.uid || !userProfile) {
@@ -125,12 +137,12 @@ export default function GlobalAnnouncementPopup() {
   if (loading || !unreadAnnouncement || !isAnnouncementPopupOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-navy-950/90 backdrop-blur-md transition-opacity">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-3 sm:p-4 bg-navy-950/90 backdrop-blur-md transition-opacity overflow-hidden">
       <div 
-        className="w-full max-w-lg bg-navy-900 border border-rose-500/30 rounded-3xl overflow-hidden shadow-[0_0_50px_rgba(244,63,94,0.15)] animate-in fade-in zoom-in-95 duration-300"
+        className="w-full max-w-lg bg-navy-900 border border-rose-500/30 rounded-3xl overflow-hidden shadow-[0_0_50px_rgba(244,63,94,0.15)] animate-in fade-in zoom-in-95 duration-300 flex flex-col max-h-[90vh] sm:max-h-[85vh]"
       >
         {/* Header styling matching premium requirements */}
-        <div className="bg-rose-500/10 p-6 border-b border-rose-500/20 relative overflow-hidden">
+        <div className="bg-rose-500/10 p-5 sm:p-6 border-b border-rose-500/20 relative overflow-hidden shrink-0">
           <div className="absolute top-0 right-0 w-32 h-32 bg-rose-500/20 rounded-full blur-3xl pointer-events-none" />
           <div className="relative z-10 flex items-center gap-3">
             <div className="p-3 rounded-xl bg-rose-500 text-white shrink-0 shadow-lg shadow-rose-500/30">
@@ -148,7 +160,7 @@ export default function GlobalAnnouncementPopup() {
           </div>
         </div>
 
-        <div className="p-6 space-y-6">
+        <div className="p-5 sm:p-6 space-y-5 overflow-y-auto flex-1 custom-scrollbar">
           <div className="flex items-center gap-2 text-xs font-semibold text-slate-400">
              <Clock className="w-4 h-4 text-slate-500" />
              {unreadAnnouncement.createdAt?.toDate ? formatDate(unreadAnnouncement.createdAt.toDate().toISOString()) : 'Recently Published'}
@@ -158,7 +170,7 @@ export default function GlobalAnnouncementPopup() {
             <img src={unreadAnnouncement.imageUrl} alt="Announcement attachment" className="w-full max-h-64 object-cover rounded-2xl border border-white/10" />
           )}
 
-          <div className="text-slate-300 text-sm leading-relaxed whitespace-pre-wrap max-h-60 overflow-y-auto custom-scrollbar">
+          <div className="text-slate-300 text-sm leading-relaxed whitespace-pre-wrap">
             {unreadAnnouncement.message}
           </div>
 
@@ -167,7 +179,7 @@ export default function GlobalAnnouncementPopup() {
               <button
                 onClick={() => handleMarkAsRead(true)}
                 disabled={markingRead}
-                className="flex-1 py-4 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-bold text-sm transition-all shadow-lg shadow-rose-500/25 flex items-center justify-center gap-2 disabled:opacity-50"
+                className="flex-1 py-3.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-bold text-sm transition-all shadow-lg shadow-rose-500/25 flex items-center justify-center gap-2 disabled:opacity-50"
               >
                 View Announcement
               </button>
@@ -175,7 +187,7 @@ export default function GlobalAnnouncementPopup() {
             <button
               onClick={() => handleMarkAsRead(false)}
               disabled={markingRead}
-              className={`flex-1 py-4 rounded-xl font-bold text-sm transition-all flex items-center justify-center gap-2 disabled:opacity-50 ${
+              className={`flex-1 py-3.5 rounded-xl font-bold text-sm transition-all flex items-center justify-center gap-2 disabled:opacity-50 ${
                 unreadAnnouncement.link 
                   ? 'bg-navy-800 hover:bg-navy-700 text-slate-300 border border-white/10' 
                   : 'bg-rose-600 hover:bg-rose-500 text-white shadow-lg shadow-rose-500/25'

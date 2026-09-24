@@ -32,6 +32,17 @@ export default function AdminDoubts() {
     return () => unsubscribe();
   }, []);
 
+  // Lock body scroll when any modal is open
+  useEffect(() => {
+    if (deletingId || viewImagesModal) {
+      const originalOverflow = document.body.style.overflow;
+      document.body.style.overflow = 'hidden';
+      return () => {
+        document.body.style.overflow = originalOverflow;
+      };
+    }
+  }, [deletingId, viewImagesModal]);
+
   const handlePostReply = async (doubtId) => {
     if (!replyText.trim()) return;
 

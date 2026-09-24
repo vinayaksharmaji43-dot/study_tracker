@@ -31,6 +31,17 @@ export default function AdminLevels() {
   const [editBadge, setEditBadge] = useState('');
   const [editPoints, setEditPoints] = useState('');
 
+  // Prevent background scroll when modal is open
+  useEffect(() => {
+    if (editLevel) {
+      const originalOverflow = document.body.style.overflow;
+      document.body.style.overflow = 'hidden';
+      return () => {
+        document.body.style.overflow = originalOverflow;
+      };
+    }
+  }, [editLevel]);
+
   useEffect(() => {
     setLoading(true);
     const docRef = doc(db, 'levelConfigs', streamId);
@@ -284,8 +295,8 @@ export default function AdminLevels() {
 
       {/* EDIT LEVEL MODAL */}
       {editLevel && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-navy-950/85 backdrop-blur-md">
-          <div className="glass-card p-6 sm:p-8 rounded-3xl border border-gold-500/30 max-w-sm w-full shadow-2xl space-y-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-navy-950/85 backdrop-blur-md overflow-hidden">
+          <div className="glass-card p-6 sm:p-8 rounded-3xl border border-gold-500/30 max-w-sm w-full shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between border-b border-white/10 pb-3">
               <h3 className="text-base font-bold text-white flex items-center gap-2">
                 <Edit3 className="w-4 h-4 text-gold-400" />

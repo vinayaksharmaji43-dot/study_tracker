@@ -97,10 +97,10 @@ function getSubjectsForStream(stream) {
 
 function getAttemptsForStream(stream) {
   if (stream?.startsWith('CA')) {
-    return ['January 2027', 'September 2027', 'May 2027', 'All Attempts'];
+    return ['May 27', 'January 2027', 'September 2027', 'May 2027', 'Jan 27', 'Sep 27', 'All Attempts'];
   }
   if (stream?.startsWith('CMA')) {
-    return ['June 2027', 'December 2027', 'All Attempts'];
+    return ['June 27', 'Dec 27', 'June 2027', 'December 2027', 'All Attempts'];
   }
   return ['All Attempts', '2026 - 2027'];
 }
@@ -119,7 +119,7 @@ export default function AdminNotes() {
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [title, setTitle] = useState('');
   const [course, setCourse] = useState('CA Foundation');
-  const [attempt, setAttempt] = useState('January 2027');
+  const [attempt, setAttempt] = useState('May 27');
   const [subject, setSubject] = useState(CA_FOUNDATION_SUBJECTS[0]);
   const [selectedFile, setSelectedFile] = useState(null);
   const [driveUrl, setDriveUrl] = useState('');
@@ -130,6 +130,17 @@ export default function AdminNotes() {
   // Delete Confirmation State
   const [deletingMaterial, setDeletingMaterial] = useState(null);
   const [deleting, setDeleting] = useState(false);
+
+  // Prevent background scroll when modal is open
+  useEffect(() => {
+    if (showUploadModal || deletingMaterial) {
+      const originalOverflow = document.body.style.overflow;
+      document.body.style.overflow = 'hidden';
+      return () => {
+        document.body.style.overflow = originalOverflow;
+      };
+    }
+  }, [showUploadModal, deletingMaterial]);
 
   useEffect(() => {
     const q = query(collection(db, 'notes'), orderBy('createdAt', 'desc'));
@@ -157,7 +168,7 @@ export default function AdminNotes() {
   const handleOpenUploadModal = () => {
     setTitle('');
     setCourse('CA Foundation');
-    setAttempt('January 2027');
+    setAttempt('May 27');
     setSubject(CA_FOUNDATION_SUBJECTS[0]);
     setSelectedFile(null);
     setDriveUrl('');
@@ -498,178 +509,185 @@ export default function AdminNotes() {
 
       {/* Upload Study Material Modal */}
       {showUploadModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-navy-950/85 backdrop-blur-md">
-          <div className="glass-card p-6 sm:p-8 rounded-3xl border border-white/15 max-w-lg w-full shadow-2xl space-y-5 animate-in fade-in zoom-in-95 duration-200">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-navy-950/85 backdrop-blur-md overflow-hidden">
+          <div className="glass-card rounded-3xl border border-white/15 max-w-lg w-full shadow-2xl flex flex-col max-h-[90vh] sm:max-h-[85vh] overflow-hidden animate-in fade-in zoom-in-95 duration-200">
             
-            <div className="flex items-center justify-between border-b border-white/10 pb-4">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-white/10 bg-navy-900/80 shrink-0">
               <h3 className="text-xl font-bold text-white flex items-center gap-2">
                 <Upload className="w-5 h-5 text-purple-400" />
                 <span>Upload Study Material</span>
               </h3>
-              <button onClick={() => setShowUploadModal(false)} className="text-slate-400 hover:text-white font-bold">
+              <button 
+                type="button"
+                onClick={() => setShowUploadModal(false)} 
+                className="text-slate-400 hover:text-white font-bold p-1 rounded-lg hover:bg-white/5 transition-colors"
+                aria-label="Close"
+              >
                 ✕
               </button>
             </div>
 
-            <form onSubmit={handleUploadMaterial} className="space-y-4">
-              {/* Material Title */}
-              <div>
-                <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-2">
-                  Material Title *
-                </label>
-                <input
-                  type="text"
-                  required
-                  placeholder="e.g. Chapter 1 Accounting Principles & Formulas"
-                  value={title}
-                  onChange={(e) => setTitle(e.target.value)}
-                  className="w-full px-4 py-3 rounded-xl bg-navy-900 border border-white/10 text-white text-sm focus:outline-none focus:border-purple-500"
-                />
-              </div>
-
-              {/* Course & Attempt Selectors */}
-              <div className="grid grid-cols-2 gap-3">
+            <form onSubmit={handleUploadMaterial} className="flex flex-col flex-1 min-h-0 overflow-hidden">
+              <div className="flex-1 overflow-y-auto p-6 space-y-4 custom-scrollbar">
+                {/* Material Title */}
                 <div>
                   <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-2">
-                    Course *
+                    Material Title *
                   </label>
-                  <select
-                    value={course}
-                    onChange={(e) => handleCourseChange(e.target.value)}
-                    className="w-full px-3 py-2.5 rounded-xl bg-navy-900 border border-white/10 text-white text-xs font-semibold focus:outline-none focus:border-purple-500"
-                  >
-                    <option value="CA Foundation">CA Foundation</option>
-                    <option value="CA Intermediate">CA Intermediate</option>
-                    <option value="CMA Foundation">CMA Foundation</option>
-                    <option value="CMA Intermediate">CMA Intermediate</option>
-                    <option value="CMA">CMA (All)</option>
-                    <option value="All Streams">All Streams (Everyone)</option>
-                  </select>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. Chapter 1 Accounting Principles & Formulas"
+                    value={title}
+                    onChange={(e) => setTitle(e.target.value)}
+                    className="w-full px-4 py-3 rounded-xl bg-navy-900 border border-white/10 text-white text-sm focus:outline-none focus:border-purple-500"
+                  />
                 </div>
 
+                {/* Course & Attempt Selectors */}
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-2">
+                      Course *
+                    </label>
+                    <select
+                      value={course}
+                      onChange={(e) => handleCourseChange(e.target.value)}
+                      className="w-full px-3 py-2.5 rounded-xl bg-navy-900 border border-white/10 text-white text-xs font-semibold focus:outline-none focus:border-purple-500"
+                    >
+                      <option value="CA Foundation">CA Foundation</option>
+                      <option value="CA Intermediate">CA Intermediate</option>
+                      <option value="CMA Foundation">CMA Foundation</option>
+                      <option value="CMA Intermediate">CMA Intermediate</option>
+                      <option value="CMA">CMA (All)</option>
+                      <option value="All Streams">All Streams (Everyone)</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-2">
+                      Exam Attempt *
+                    </label>
+                    <select
+                      value={attempt}
+                      onChange={(e) => setAttempt(e.target.value)}
+                      className="w-full px-3 py-2.5 rounded-xl bg-navy-900 border border-white/10 text-white text-xs font-semibold focus:outline-none focus:border-purple-500"
+                    >
+                      {attemptsList.map(att => (
+                        <option key={att} value={att}>{att}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                {/* Subject Category */}
                 <div>
                   <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-2">
-                    Exam Attempt *
+                    Subject Category *
                   </label>
                   <select
-                    value={attempt}
-                    onChange={(e) => setAttempt(e.target.value)}
-                    className="w-full px-3 py-2.5 rounded-xl bg-navy-900 border border-white/10 text-white text-xs font-semibold focus:outline-none focus:border-purple-500"
+                    value={subject}
+                    onChange={(e) => setSubject(e.target.value)}
+                    className="w-full px-4 py-2.5 rounded-xl bg-navy-900 border border-white/10 text-white text-xs font-semibold focus:outline-none focus:border-purple-500"
                   >
-                    {attemptsList.map(att => (
-                      <option key={att} value={att}>{att}</option>
+                    {availableSubjects.map(sub => (
+                      <option key={sub} value={sub}>{sub}</option>
                     ))}
                   </select>
                 </div>
-              </div>
 
-              {/* Subject Category */}
-              <div>
-                <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-2">
-                  Subject Category *
-                </label>
-                <select
-                  value={subject}
-                  onChange={(e) => setSubject(e.target.value)}
-                  className="w-full px-4 py-2.5 rounded-xl bg-navy-900 border border-white/10 text-white text-xs font-semibold focus:outline-none focus:border-purple-500"
-                >
-                  {availableSubjects.map(sub => (
-                    <option key={sub} value={sub}>{sub}</option>
-                  ))}
-                </select>
-              </div>
+                {/* Upload Mode Selector */}
+                <div className="pt-2 border-t border-white/10">
+                  <div className="flex items-center gap-2 mb-3">
+                    <button
+                      type="button"
+                      onClick={() => setUploadMode('pdf')}
+                      className={`flex-1 py-2 rounded-xl text-xs font-bold transition-all ${
+                        uploadMode === 'pdf' 
+                          ? 'bg-purple-600 text-white shadow-glow-purple' 
+                          : 'bg-navy-900 text-slate-400 hover:text-white border border-white/10'
+                      }`}
+                    >
+                      Supabase PDF Upload
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setUploadMode('drive')}
+                      className={`flex-1 py-2 rounded-xl text-xs font-bold transition-all ${
+                        uploadMode === 'drive' 
+                          ? 'bg-purple-600 text-white shadow-glow-purple' 
+                          : 'bg-navy-900 text-slate-400 hover:text-white border border-white/10'
+                      }`}
+                    >
+                      Google Drive Link
+                    </button>
+                  </div>
 
-              {/* Upload Mode Selector */}
-              <div className="pt-2 border-t border-white/10">
-                <div className="flex items-center gap-2 mb-3">
-                  <button
-                    type="button"
-                    onClick={() => setUploadMode('pdf')}
-                    className={`flex-1 py-2 rounded-xl text-xs font-bold transition-all ${
-                      uploadMode === 'pdf' 
-                        ? 'bg-purple-600 text-white shadow-glow-purple' 
-                        : 'bg-navy-900 text-slate-400 hover:text-white border border-white/10'
-                    }`}
-                  >
-                    Supabase PDF Upload
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setUploadMode('drive')}
-                    className={`flex-1 py-2 rounded-xl text-xs font-bold transition-all ${
-                      uploadMode === 'drive' 
-                        ? 'bg-purple-600 text-white shadow-glow-purple' 
-                        : 'bg-navy-900 text-slate-400 hover:text-white border border-white/10'
-                    }`}
-                  >
-                    Google Drive Link
-                  </button>
+                  {uploadMode === 'pdf' ? (
+                    <div className="space-y-2">
+                      <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider">
+                        Select PDF File (Storage: {BUCKET_NAME})
+                      </label>
+                      <div className="p-4 rounded-2xl border-2 border-dashed border-purple-500/30 bg-purple-500/5 hover:border-purple-500/60 transition-colors text-center cursor-pointer">
+                        <input
+                          type="file"
+                          id="pdfInput"
+                          accept=".pdf,application/pdf"
+                          onChange={(e) => setSelectedFile(e.target.files[0] || null)}
+                          className="hidden"
+                        />
+                        <label htmlFor="pdfInput" className="cursor-pointer block space-y-2">
+                          <Upload className="w-8 h-8 text-purple-400 mx-auto" />
+                          <div className="text-sm font-bold text-white">
+                            {selectedFile ? selectedFile.name : 'Click to select PDF document'}
+                          </div>
+                          <div className="text-xs text-slate-400">
+                            {selectedFile ? `${(selectedFile.size / 1024 / 1024).toFixed(2)} MB • Ready to upload` : 'PDF files up to 50MB supported'}
+                          </div>
+                        </label>
+                      </div>
+
+                      <div className="text-[11px] text-slate-400 font-mono">
+                        Target Path: <span className="text-purple-300">{BUCKET_NAME}/{course.toLowerCase().replace(/[^a-z0-9]/g, '_')}/{attempt.toLowerCase().replace(/[^a-z0-9]/g, '_')}/[filename]</span>
+                      </div>
+                    </div>
+                  ) : (
+                    <div>
+                      <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-2">
+                        Google Drive Share Link
+                      </label>
+                      <input
+                        type="url"
+                        placeholder="https://drive.google.com/file/d/..."
+                        value={driveUrl}
+                        onChange={(e) => setDriveUrl(e.target.value)}
+                        className="w-full px-4 py-3 rounded-xl bg-navy-900 border border-white/10 text-white text-sm focus:outline-none focus:border-purple-500"
+                      />
+                    </div>
+                  )}
                 </div>
 
-                {uploadMode === 'pdf' ? (
-                  <div className="space-y-2">
-                    <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider">
-                      Select PDF File (Storage: {BUCKET_NAME})
-                    </label>
-                    <div className="p-4 rounded-2xl border-2 border-dashed border-purple-500/30 bg-purple-500/5 hover:border-purple-500/60 transition-colors text-center cursor-pointer">
-                      <input
-                        type="file"
-                        id="pdfInput"
-                        accept=".pdf,application/pdf"
-                        onChange={(e) => setSelectedFile(e.target.files[0] || null)}
-                        className="hidden"
-                      />
-                      <label htmlFor="pdfInput" className="cursor-pointer block space-y-2">
-                        <Upload className="w-8 h-8 text-purple-400 mx-auto" />
-                        <div className="text-sm font-bold text-white">
-                          {selectedFile ? selectedFile.name : 'Click to select PDF document'}
-                        </div>
-                        <div className="text-xs text-slate-400">
-                          {selectedFile ? `${(selectedFile.size / 1024 / 1024).toFixed(2)} MB • Ready to upload` : 'PDF files up to 50MB supported'}
-                        </div>
-                      </label>
-                    </div>
-
-                    <div className="text-[11px] text-slate-400 font-mono">
-                      Target Path: <span className="text-purple-300">{BUCKET_NAME}/{course.toLowerCase().replace(/[^a-z0-9]/g, '_')}/{attempt.toLowerCase().replace(/[^a-z0-9]/g, '_')}/[filename]</span>
-                    </div>
-                  </div>
-                ) : (
-                  <div>
-                    <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-2">
-                      Google Drive Share Link
-                    </label>
-                    <input
-                      type="url"
-                      placeholder="https://drive.google.com/file/d/..."
-                      value={driveUrl}
-                      onChange={(e) => setDriveUrl(e.target.value)}
-                      className="w-full px-4 py-3 rounded-xl bg-navy-900 border border-white/10 text-white text-sm focus:outline-none focus:border-purple-500"
-                    />
+                {uploadProgress && (
+                  <div className="p-3 rounded-xl bg-purple-500/20 border border-purple-500/30 text-purple-300 text-xs font-semibold flex items-center gap-2 animate-pulse">
+                    <Upload className="w-4 h-4 animate-bounce" />
+                    <span>{uploadProgress}</span>
                   </div>
                 )}
               </div>
 
-              {uploadProgress && (
-                <div className="p-3 rounded-xl bg-purple-500/20 border border-purple-500/30 text-purple-300 text-xs font-semibold flex items-center gap-2 animate-pulse">
-                  <Upload className="w-4 h-4 animate-bounce" />
-                  <span>{uploadProgress}</span>
-                </div>
-              )}
-
-              {/* Action Buttons */}
-              <div className="pt-3 flex gap-3">
+              {/* Sticky Action Buttons */}
+              <div className="flex gap-3 px-6 py-4 border-t border-white/10 bg-navy-900/90 shrink-0">
                 <button
                   type="button"
                   onClick={() => setShowUploadModal(false)}
-                  className="w-full py-3 rounded-xl border border-white/10 text-slate-300 text-sm font-semibold hover:bg-white/5"
+                  className="w-full py-3 rounded-xl border border-white/10 text-slate-300 text-sm font-semibold hover:bg-white/5 transition-colors"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={uploading}
-                  className="w-full py-3 rounded-xl bg-gradient-to-r from-purple-600 to-purple-500 hover:from-purple-500 hover:to-purple-600 text-white text-sm font-bold shadow-glow-purple disabled:opacity-50 flex items-center justify-center gap-2"
+                  className="w-full py-3 rounded-xl bg-gradient-to-r from-purple-600 to-purple-500 hover:from-purple-500 hover:to-purple-600 text-white text-sm font-bold shadow-glow-purple disabled:opacity-50 flex items-center justify-center gap-2 transition-colors"
                 >
                   {uploading ? (
                     <>
@@ -689,8 +707,8 @@ export default function AdminNotes() {
 
       {/* Delete Confirmation Modal */}
       {deletingMaterial && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-navy-950/85 backdrop-blur-md">
-          <div className="glass-card p-6 rounded-3xl border border-red-500/30 max-w-sm w-full space-y-4 text-center animate-in zoom-in-95 duration-150">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-navy-950/85 backdrop-blur-md overflow-hidden">
+          <div className="glass-card p-6 rounded-3xl border border-red-500/30 max-w-sm w-full space-y-4 text-center animate-in zoom-in-95 duration-150 max-h-[90vh] overflow-y-auto">
             <div className="w-12 h-12 rounded-2xl bg-red-500/20 text-red-400 flex items-center justify-center mx-auto">
               <AlertCircle className="w-6 h-6" />
             </div>

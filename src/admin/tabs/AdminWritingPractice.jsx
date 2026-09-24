@@ -13,15 +13,15 @@ import EmptyState from '../../components/EmptyState';
 
 const COURSES = ['CA', 'CMA'];
 const LEVELS = ['Foundation', 'Intermediate'];
-const CA_ATTEMPTS = ['All Attempts', 'Jan 2027', 'May 2027', 'Sep 2027'];
-const CMA_ATTEMPTS = ['All Attempts', 'Jun 2027', 'Dec 2027'];
+const CA_ATTEMPTS = ['All Attempts', 'May 27', 'Jan 27', 'Sep 27', 'May 2027', 'Jan 2027', 'Sep 2027'];
+const CMA_ATTEMPTS = ['All Attempts', 'June 27', 'Dec 27', 'June 2027', 'December 2027'];
 
 function getAttempts(course) {
   return course === 'CMA' ? CMA_ATTEMPTS : CA_ATTEMPTS;
 }
 
 function normalizeAttempt(att) {
-  return (att || '').toLowerCase().replace(/\s+/g, '').replace('2027', '27');
+  return (att || '').toLowerCase().replace(/[^a-z0-9]/g, '').replace('2027', '27').replace('december', 'dec');
 }
 
 const fmtDate = (ts) => {
@@ -101,6 +101,17 @@ export default function AdminWritingPractice() {
       setEvaluations(m);
     });
   }, []);
+
+  // Prevent background scroll when modal is open
+  useEffect(() => {
+    if (showCreateModal || evalModal || viewImagesModal) {
+      const originalOverflow = document.body.style.overflow;
+      document.body.style.overflow = 'hidden';
+      return () => {
+        document.body.style.overflow = originalOverflow;
+      };
+    }
+  }, [showCreateModal, evalModal, viewImagesModal]);
 
   // Create / Edit target
   const handleSaveTarget = async (e) => {
@@ -391,7 +402,7 @@ export default function AdminWritingPractice() {
 
       {/* CREATE/EDIT TARGET MODAL */}
       {showCreateModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-navy-950/85 backdrop-blur-md">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-navy-950/85 backdrop-blur-md overflow-hidden">
           <div className="glass-card p-6 rounded-3xl border border-white/15 max-w-lg w-full shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between border-b border-white/10 pb-4">
               <h3 className="text-lg font-bold text-white flex items-center gap-2"><PenLine className="w-5 h-5 text-purple-400" />{editTarget ? 'Edit Target' : 'Assign New Target'}</h3>
@@ -449,7 +460,7 @@ export default function AdminWritingPractice() {
 
       {/* EVALUATE MODAL */}
       {evalModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-navy-950/85 backdrop-blur-md">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-navy-950/85 backdrop-blur-md overflow-hidden">
           <div className="glass-card p-6 rounded-3xl border border-gold-500/30 max-w-md w-full shadow-2xl space-y-5 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between border-b border-white/10 pb-4">
               <h3 className="text-lg font-bold text-white flex items-center gap-2"><Award className="w-5 h-5 text-gold-400" /> Give Marks</h3>
@@ -508,7 +519,7 @@ export default function AdminWritingPractice() {
 
       {/* VIEW IMAGES MODAL */}
       {viewImagesModal && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-navy-950/95 backdrop-blur-md" onClick={() => setViewImagesModal(null)}>
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-navy-950/95 backdrop-blur-md overflow-hidden" onClick={() => setViewImagesModal(null)}>
           <div className="max-w-3xl w-full space-y-3 max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-2">
               <h3 className="text-white font-bold">Student Answers ({viewImagesModal.length} photos)</h3>

@@ -26,13 +26,24 @@ export default function AdminTimerSubjects() {
     subjectName: '',
     course: 'CA',
     level: 'Foundation',
-    attempt: 'Jan 2027',
+    attempt: 'May 27',
     allAttempts: false,
     active: true,
   });
 
   const [saving, setSaving] = useState(false);
   const [migrating, setMigrating] = useState(false);
+
+  // Prevent background scroll when modal is open
+  useEffect(() => {
+    if (isModalOpen) {
+      const originalOverflow = document.body.style.overflow;
+      document.body.style.overflow = 'hidden';
+      return () => {
+        document.body.style.overflow = originalOverflow;
+      };
+    }
+  }, [isModalOpen]);
 
   useEffect(() => {
     const q = query(collection(db, 'timerSubjects'));
@@ -45,8 +56,8 @@ export default function AdminTimerSubjects() {
   }, []);
 
   const getAttemptsForCourse = (course) => {
-    if (course === 'CA') return ['Jan 2027', 'May 2027', 'Sep 2027'];
-    if (course === 'CMA') return ['June 2027', 'December 2027'];
+    if (course === 'CA') return ['May 27', 'Jan 27', 'Sep 27', 'May 2027', 'Jan 2027', 'Sep 2027'];
+    if (course === 'CMA') return ['June 27', 'Dec 27', 'June 2027', 'December 2027'];
     return [];
   };
 
@@ -342,114 +353,121 @@ export default function AdminTimerSubjects() {
       </div>
 
       {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-navy-950/85 backdrop-blur-sm">
-          <div className="bg-navy-900 border border-white/10 rounded-2xl w-full max-w-lg shadow-2xl overflow-hidden">
-            <div className="px-6 py-4 border-b border-white/10 flex justify-between items-center bg-navy-800/50">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-navy-950/85 backdrop-blur-sm overflow-hidden">
+          <div className="bg-navy-900 border border-white/10 rounded-2xl w-full max-w-lg shadow-2xl overflow-hidden flex flex-col max-h-[90vh] sm:max-h-[85vh] animate-in fade-in zoom-in-95 duration-200">
+            <div className="px-6 py-4 border-b border-white/10 flex justify-between items-center bg-navy-800/50 shrink-0">
               <h3 className="text-lg font-bold text-white">
                 {editingSubject ? 'Edit Subject' : 'Add New Subject'}
               </h3>
-              <button onClick={() => setIsModalOpen(false)} className="text-slate-400 hover:text-white">
+              <button 
+                type="button"
+                onClick={() => setIsModalOpen(false)} 
+                className="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-white/5 transition-colors"
+                aria-label="Close"
+              >
                 <XCircle className="w-5 h-5" />
               </button>
             </div>
             
-            <form onSubmit={handleSubmit} className="p-6 space-y-4">
-              <div className="space-y-1">
-                <label className="text-xs font-semibold text-slate-300">Subject Name</label>
-                <input
-                  type="text"
-                  required
-                  value={formData.subjectName}
-                  onChange={e => setFormData({ ...formData, subjectName: e.target.value })}
-                  className="w-full px-3 py-2 bg-navy-950 border border-white/10 rounded-xl text-white text-sm focus:outline-none focus:border-emerald-500"
-                  placeholder="e.g. Advanced Accounting"
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
+            <form onSubmit={handleSubmit} className="flex flex-col flex-1 min-h-0 overflow-hidden">
+              <div className="p-6 space-y-4 overflow-y-auto flex-1 custom-scrollbar">
                 <div className="space-y-1">
-                  <label className="text-xs font-semibold text-slate-300">Course</label>
-                  <select
-                    value={formData.course}
-                    onChange={e => setFormData({ ...formData, course: e.target.value })}
-                    className="w-full px-3 py-2 bg-navy-950 border border-white/10 rounded-xl text-white text-sm focus:outline-none focus:border-emerald-500"
-                  >
-                    <option value="CA">CA</option>
-                    <option value="CMA">CMA</option>
-                  </select>
-                </div>
-                
-                <div className="space-y-1">
-                  <label className="text-xs font-semibold text-slate-300">Level</label>
-                  <select
-                    value={formData.level}
-                    onChange={e => setFormData({ ...formData, level: e.target.value })}
-                    className="w-full px-3 py-2 bg-navy-950 border border-white/10 rounded-xl text-white text-sm focus:outline-none focus:border-emerald-500"
-                  >
-                    <option value="Foundation">Foundation</option>
-                    <option value="Intermediate">Intermediate</option>
-                  </select>
-                </div>
-              </div>
-
-              <div className="space-y-3 pt-2">
-                <label className="flex items-center gap-2 cursor-pointer">
+                  <label className="text-xs font-semibold text-slate-300">Subject Name</label>
                   <input
-                    type="checkbox"
-                    checked={formData.allAttempts}
-                    onChange={e => setFormData({ ...formData, allAttempts: e.target.checked })}
-                    className="w-4 h-4 rounded border-white/10 bg-navy-950 text-emerald-500 focus:ring-emerald-500 focus:ring-offset-navy-900"
+                    type="text"
+                    required
+                    value={formData.subjectName}
+                    onChange={e => setFormData({ ...formData, subjectName: e.target.value })}
+                    className="w-full px-3 py-2 bg-navy-950 border border-white/10 rounded-xl text-white text-sm focus:outline-none focus:border-emerald-500"
+                    placeholder="e.g. Advanced Accounting"
                   />
-                  <span className="text-sm font-medium text-slate-300">Apply to All Attempts</span>
-                </label>
-                
-                {!formData.allAttempts && (
-                  <div className="space-y-1 pl-6">
-                    <label className="text-xs font-semibold text-slate-400">Specific Attempt</label>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-1">
+                    <label className="text-xs font-semibold text-slate-300">Course</label>
                     <select
-                      value={formData.attempt}
-                      onChange={e => setFormData({ ...formData, attempt: e.target.value })}
+                      value={formData.course}
+                      onChange={e => setFormData({ ...formData, course: e.target.value })}
                       className="w-full px-3 py-2 bg-navy-950 border border-white/10 rounded-xl text-white text-sm focus:outline-none focus:border-emerald-500"
                     >
-                      {getAttemptsForCourse(formData.course).map(attempt => (
-                        <option key={attempt} value={attempt}>{attempt}</option>
-                      ))}
+                      <option value="CA">CA</option>
+                      <option value="CMA">CMA</option>
                     </select>
                   </div>
-                )}
+                  
+                  <div className="space-y-1">
+                    <label className="text-xs font-semibold text-slate-300">Level</label>
+                    <select
+                      value={formData.level}
+                      onChange={e => setFormData({ ...formData, level: e.target.value })}
+                      className="w-full px-3 py-2 bg-navy-950 border border-white/10 rounded-xl text-white text-sm focus:outline-none focus:border-emerald-500"
+                    >
+                      <option value="Foundation">Foundation</option>
+                      <option value="Intermediate">Intermediate</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="space-y-3 pt-2">
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={formData.allAttempts}
+                      onChange={e => setFormData({ ...formData, allAttempts: e.target.checked })}
+                      className="w-4 h-4 rounded border-white/10 bg-navy-950 text-emerald-500 focus:ring-emerald-500 focus:ring-offset-navy-900"
+                    />
+                    <span className="text-sm font-medium text-slate-300">Apply to All Attempts</span>
+                  </label>
+                  
+                  {!formData.allAttempts && (
+                    <div className="space-y-1 pl-6">
+                      <label className="text-xs font-semibold text-slate-400">Specific Attempt</label>
+                      <select
+                        value={formData.attempt}
+                        onChange={e => setFormData({ ...formData, attempt: e.target.value })}
+                        className="w-full px-3 py-2 bg-navy-950 border border-white/10 rounded-xl text-white text-sm focus:outline-none focus:border-emerald-500"
+                      >
+                        {getAttemptsForCourse(formData.course).map(attempt => (
+                          <option key={attempt} value={attempt}>{attempt}</option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
+                </div>
+
+                <div className="pt-4 border-t border-white/10">
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={formData.active}
+                      onChange={e => setFormData({ ...formData, active: e.target.checked })}
+                      className="w-4 h-4 rounded border-white/10 bg-navy-950 text-emerald-500 focus:ring-emerald-500 focus:ring-offset-navy-900"
+                    />
+                    <span className="text-sm font-medium text-white">Active (Visible to Students)</span>
+                  </label>
+                  {!formData.active && (
+                    <p className="text-xs text-rose-400 mt-1 pl-6 flex items-center gap-1">
+                      <AlertTriangle className="w-3 h-3" /> Disabled subjects won't appear for new timers.
+                    </p>
+                  )}
+                </div>
               </div>
 
-              <div className="pt-4 border-t border-white/10">
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={formData.active}
-                    onChange={e => setFormData({ ...formData, active: e.target.checked })}
-                    className="w-4 h-4 rounded border-white/10 bg-navy-950 text-emerald-500 focus:ring-emerald-500 focus:ring-offset-navy-900"
-                  />
-                  <span className="text-sm font-medium text-white">Active (Visible to Students)</span>
-                </label>
-                {!formData.active && (
-                  <p className="text-xs text-rose-400 mt-1 pl-6 flex items-center gap-1">
-                    <AlertTriangle className="w-3 h-3" /> Disabled subjects won't appear for new timers.
-                  </p>
-                )}
-              </div>
-
-              <div className="flex gap-3 pt-4">
+              <div className="flex gap-3 px-6 py-4 border-t border-white/10 bg-navy-900/90 shrink-0">
                 <button
                   type="button"
                   onClick={() => setIsModalOpen(false)}
-                  className="flex-1 py-2 rounded-xl border border-white/10 text-slate-300 text-sm font-bold hover:bg-white/5 transition"
+                  className="flex-1 py-2.5 rounded-xl border border-white/10 text-slate-300 text-sm font-bold hover:bg-white/5 transition-colors"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={saving}
-                  className="flex-1 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-bold transition disabled:opacity-50"
+                  className="flex-1 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-bold transition-colors disabled:opacity-50"
                 >
-                  {saving ? 'Saving...' : 'Save Subject'}
+                  {saving ? 'Saving...' : editingSubject ? 'Update Subject' : 'Add Subject'}
                 </button>
               </div>
             </form>

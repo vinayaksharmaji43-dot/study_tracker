@@ -24,6 +24,16 @@ export default function FeedbackModal({ isOpen, onClose }) {
     }
   }, [isOpen, userProfile, currentUser]);
 
+  useEffect(() => {
+    if (isOpen) {
+      const originalOverflow = document.body.style.overflow;
+      document.body.style.overflow = 'hidden';
+      return () => {
+        document.body.style.overflow = originalOverflow;
+      };
+    }
+  }, [isOpen]);
+
   if (!isOpen) return null;
 
   const handleSubmit = async (e) => {
@@ -58,7 +68,7 @@ export default function FeedbackModal({ isOpen, onClose }) {
 
   return (
     <div className="fixed inset-0 z-[120] flex items-center justify-center p-4 bg-navy-950/85 backdrop-blur-md animate-in fade-in duration-200">
-      <div className="glass-card p-6 sm:p-8 rounded-3xl border border-royal-500/30 max-w-lg w-full shadow-2xl space-y-6 relative overflow-hidden">
+      <div className="glass-card p-6 sm:p-8 rounded-3xl border border-royal-500/30 max-w-lg w-full max-h-[90vh] overflow-y-auto custom-scrollbar shadow-2xl space-y-6 relative">
         
         {/* Glow backdrop */}
         <div className="absolute top-0 right-0 w-64 h-64 bg-royal-500/10 rounded-full blur-3xl pointer-events-none" />
