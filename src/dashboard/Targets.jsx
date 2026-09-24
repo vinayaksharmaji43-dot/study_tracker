@@ -461,12 +461,12 @@ export default function Targets({ setActiveTab }) {
   });
 
   const pendingTargets = enrichedTargets.filter(t => t.isPending);
-  const completedTargets = enrichedTargets.filter(t => t.isCompleted);
+  const completedTargets = enrichedTargets.filter(t => t.isCompleted || t.isHalfCompleted);
   const missedTargets = enrichedTargets.filter(t => t.isMissed);
 
   const displayedTargets = enrichedTargets.filter(t => {
     if (filter === 'pending') return t.isPending;
-    if (filter === 'completed') return t.isCompleted;
+    if (filter === 'completed') return t.isCompleted || t.isHalfCompleted;
     if (filter === 'missed') return t.isMissed;
     return true; // 'all'
   });
@@ -706,7 +706,7 @@ export default function Targets({ setActiveTab }) {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
               {displayedTargets.map((target) => {
-                const { progress, isCompleted, isMissed, isPending } = target;
+                const { progress, isCompleted, isHalfCompleted, isMissed, isPending } = target;
                 const isTimerActiveForThis = activeTimerState?.isActive && isSubjectMatch(activeTimerState.selectedSubject, target.subject);
 
                 return (
