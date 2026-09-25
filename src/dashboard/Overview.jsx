@@ -24,7 +24,9 @@ import {
   MessageCircle,
   Users,
   Bell,
-  Sparkles
+  Sparkles,
+  ShoppingBag,
+  ChevronRight
 } from 'lucide-react';
 import { useEffectiveMotivation } from '../hooks/useEffectiveMotivation';
 import { useRealStudyTimer } from '../hooks/useRealStudyTimer';
@@ -701,37 +703,83 @@ export default function Overview({ setActiveTab }) {
               </div>
             </button>
 
+            {/* Product Store Link in Hub */}
+            <button
+              onClick={() => setActiveTab('product')}
+              className="w-full p-4 rounded-xl bg-gradient-to-r from-amber-500/15 via-purple-500/10 to-amber-500/15 border border-amber-500/30 hover:border-amber-400/60 text-left transition-all flex items-center justify-between group shadow-sm cursor-pointer"
+            >
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-lg bg-gradient-to-tr from-amber-500 to-orange-500 text-navy-950 flex items-center justify-center shadow-sm">
+                  <ShoppingBag className="w-5 h-5" />
+                </div>
+                <div>
+                  <div className="text-sm font-bold text-white group-hover:text-amber-300 transition-colors flex items-center gap-1.5">
+                    <span>Product Store</span>
+                    <span className="text-[10px] px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30 font-black">
+                      PRO 🔒
+                    </span>
+                  </div>
+                  <div className="text-xs text-slate-400">Hand Notes, Test Series, Quizzes</div>
+                </div>
+              </div>
+              <ChevronRight className="w-4 h-4 text-amber-400 group-hover:translate-x-1 transition-transform" />
+            </button>
+
           </div>
         </div>
 
-        {/* Premium Coming Soon Section */}
-        <div className="col-span-1 lg:col-span-12 relative overflow-hidden rounded-3xl bg-gradient-to-br from-gold-500/20 to-amber-600/10 border border-gold-500/30 p-6 sm:p-8 mt-4">
-          <div className="absolute top-0 right-0 w-64 h-64 bg-gold-500/10 rounded-full blur-3xl pointer-events-none" />
-          <div className="absolute bottom-0 left-0 w-48 h-48 bg-amber-500/10 rounded-full blur-2xl pointer-events-none" />
-          
-          <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-6">
-            <div className="flex items-start gap-4">
-              <div className="p-4 rounded-2xl bg-gold-500/20 text-gold-400 shadow-[0_0_15px_rgba(250,204,21,0.2)]">
-                <span className="text-3xl">👑</span>
+        {/* ✨ NEW PRODUCT SECTION CARD (Store Showcase) */}
+        <div 
+          onClick={() => setActiveTab('product')}
+          className="col-span-1 lg:col-span-12 relative overflow-hidden rounded-3xl bg-gradient-to-r from-amber-950/40 via-[#130d2a] to-purple-950/50 border border-amber-500/40 hover:border-amber-400/80 p-6 sm:p-8 mt-4 shadow-[0_0_35px_rgba(245,158,11,0.15)] hover:shadow-[0_0_45px_rgba(245,158,11,0.25)] transition-all duration-300 cursor-pointer group"
+        >
+          <div className="absolute top-0 right-0 w-80 h-80 bg-gradient-to-br from-amber-500/15 to-purple-500/15 rounded-full blur-3xl pointer-events-none group-hover:scale-110 transition-transform duration-500" />
+          <div className="absolute bottom-0 left-1/3 w-64 h-64 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
+
+          <div className="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+            <div className="flex items-start gap-4 sm:gap-5">
+              <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-amber-500 to-orange-500 text-navy-950 flex items-center justify-center shrink-0 shadow-glow-amber group-hover:scale-105 transition-transform duration-300">
+                <ShoppingBag className="w-8 h-8 fill-current" />
               </div>
-              <div className="space-y-1">
-                <div className="flex items-center gap-2">
-                  <h3 className="text-xl font-black text-white">Premium</h3>
-                  <span className="px-2 py-0.5 rounded-full bg-gold-500/20 text-gold-300 text-[10px] font-bold uppercase tracking-wider border border-gold-500/30">
-                    Coming Soon
+
+              <div className="space-y-2">
+                <div className="flex items-center gap-2.5 flex-wrap">
+                  <h3 className="text-xl sm:text-2xl font-black text-white group-hover:text-amber-200 transition-colors">
+                    Product
+                  </h3>
+                  <span className="px-2.5 py-0.5 rounded-full bg-gradient-to-r from-amber-500/20 to-purple-500/20 text-amber-300 text-[10px] font-black uppercase tracking-wider border border-amber-500/40 flex items-center gap-1 shadow-sm">
+                    <Sparkles className="w-2.5 h-2.5 text-amber-400" />
+                    <span>Premium Store</span>
                   </span>
                 </div>
-                <p className="text-sm text-slate-300 max-w-md leading-relaxed">
-                  Exclusive premium features are on the way. We're building advanced analytics, personalized insights, and priority access to boost your study performance to the next level.
+
+                <p className="text-xs sm:text-sm text-slate-300 max-w-2xl leading-relaxed">
+                  Unlock our curated suite of premium study resources: <strong className="text-amber-300">Premium Hand Notes</strong> 🔒, <strong className="text-emerald-300">Test Series</strong> 🔒, and <strong className="text-purple-300">Premium Quiz</strong> 🔒.
                 </p>
+
+                <div className="flex items-center gap-3 pt-1 flex-wrap text-xs font-semibold text-slate-400">
+                  <span className="flex items-center gap-1 text-amber-300">
+                    <span>🔒</span> Premium Hand Notes
+                  </span>
+                  <span>•</span>
+                  <span className="flex items-center gap-1 text-emerald-300">
+                    <span>🔒</span> Test Series
+                  </span>
+                  <span>•</span>
+                  <span className="flex items-center gap-1 text-purple-300">
+                    <span>🔒</span> Premium Quiz
+                  </span>
+                </div>
               </div>
             </div>
-            <div className="w-full md:w-auto">
+
+            <div className="w-full lg:w-auto shrink-0">
               <button 
-                disabled
-                className="w-full md:w-auto px-6 py-3 rounded-xl bg-navy-900 border border-gold-500/20 text-gold-400 text-sm font-bold opacity-70 cursor-not-allowed"
+                type="button"
+                className="w-full sm:w-auto px-6 py-3.5 rounded-2xl bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 hover:from-amber-400 hover:to-orange-400 text-navy-950 text-sm font-black transition-all flex items-center justify-center gap-2 shadow-glow-amber group-hover:shadow-[0_0_30px_rgba(245,158,11,0.5)] cursor-pointer"
               >
-                Stay Tuned
+                <span>Open Product Store</span>
+                <span className="group-hover:translate-x-1 transition-transform">→</span>
               </button>
             </div>
           </div>

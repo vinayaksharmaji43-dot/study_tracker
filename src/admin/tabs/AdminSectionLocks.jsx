@@ -25,7 +25,8 @@ import {
   FileText,
   HelpCircle,
   User,
-  Info
+  Info,
+  BrainCircuit
 } from 'lucide-react';
 import { DASHBOARD_SECTIONS, DEFAULT_MAINTENANCE_MESSAGE } from '../../config/dashboardSections';
 import { useSectionLocks } from '../../hooks/useSectionLocks';
@@ -45,6 +46,7 @@ const ICON_MAP = {
   FileText,
   HelpCircle,
   User,
+  BrainCircuit,
   Layers
 };
 

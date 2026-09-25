@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
-import { BookOpen, User, Mail, Phone, Lock, GraduationCap, Calendar, CheckCircle, AlertCircle, ArrowRight, RotateCcw } from 'lucide-react';
+import { BookOpen, User, Mail, Lock, GraduationCap, Calendar, CheckCircle, AlertCircle, ArrowRight, RotateCcw } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import LoadingSpinner from '../components/LoadingSpinner';
 
@@ -78,9 +78,6 @@ export default function Register() {
     if (!formData.email.trim()) {
       return setError('Please enter a valid email address.');
     }
-    if (!formData.phone.trim() || formData.phone.trim().length < 10) {
-      return setError('Please enter a valid 10-digit mobile phone number.');
-    }
     if (formData.password.length < 6) {
       return setError('Password must be at least 6 characters long.');
     }
@@ -105,7 +102,7 @@ export default function Register() {
       await register({
         name: formData.name.trim(),
         email: formData.email.trim(),
-        phone: formData.phone.trim(),
+        phone: formData.phone?.trim() || '',
         password: formData.password,
         course: selectedCourse,
         level: selectedLevel,
@@ -192,23 +189,7 @@ export default function Register() {
               </div>
             </div>
 
-            {/* Mobile Phone Number */}
-            <div>
-              <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-2">
-                Mobile Phone Number
-              </label>
-              <div className="relative">
-                <Phone className="w-5 h-5 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
-                <input
-                  type="tel"
-                  required
-                  placeholder="10-digit mobile number (e.g. 9876543210)"
-                  value={formData.phone}
-                  onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                  className="w-full pl-11 pr-4 py-3 rounded-xl bg-navy-900/80 border border-white/10 text-white placeholder-slate-500 focus:outline-none focus:border-royal-500 focus:ring-1 focus:ring-royal-500 text-sm font-medium transition-all"
-                />
-              </div>
-            </div>
+
 
             {/* Password Grid */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

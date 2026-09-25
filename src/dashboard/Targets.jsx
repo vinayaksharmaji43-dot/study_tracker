@@ -32,8 +32,10 @@ import {
   ArrowDownRight,
   HelpCircle,
   TrendingUp,
-  X
+  X,
+  GraduationCap
 } from 'lucide-react';
+import CoachingStudyModal from '../components/CoachingStudyModal';
 import TestTracker from './TestTracker';
 import { isSubjectMatch, calculateTargetProgress, formatDurationHuman } from '../utils/subjectMatcher';
 
@@ -90,6 +92,7 @@ export default function Targets({ setActiveTab }) {
   const [showAddModal, setShowAddModal] = useState(false);
   const [showWarningModal, setShowWarningModal] = useState(false);
   const [showHistoryModal, setShowHistoryModal] = useState(false);
+  const [showCoachingModal, setShowCoachingModal] = useState(false);
   const [incompleteModalData, setIncompleteModalData] = useState(null);
   const [rewardToast, setRewardToast] = useState(null);
 
@@ -339,8 +342,8 @@ export default function Targets({ setActiveTab }) {
       const todaySessions = sessions.filter(s => s.date === todayKey);
       let totalStudiedTodaySeconds = todaySessions.reduce((acc, curr) => acc + (curr.duration || 0), 0);
       
-      if (activeTimerState?.isActive && activeTimerState.startTime) {
-        const elapsed = Math.floor((Date.now() - activeTimerState.startTime) / 1000);
+      if (activeTimerState?.isActive && activeTimerState.startTimestamp) {
+        const elapsed = Math.floor((Date.now() - activeTimerState.startTimestamp) / 1000);
         totalStudiedTodaySeconds += elapsed;
       }
       
@@ -430,20 +433,8 @@ export default function Targets({ setActiveTab }) {
     const isPending = !isCompleted && !isHalfCompleted && !isMissed;
     const progress = calculateTargetProgress(t, sessions, activeTimerState);
 
-    let subjectStudiedSeconds = 0;
-    const todaySessions = sessions.filter(s => s.date === todayKey);
-    todaySessions.forEach(s => {
-      if (isSubjectMatch(s.subject, t.subject)) {
-        subjectStudiedSeconds += (s.duration || 0);
-      }
-    });
-    if (activeTimerState?.isActive && activeTimerState.startTime && isSubjectMatch(activeTimerState.selectedSubject, t.subject)) {
-      const elapsed = Math.floor((Date.now() - activeTimerState.startTime) / 1000);
-      subjectStudiedSeconds += elapsed;
-    }
-
     const requiresTimer = t.category !== 'other';
-    const has20Mins = subjectStudiedSeconds >= 1200;
+    const has20Mins = progress.effectiveStudied >= 1200;
     const isLocked = requiresTimer && !has20Mins;
 
     return {
@@ -455,8 +446,7 @@ export default function Targets({ setActiveTab }) {
       targetDateKey,
       progress,
       isLocked,
-      requiresTimer,
-      subjectStudiedSeconds
+      requiresTimer
     };
   });
 
@@ -541,7 +531,20 @@ export default function Targets({ setActiveTab }) {
               </p>
             </div>
             
-            <div className="flex items-center gap-2.5">
+            <div className="flex items-center gap-2.5 flex-wrap">
+              <button
+                onClick={() => setShowCoachingModal(true)}
+                className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-700 hover:from-indigo-500 hover:to-purple-500 text-white text-xs sm:text-sm font-black flex items-center gap-2 transition-all shadow-[0_0_20px_rgba(99,102,241,0.35)] hover:shadow-[0_0_25px_rgba(99,102,241,0.5)] cursor-pointer group"
+              >
+                <GraduationCap className="w-4 h-4 text-indigo-200 group-hover:scale-110 transition-transform" />
+                <span>Coaching Study</span>
+                {userProfile?.coachingStudyAccess ? (
+                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse ml-0.5" title="Access Approved"></span>
+                ) : (
+                  <Lock className="w-3.5 h-3.5 text-indigo-200 ml-0.5 opacity-80" />
+                )}
+              </button>
+
               <button
                 onClick={() => setShowHistoryModal(true)}
                 className="px-4 py-2.5 rounded-xl bg-navy-900 hover:bg-navy-800 text-slate-300 border border-white/10 text-xs font-bold flex items-center gap-2 transition-all cursor-pointer"
@@ -557,6 +560,47 @@ export default function Targets({ setActiveTab }) {
                 <Plus className="w-4 h-4" />
                 <span>New Target</span>
               </button>
+            </div>
+          </div>
+
+          {/* 🎓 COACHING STUDY FEATURE CARD */}
+          <div 
+            onClick={() => setShowCoachingModal(true)}
+            className="p-4 sm:p-5 rounded-3xl bg-gradient-to-r from-indigo-950/70 via-navy-900 to-purple-950/70 border border-indigo-500/30 hover:border-indigo-500/60 shadow-xl hover:shadow-[0_0_30px_rgba(99,102,241,0.15)] transition-all cursor-pointer group mb-6 relative overflow-hidden"
+          >
+            <div className="absolute top-0 right-0 w-72 h-72 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none -mr-16 -mt-16"></div>
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 relative z-10">
+              <div className="flex items-center gap-3.5">
+                <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white shadow-glow-indigo group-hover:scale-105 transition-transform shrink-0">
+                  <GraduationCap className="w-6 h-6" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <h3 className="text-base font-black text-white group-hover:text-indigo-200 transition-colors">
+                      Coaching Study Time Tracker
+                    </h3>
+                    {userProfile?.coachingStudyAccess ? (
+                      <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center gap-1">
+                        <CheckCircle2 className="w-2.5 h-2.5" /> Approved
+                      </span>
+                    ) : (
+                      <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-amber-500/20 text-amber-400 border border-amber-500/30 flex items-center gap-1">
+                        <Lock className="w-2.5 h-2.5" /> Approval Required
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-xs text-slate-300 mt-1 max-w-xl">
+                    Log your offline coaching lectures directly into daily study hours & earn milestone points.
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-3 shrink-0 self-end sm:self-auto">
+                <span className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-black transition-all flex items-center gap-1.5 shadow-glow-indigo">
+                  <span>Log Coaching Study</span>
+                  <span className="group-hover:translate-x-1 transition-transform">→</span>
+                </span>
+              </div>
             </div>
           </div>
 
@@ -1275,6 +1319,13 @@ export default function Targets({ setActiveTab }) {
               </div>
             </div>
           )}
+
+          {/* Coaching Study Modal */}
+          <CoachingStudyModal 
+            isOpen={showCoachingModal} 
+            onClose={() => setShowCoachingModal(false)} 
+            subjects={subjects} 
+          />
         </>
       )}
     </div>

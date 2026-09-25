@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Mail, Send, X, Copy, Check, Headphones, ExternalLink, MessageSquare } from 'lucide-react';
+import { Mail, Send, X, Copy, Check, Headphones, ExternalLink, MessageSquare, Clock } from 'lucide-react';
 
 export default function SupportModal({ isOpen, onClose, onOpenFeedback }) {
   const [copiedEmail, setCopiedEmail] = useState(false);
@@ -18,8 +18,8 @@ export default function SupportModal({ isOpen, onClose, onOpenFeedback }) {
   if (!isOpen) return null;
 
   const email = 'casuccessblueprint@gmail.com';
-  const telegram = '@study_0312';
-  const telegramUrl = 'https://t.me/study_0312';
+  const telegram = '@ca_success_blueprint_support';
+  const telegramUrl = 'https://t.me/ca_success_blueprint_support';
 
   const copyToClipboard = (text, type) => {
     navigator.clipboard.writeText(text);
@@ -55,6 +55,12 @@ export default function SupportModal({ isOpen, onClose, onOpenFeedback }) {
           >
             <X className="w-5 h-5" />
           </button>
+        </div>
+
+        {/* Support Hours Banner */}
+        <div className="p-3 rounded-2xl bg-emerald-500/10 border border-emerald-500/25 flex items-center justify-center gap-2 text-xs font-bold text-emerald-400 relative z-10 text-center shadow-sm">
+          <Clock className="w-4 h-4 shrink-0 text-emerald-400" />
+          <span>Support available from 8:00 AM to 9:00 PM</span>
         </div>
 
         {/* Content Options */}
@@ -141,7 +147,7 @@ export default function SupportModal({ isOpen, onClose, onOpenFeedback }) {
 
         {/* Footer Note */}
         <div className="text-center text-[11px] text-slate-400 pt-2 border-t border-white/5">
-          Available 24/7 for CA & CMA Students Assistance
+          Support available from 8:00 AM to 9:00 PM
         </div>
 
       </div>

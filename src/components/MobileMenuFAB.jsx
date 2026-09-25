@@ -16,6 +16,7 @@ import {
   User,
   Crown,
   Headphones,
+  ShoppingBag,
   Calendar as CalendarIcon
 } from 'lucide-react';
 import SupportModal from './SupportModal';
@@ -47,6 +48,7 @@ export default function MobileMenuFAB({ activeTab, setActiveTab }) {
     { id: 'targets', label: 'Daily Target', icon: Target },
     { id: 'notes', label: 'Notes', icon: FileText },
     { id: 'doubts', label: 'Doubts', icon: HelpCircle },
+    { id: 'product', label: 'Product Store', icon: ShoppingBag },
     { id: 'profile', label: 'Profile', icon: User },
   ];
 
@@ -157,7 +159,7 @@ export default function MobileMenuFAB({ activeTab, setActiveTab }) {
               >
                 <Headphones className="w-5 h-5 text-emerald-400" />
                 <div className="flex-1 text-left">Help & Student Support</div>
-                <span className="text-[10px] font-black uppercase bg-emerald-500 text-navy-950 px-2 py-0.5 rounded-md">24/7</span>
+                <span className="text-[10px] font-black uppercase bg-emerald-500 text-navy-950 px-2 py-0.5 rounded-md">8 AM - 9 PM</span>
               </button>
 
               <button

@@ -78,6 +78,13 @@ export const DASHBOARD_SECTIONS = [
     iconName: 'Video'
   },
   {
+    id: 'quiz',
+    label: 'Quiz',
+    description: 'Timed practice tests, chapter evaluations, Free & Paid test series',
+    category: 'Practice',
+    iconName: 'BrainCircuit'
+  },
+  {
     id: 'writing',
     label: 'Writing Practice',
     description: 'Daily answer writing prompts, questions, and practice submissions',
@@ -111,6 +118,13 @@ export const DASHBOARD_SECTIONS = [
     description: 'Student academic doubt forum, peer inquiries, and mentor answers',
     category: 'Support',
     iconName: 'HelpCircle'
+  },
+  {
+    id: 'product',
+    label: 'Product',
+    description: 'Exclusive premium study products, handwritten notes, mock test series, and quizzes',
+    category: 'Store',
+    iconName: 'Sparkles'
   },
   {
     id: 'profile',

@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from 'react';
-import { doc, onSnapshot, setDoc, getDoc, serverTimestamp } from 'firebase/firestore';
+import React, { useState, useEffect, useMemo } from 'react';
+import { doc, onSnapshot, setDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../../config/firebase';
+import { SYLLABUS_DATA, getDefaultUnitsForChapter } from '../../data/syllabusData';
 import EmptyState from '../../components/EmptyState';
 import { 
   RotateCcw, 
@@ -14,14 +15,19 @@ import {
   AlertCircle,
   Eye,
   EyeOff,
-  ArrowUp,
-  ArrowDown,
   Edit3,
   Check,
-  Download,
+  X,
   Sparkles,
   Search,
-  CheckCircle2
+  CheckCircle2,
+  ChevronDown,
+  ChevronUp,
+  Tag,
+  Hash,
+  ShieldCheck,
+  Zap,
+  Info
 } from 'lucide-react';
 
 const STREAMS = [
@@ -35,709 +41,887 @@ export default function AdminRevisionManager() {
   const [selectedStreamId, setSelectedStreamId] = useState('CA_Foundation');
   const currentStream = STREAMS.find(s => s.id === selectedStreamId) || STREAMS[0];
 
+  // Live Syllabus & Revision Documents
+  const [syllabusDoc, setSyllabusDoc] = useState(null);
   const [revisionDoc, setRevisionDoc] = useState(null);
-  const [localSubjects, setLocalSubjects] = useState([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
 
-  // New Subject input
-  const [newSubjectTitle, setNewSubjectTitle] = useState('');
-
-  // Chapter Modal State
-  const [activeSubjectId, setActiveSubjectId] = useState(null);
-  const [chapterModalMode, setChapterModalMode] = useState('add'); // 'add' | 'edit'
-  const [editingChapterId, setEditingChapterId] = useState(null);
-  const [chapNoInput, setChapNoInput] = useState('');
-  const [chapTitleInput, setChapTitleInput] = useState('');
-  const [chapPointsInput, setChapPointsInput] = useState('10');
-
-  // Search filter
+  // Search & Filter
   const [searchQuery, setSearchQuery] = useState('');
+  const [selectedSubjectFilter, setSelectedSubjectFilter] = useState('all');
+  const [expandedChapters, setExpandedChapters] = useState({});
 
-  // Real-time listener for current stream revision doc
+  // Add / Edit Manual Unit Modal State
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [modalMode, setModalMode] = useState('add_manual'); // 'add_manual' | 'edit_manual' | 'edit_override'
+  const [activeSubject, setActiveSubject] = useState(null);
+  const [activeChapter, setActiveChapter] = useState(null);
+  const [targetUnit, setTargetUnit] = useState(null);
+
+  // Form Fields
+  const [formUnitNo, setFormUnitNo] = useState('');
+  const [formUnitTitle, setFormUnitTitle] = useState('');
+  const [formUnitDesc, setFormUnitDesc] = useState('');
+  const [formUnitPts, setFormUnitPts] = useState('10');
+  const [formUnitActive, setFormUnitActive] = useState(true);
+
+  // 1. Real-time listener for Syllabus Blueprint
+  useEffect(() => {
+    const syllabusRef = doc(db, 'syllabi', selectedStreamId);
+    const unsubSyllabus = onSnapshot(syllabusRef, (snap) => {
+      if (snap.exists()) {
+        setSyllabusDoc(snap.data());
+      } else {
+        setSyllabusDoc(null);
+      }
+    }, (err) => {
+      console.error("Error listening to syllabus:", err);
+      setSyllabusDoc(null);
+    });
+
+    return () => unsubSyllabus();
+  }, [selectedStreamId]);
+
+  // 2. Real-time listener for Revision Controls (disabled units, manual units, unit overrides)
   useEffect(() => {
     setLoading(true);
-    setHasUnsavedChanges(false);
-    const docRef = doc(db, 'revisions', selectedStreamId);
-
-    const unsub = onSnapshot(docRef, (snap) => {
+    const revRef = doc(db, 'revisions', selectedStreamId);
+    const unsubRev = onSnapshot(revRef, (snap) => {
       if (snap.exists()) {
-        const data = snap.data();
-        setRevisionDoc(data);
-        setLocalSubjects(data.subjects || []);
+        setRevisionDoc(snap.data());
       } else {
         setRevisionDoc(null);
-        setLocalSubjects([]);
       }
       setLoading(false);
     }, (err) => {
-      console.error("Error fetching revision doc:", err);
+      console.error("Error listening to revision doc:", err);
       setRevisionDoc(null);
-      setLocalSubjects([]);
       setLoading(false);
     });
 
-    return () => unsub();
+    return () => unsubRev();
   }, [selectedStreamId]);
 
-  // Prevent background scroll when modal is active
+  // Prevent background scroll when modal is open
   useEffect(() => {
-    if (activeSubjectId) {
-      const prevOverflow = document.body.style.overflow;
+    if (isModalOpen) {
+      const prev = document.body.style.overflow;
       document.body.style.overflow = 'hidden';
       return () => {
-        document.body.style.overflow = prevOverflow;
+        document.body.style.overflow = prev;
       };
     }
-  }, [activeSubjectId]);
+  }, [isModalOpen]);
 
-  // Save changes to Firestore
-  const handleSaveChanges = async () => {
+  // Extract base subjects from Syllabus or fallback data
+  const baseSubjects = useMemo(() => {
+    if (syllabusDoc?.subjects && syllabusDoc.subjects.length > 0) {
+      return syllabusDoc.subjects;
+    }
+    const fallbackCourse = SYLLABUS_DATA[currentStream.course]?.[currentStream.level] || [];
+    return fallbackCourse.map((sub, sIdx) => ({
+      id: `fallback_sub_${sIdx}`,
+      subject: sub.subject,
+      chapters: (sub.chapters || []).map((ch, cIdx) => ({
+        id: ch.id,
+        chapterNo: String(cIdx + 1),
+        title: ch.title,
+        points: 10,
+        units: getDefaultUnitsForChapter(ch.id, ch.title)
+      }))
+    }));
+  }, [syllabusDoc, currentStream]);
+
+  // Read revision controls
+  const disabledUnitIds = useMemo(() => revisionDoc?.disabledUnitIds || [], [revisionDoc]);
+  const manualUnits = useMemo(() => revisionDoc?.manualUnits || [], [revisionDoc]);
+  const unitOverrides = useMemo(() => revisionDoc?.unitOverrides || {}, [revisionDoc]);
+
+  // Build combined Subject -> Chapter -> Units hierarchy
+  const combinedSubjects = useMemo(() => {
+    return baseSubjects.map(sub => {
+      const chapters = (sub.chapters || []).map(ch => {
+        // 1. Base syllabus units
+        const chSyllabusUnits = (ch.units && ch.units.length > 0)
+          ? ch.units
+          : getDefaultUnitsForChapter(ch.id, ch.title);
+
+        const mappedSyllabusUnits = chSyllabusUnits.map((u, uIdx) => {
+          const override = unitOverrides[u.id] || {};
+          const isDisabled = disabledUnitIds.includes(u.id) || u.isActive === false;
+
+          return {
+            id: u.id,
+            chapterId: ch.id,
+            subjectId: sub.id,
+            unitNo: u.unitNo || `Unit ${uIdx + 1}`,
+            title: override.title || u.title,
+            originalTitle: u.title,
+            description: u.description || '',
+            points: override.points !== undefined ? Number(override.points) : (Number(u.points) || 10),
+            isManual: false,
+            isSyllabus: true,
+            isDisabledInRevision: isDisabled,
+            hasOverride: Boolean(override.title || override.points !== undefined)
+          };
+        });
+
+        // 2. Manual units added directly for this chapter in Revision
+        const chManualUnits = manualUnits
+          .filter(mu => mu.chapterId === ch.id)
+          .map(mu => ({
+            id: mu.id,
+            chapterId: ch.id,
+            subjectId: sub.id,
+            unitNo: mu.unitNo || 'Manual Unit',
+            title: mu.title,
+            description: mu.description || '',
+            points: Number(mu.points) || 10,
+            isManual: true,
+            isSyllabus: false,
+            isDisabledInRevision: mu.isActive === false,
+            isActive: mu.isActive !== false
+          }));
+
+        const allUnits = [...mappedSyllabusUnits, ...chManualUnits];
+        const activeUnitsCount = allUnits.filter(u => !u.isDisabledInRevision).length;
+
+        return {
+          ...ch,
+          units: allUnits,
+          totalUnitsCount: allUnits.length,
+          activeUnitsCount
+        };
+      });
+
+      return {
+        ...sub,
+        chapters
+      };
+    });
+  }, [baseSubjects, disabledUnitIds, manualUnits, unitOverrides]);
+
+  // Calculate statistics
+  const stats = useMemo(() => {
+    let totalChaps = 0;
+    let totalUnits = 0;
+    let totalSyllabusUnits = 0;
+    let totalManualUnits = manualUnits.length;
+    let totalDisabledUnits = 0;
+
+    combinedSubjects.forEach(s => {
+      s.chapters.forEach(ch => {
+        totalChaps++;
+        ch.units.forEach(u => {
+          totalUnits++;
+          if (u.isSyllabus) totalSyllabusUnits++;
+          if (u.isDisabledInRevision) totalDisabledUnits++;
+        });
+      });
+    });
+
+    return {
+      totalSubjects: combinedSubjects.length,
+      totalChapters: totalChaps,
+      totalUnits,
+      totalSyllabusUnits,
+      totalManualUnits,
+      totalDisabledUnits,
+      totalActiveRevisionUnits: totalUnits - totalDisabledUnits
+    };
+  }, [combinedSubjects, manualUnits]);
+
+  // Toggle unit enabled/disabled for Revision
+  const handleToggleUnitEnabled = async (unit) => {
     try {
       setSaving(true);
-      const docRef = doc(db, 'revisions', selectedStreamId);
-      await setDoc(docRef, {
-        streamId: selectedStreamId,
-        course: currentStream.course,
-        level: currentStream.level,
-        subjects: localSubjects,
-        updatedAt: serverTimestamp()
-      }, { merge: true });
+      const revRef = doc(db, 'revisions', selectedStreamId);
 
-      setHasUnsavedChanges(false);
-      alert(`Revision structure for ${currentStream.label} saved successfully!`);
+      if (unit.isManual) {
+        // For manual units, toggle isActive flag in manualUnits array
+        const updatedManualUnits = manualUnits.map(mu => {
+          if (mu.id === unit.id) {
+            return { ...mu, isActive: unit.isDisabledInRevision };
+          }
+          return mu;
+        });
+
+        await setDoc(revRef, {
+          streamId: selectedStreamId,
+          course: currentStream.course,
+          level: currentStream.level,
+          manualUnits: updatedManualUnits,
+          updatedAt: serverTimestamp()
+        }, { merge: true });
+
+      } else {
+        // For syllabus units, toggle presence in disabledUnitIds
+        let updatedDisabled = [...disabledUnitIds];
+        if (unit.isDisabledInRevision) {
+          updatedDisabled = updatedDisabled.filter(id => id !== unit.id);
+        } else {
+          if (!updatedDisabled.includes(unit.id)) {
+            updatedDisabled.push(unit.id);
+          }
+        }
+
+        await setDoc(revRef, {
+          streamId: selectedStreamId,
+          course: currentStream.course,
+          level: currentStream.level,
+          disabledUnitIds: updatedDisabled,
+          updatedAt: serverTimestamp()
+        }, { merge: true });
+      }
     } catch (err) {
-      console.error("Error saving revision:", err);
-      alert("Failed to save changes. Please try again.");
+      console.error("Error toggling unit:", err);
+      alert("Failed to toggle unit in revision.");
     } finally {
       setSaving(false);
     }
   };
 
-  // Import subjects and chapters from Syllabus (stripping units)
-  const handleImportFromSyllabus = async () => {
-    const confirmMsg = `Do you want to import all subjects and chapters from the Syllabus of ${currentStream.label}? (This will initialize chapters-only without units. Any unsaved changes will be replaced.)`;
-    if (!window.confirm(confirmMsg)) return;
+  // Open modal to add a manual revision unit to a chapter
+  const handleOpenAddManualUnit = (chapter, subject) => {
+    setActiveSubject(subject);
+    setActiveChapter(chapter);
+    setTargetUnit(null);
+    setModalMode('add_manual');
+    setFormUnitNo(`Unit ${(chapter.units?.length || 0) + 1}`);
+    setFormUnitTitle('');
+    setFormUnitDesc('');
+    setFormUnitPts('10');
+    setFormUnitActive(true);
+    setIsModalOpen(true);
+  };
 
+  // Open modal to edit unit (manual or syllabus override)
+  const handleOpenEditUnit = (unit, chapter, subject) => {
+    setActiveSubject(subject);
+    setActiveChapter(chapter);
+    setTargetUnit(unit);
+    if (unit.isManual) {
+      setModalMode('edit_manual');
+      setFormUnitNo(unit.unitNo || '');
+      setFormUnitTitle(unit.title || '');
+      setFormUnitDesc(unit.description || '');
+      setFormUnitPts(String(unit.points || 10));
+      setFormUnitActive(!unit.isDisabledInRevision);
+    } else {
+      setModalMode('edit_override');
+      setFormUnitNo(unit.unitNo || '');
+      setFormUnitTitle(unit.title || '');
+      setFormUnitDesc(unit.description || '');
+      setFormUnitPts(String(unit.points || 10));
+      setFormUnitActive(!unit.isDisabledInRevision);
+    }
+    setIsModalOpen(true);
+  };
+
+  // Delete manual unit
+  const handleDeleteManualUnit = async (unitId) => {
+    if (!window.confirm("Are you sure you want to delete this manual revision unit?")) return;
     try {
       setSaving(true);
-      const syllabusRef = doc(db, 'syllabi', selectedStreamId);
-      const snap = await getDoc(syllabusRef);
-
-      if (!snap.exists() || !snap.data().subjects || snap.data().subjects.length === 0) {
-        alert(`No syllabus found for ${currentStream.label}. Please initialize the syllabus first or add subjects manually.`);
-        setSaving(false);
-        return;
-      }
-
-      const syllabusSubjects = snap.data().subjects || [];
-      const importedSubjects = syllabusSubjects.map((sub, sIdx) => ({
-        id: `rev_sub_${Date.now()}_${sIdx}`,
-        subject: sub.subject,
-        order: sIdx + 1,
-        chapters: (sub.chapters || []).map((ch, cIdx) => ({
-          id: `rev_ch_${Date.now()}_${sIdx}_${cIdx}`,
-          chapterNo: ch.chapterNo || String(cIdx + 1),
-          title: ch.title,
-          points: Number(ch.points) || 10,
-          order: cIdx + 1,
-          isActive: ch.isActive !== false
-        }))
-      }));
-
-      setLocalSubjects(importedSubjects);
-      setHasUnsavedChanges(true);
-
-      // Save directly to Firestore
       const revRef = doc(db, 'revisions', selectedStreamId);
+      const updatedManualUnits = manualUnits.filter(mu => mu.id !== unitId);
+
       await setDoc(revRef, {
         streamId: selectedStreamId,
         course: currentStream.course,
         level: currentStream.level,
-        subjects: importedSubjects,
+        manualUnits: updatedManualUnits,
         updatedAt: serverTimestamp()
-      });
+      }, { merge: true });
 
-      setHasUnsavedChanges(false);
-      alert(`Imported ${importedSubjects.length} subjects from Syllabus successfully! All chapters are ready for Revision tracking.`);
     } catch (err) {
-      console.error("Error importing from syllabus:", err);
-      alert("Failed to import from syllabus.");
+      console.error("Error deleting manual unit:", err);
+      alert("Failed to delete manual revision unit.");
     } finally {
       setSaving(false);
     }
   };
 
-  // Add a new Subject
-  const handleAddSubject = () => {
-    if (!newSubjectTitle.trim()) return;
-    const newSub = {
-      id: `rev_sub_${Date.now()}`,
-      subject: newSubjectTitle.trim(),
-      order: localSubjects.length + 1,
-      chapters: []
-    };
-    setLocalSubjects([...localSubjects, newSub]);
-    setNewSubjectTitle('');
-    setHasUnsavedChanges(true);
-  };
-
-  // Delete a Subject
-  const handleDeleteSubject = (subId) => {
-    if (window.confirm("Are you sure you want to delete this Subject and all its revision chapters?")) {
-      setLocalSubjects(localSubjects.filter(s => s.id !== subId));
-      setHasUnsavedChanges(true);
-    }
-  };
-
-  // Move Subject Up / Down
-  const handleMoveSubject = (index, direction) => {
-    const targetIndex = index + direction;
-    if (targetIndex < 0 || targetIndex >= localSubjects.length) return;
-    const updated = [...localSubjects];
-    const temp = updated[index];
-    updated[index] = updated[targetIndex];
-    updated[targetIndex] = temp;
-    setLocalSubjects(updated);
-    setHasUnsavedChanges(true);
-  };
-
-  // Open Chapter Modal for Adding
-  const openAddChapterModal = (subId) => {
-    const sub = localSubjects.find(s => s.id === subId);
-    const nextNo = sub && sub.chapters ? sub.chapters.length + 1 : 1;
-    setActiveSubjectId(subId);
-    setChapterModalMode('add');
-    setEditingChapterId(null);
-    setChapNoInput(String(nextNo));
-    setChapTitleInput('');
-    setChapPointsInput('10');
-  };
-
-  // Open Chapter Modal for Editing
-  const openEditChapterModal = (subId, chapter) => {
-    setActiveSubjectId(subId);
-    setChapterModalMode('edit');
-    setEditingChapterId(chapter.id);
-    setChapNoInput(String(chapter.chapterNo || ''));
-    setChapTitleInput(chapter.title || '');
-    setChapPointsInput(String(chapter.points || 10));
-  };
-
-  // Submit Chapter Modal (Add or Edit)
-  const handleSaveChapter = (e) => {
+  // Save Modal Form (Add / Edit Manual Unit or Override)
+  const handleSaveModalForm = async (e) => {
     e.preventDefault();
-    if (!chapTitleInput.trim() || !activeSubjectId) return;
-
-    const pointsNum = parseInt(chapPointsInput, 10) || 10;
-
-    if (chapterModalMode === 'add') {
-      const newChapter = {
-        id: `rev_ch_${Date.now()}`,
-        chapterNo: chapNoInput.trim(),
-        title: chapTitleInput.trim(),
-        points: pointsNum,
-        order: Date.now(),
-        isActive: true
-      };
-
-      setLocalSubjects(prev => prev.map(sub => {
-        if (sub.id === activeSubjectId) {
-          return {
-            ...sub,
-            chapters: [...(sub.chapters || []), newChapter]
-          };
-        }
-        return sub;
-      }));
-    } else {
-      setLocalSubjects(prev => prev.map(sub => {
-        if (sub.id === activeSubjectId) {
-          return {
-            ...sub,
-            chapters: (sub.chapters || []).map(ch => {
-              if (ch.id === editingChapterId) {
-                return {
-                  ...ch,
-                  chapterNo: chapNoInput.trim(),
-                  title: chapTitleInput.trim(),
-                  points: pointsNum
-                };
-              }
-              return ch;
-            })
-          };
-        }
-        return sub;
-      }));
+    if (!formUnitTitle.trim()) {
+      return alert("Please enter unit title.");
     }
 
-    setHasUnsavedChanges(true);
-    setActiveSubjectId(null);
-  };
+    try {
+      setSaving(true);
+      const revRef = doc(db, 'revisions', selectedStreamId);
+      const ptsNum = parseInt(formUnitPts, 10) || 10;
 
-  // Toggle Chapter Active / Inactive
-  const handleToggleChapterActive = (subId, chapId) => {
-    setLocalSubjects(prev => prev.map(sub => {
-      if (sub.id === subId) {
-        return {
-          ...sub,
-          chapters: (sub.chapters || []).map(ch => {
-            if (ch.id === chapId) {
-              return { ...ch, isActive: ch.isActive === false ? true : false };
-            }
-            return ch;
-          })
+      if (modalMode === 'add_manual') {
+        const newManualUnit = {
+          id: `rev_manual_u_${Date.now()}`,
+          chapterId: activeChapter.id,
+          subjectId: activeSubject.id,
+          unitNo: formUnitNo.trim() || `Unit ${(activeChapter.units?.length || 0) + 1}`,
+          title: formUnitTitle.trim(),
+          description: formUnitDesc.trim(),
+          points: ptsNum,
+          isActive: formUnitActive,
+          createdAt: new Date().toISOString()
         };
-      }
-      return sub;
-    }));
-    setHasUnsavedChanges(true);
-  };
 
-  // Delete a Chapter
-  const handleDeleteChapter = (subId, chapId) => {
-    if (window.confirm("Are you sure you want to remove this revision chapter?")) {
-      setLocalSubjects(prev => prev.map(sub => {
-        if (sub.id === subId) {
-          return {
-            ...sub,
-            chapters: (sub.chapters || []).filter(ch => ch.id !== chapId)
-          };
-        }
-        return sub;
-      }));
-      setHasUnsavedChanges(true);
+        const updatedManualUnits = [...manualUnits, newManualUnit];
+        await setDoc(revRef, {
+          streamId: selectedStreamId,
+          course: currentStream.course,
+          level: currentStream.level,
+          manualUnits: updatedManualUnits,
+          updatedAt: serverTimestamp()
+        }, { merge: true });
+
+      } else if (modalMode === 'edit_manual') {
+        const updatedManualUnits = manualUnits.map(mu => {
+          if (mu.id === targetUnit.id) {
+            return {
+              ...mu,
+              unitNo: formUnitNo.trim(),
+              title: formUnitTitle.trim(),
+              description: formUnitDesc.trim(),
+              points: ptsNum,
+              isActive: formUnitActive
+            };
+          }
+          return mu;
+        });
+
+        await setDoc(revRef, {
+          streamId: selectedStreamId,
+          course: currentStream.course,
+          level: currentStream.level,
+          manualUnits: updatedManualUnits,
+          updatedAt: serverTimestamp()
+        }, { merge: true });
+
+      } else if (modalMode === 'edit_override') {
+        // Save override for syllabus unit specifically in revision
+        const updatedOverrides = {
+          ...unitOverrides,
+          [targetUnit.id]: {
+            title: formUnitTitle.trim(),
+            points: ptsNum
+          }
+        };
+
+        await setDoc(revRef, {
+          streamId: selectedStreamId,
+          course: currentStream.course,
+          level: currentStream.level,
+          unitOverrides: updatedOverrides,
+          updatedAt: serverTimestamp()
+        }, { merge: true });
+      }
+
+      setIsModalOpen(false);
+    } catch (err) {
+      console.error("Error saving unit modal:", err);
+      alert("Failed to save unit.");
+    } finally {
+      setSaving(false);
     }
   };
 
-  // Move Chapter Up / Down
-  const handleMoveChapter = (subId, chapIndex, direction) => {
-    setLocalSubjects(prev => prev.map(sub => {
-      if (sub.id === subId) {
-        const chapters = [...(sub.chapters || [])];
-        const targetIndex = chapIndex + direction;
-        if (targetIndex < 0 || targetIndex >= chapters.length) return sub;
-        const temp = chapters[chapIndex];
-        chapters[chapIndex] = chapters[targetIndex];
-        chapters[targetIndex] = temp;
-        return { ...sub, chapters };
-      }
-      return sub;
+  const handleToggleExpandChapter = (chapterId) => {
+    setExpandedChapters(prev => ({
+      ...prev,
+      [chapterId]: !prev[chapterId]
     }));
-    setHasUnsavedChanges(true);
   };
 
-  // Statistics
-  const totalChapters = localSubjects.reduce((acc, sub) => acc + (sub.chapters?.length || 0), 0);
-  const activeChapters = localSubjects.reduce((acc, sub) => acc + (sub.chapters?.filter(c => c.isActive !== false).length || 0), 0);
-  const totalPoints = localSubjects.reduce((acc, sub) => 
-    acc + (sub.chapters || []).filter(c => c.isActive !== false).reduce((sum, c) => sum + (Number(c.points) || 0), 0)
-  , 0);
+  // Filter combined subjects based on search & subject filter
+  const displayedSubjects = useMemo(() => {
+    return combinedSubjects.filter(sub => {
+      if (selectedSubjectFilter !== 'all' && sub.id !== selectedSubjectFilter) {
+        return false;
+      }
+      return true;
+    });
+  }, [combinedSubjects, selectedSubjectFilter]);
 
   return (
-    <div className="space-y-6">
-      {/* Top Banner */}
-      <div className="p-6 sm:p-8 rounded-3xl glass-card border border-white/10 bg-gradient-to-r from-navy-900/90 via-royal-950/40 to-navy-950 relative overflow-hidden shadow-2xl">
-        <div className="absolute top-0 right-0 w-80 h-80 bg-royal-500/10 rounded-full blur-3xl pointer-events-none" />
-
-        <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6 relative z-10">
+    <div className="space-y-6 animate-in fade-in duration-300">
+      
+      {/* Top Header Card */}
+      <div className="p-6 sm:p-8 rounded-3xl glass-card border border-royal-500/30 relative overflow-hidden shadow-2xl">
+        <div className="absolute top-0 right-0 w-96 h-96 bg-royal-600/10 rounded-full blur-3xl pointer-events-none" />
+        
+        <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
           <div className="space-y-2">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-royal-500/20 border border-royal-500/40 text-royal-300 text-xs font-bold uppercase tracking-wider">
-              <RotateCcw className="w-3.5 h-3.5 text-royal-400" />
-              <span>Curriculum Management</span>
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-royal-500/20 text-royal-300 text-xs font-bold border border-royal-500/30">
+              <RotateCcw className="w-4 h-4 text-royal-400" />
+              <span>Unified Revision Architecture</span>
             </div>
-            <h1 className="text-2xl sm:text-3xl font-black text-white flex items-center gap-3">
-              <span>Revision Management</span>
+            <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight flex items-center gap-3">
+              Revision Management & Units Sync
             </h1>
-            <p className="text-xs sm:text-sm text-slate-300 max-w-2xl">
-              Configure subject-wise Revision chapters for students. Revision tracks chapters only (no units) and is strictly distinct from the main Syllabus.
+            <p className="text-xs sm:text-sm text-slate-300 max-w-2xl leading-relaxed">
+              Revision automatically derives and syncs from Syllabus <strong>Subject → Chapter → Units</strong> in real-time.
+              You can enable/disable syllabus units for revision, or add custom manual revision units.
             </p>
           </div>
 
-          {/* Action Buttons */}
-          <div className="flex flex-wrap items-center gap-3 w-full lg:w-auto">
-            <button
-              onClick={handleImportFromSyllabus}
-              disabled={saving}
-              className="px-4 py-2.5 rounded-2xl bg-navy-900 hover:bg-navy-800 border border-royal-500/30 text-royal-300 hover:text-white text-xs font-bold transition-all flex items-center gap-2 shadow-lg disabled:opacity-50"
-              title="Import all subjects and chapters from Syllabus (units removed automatically)"
-            >
-              <Download className="w-4 h-4 text-royal-400" />
-              <span>Import from Syllabus</span>
-            </button>
-
-            <button
-              onClick={handleSaveChanges}
-              disabled={saving || !hasUnsavedChanges}
-              className={`px-5 py-2.5 rounded-2xl text-xs font-black transition-all flex items-center gap-2 shadow-xl ${
-                hasUnsavedChanges 
-                  ? 'bg-emerald-500 hover:bg-emerald-400 text-navy-950 shadow-emerald-500/30 animate-pulse' 
-                  : 'bg-white/5 border border-white/10 text-slate-400 cursor-not-allowed'
-              }`}
-            >
-              <Save className="w-4 h-4" />
-              <span>{saving ? 'Saving...' : hasUnsavedChanges ? 'Save Changes *' : 'All Changes Saved'}</span>
-            </button>
+          {/* Stream Selector */}
+          <div className="flex flex-col gap-2 shrink-0">
+            <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Course & Stream</label>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+              {STREAMS.map(stream => (
+                <button
+                  key={stream.id}
+                  onClick={() => setSelectedStreamId(stream.id)}
+                  className={`px-3 py-2 rounded-xl text-xs font-bold transition-all ${
+                    selectedStreamId === stream.id
+                      ? 'bg-gradient-to-r from-royal-600 to-indigo-600 text-white shadow-glow-blue border border-royal-400/40'
+                      : 'bg-navy-900/80 border border-white/10 text-slate-400 hover:text-white hover:border-white/20'
+                  }`}
+                >
+                  {stream.label}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
+      </div>
 
-        {/* Stream Selector Tabs */}
-        <div className="pt-6 border-t border-white/10 mt-6 flex flex-wrap gap-2.5">
-          {STREAMS.map(stream => (
+      {/* Metrics Bar */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-5 gap-3">
+        <div className="p-4 rounded-2xl glass-card border border-white/10 bg-navy-900/60 space-y-1">
+          <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+            <BookOpen className="w-3.5 h-3.5 text-royal-400" />
+            <span>Subjects</span>
+          </div>
+          <div className="text-xl font-black text-white">{stats.totalSubjects}</div>
+        </div>
+
+        <div className="p-4 rounded-2xl glass-card border border-white/10 bg-navy-900/60 space-y-1">
+          <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+            <Layers className="w-3.5 h-3.5 text-cyan-400" />
+            <span>Chapters</span>
+          </div>
+          <div className="text-xl font-black text-white">{stats.totalChapters}</div>
+        </div>
+
+        <div className="p-4 rounded-2xl glass-card border border-white/10 bg-navy-900/60 space-y-1">
+          <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+            <span>Active Revision Units</span>
+          </div>
+          <div className="text-xl font-black text-emerald-400">{stats.totalActiveRevisionUnits}</div>
+        </div>
+
+        <div className="p-4 rounded-2xl glass-card border border-white/10 bg-navy-900/60 space-y-1">
+          <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+            <Sparkles className="w-3.5 h-3.5 text-purple-400" />
+            <span>Manual Units</span>
+          </div>
+          <div className="text-xl font-black text-purple-400">{stats.totalManualUnits}</div>
+        </div>
+
+        <div className="p-4 rounded-2xl glass-card border border-white/10 bg-navy-900/60 space-y-1 col-span-2 sm:col-span-1">
+          <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+            <EyeOff className="w-3.5 h-3.5 text-rose-400" />
+            <span>Disabled in Rev</span>
+          </div>
+          <div className="text-xl font-black text-rose-400">{stats.totalDisabledUnits}</div>
+        </div>
+      </div>
+
+      {/* Search & Subject Tabs Toolbar */}
+      <div className="glass-card p-4 rounded-2xl border border-white/10 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+        <div className="relative flex-grow max-w-md">
+          <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Search chapters or revision units..."
+            className="w-full pl-10 pr-4 py-2 rounded-xl bg-navy-900/80 border border-white/10 text-white placeholder-slate-500 text-xs focus:outline-none focus:border-royal-500 font-medium"
+          />
+        </div>
+
+        <div className="flex items-center gap-2 overflow-x-auto pb-1 sm:pb-0 scrollbar-none">
+          <button
+            onClick={() => setSelectedSubjectFilter('all')}
+            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all shrink-0 ${
+              selectedSubjectFilter === 'all'
+                ? 'bg-royal-600 text-white border border-royal-400/40 shadow-sm'
+                : 'bg-navy-900 border border-white/5 text-slate-400 hover:text-white'
+            }`}
+          >
+            All Subjects ({combinedSubjects.length})
+          </button>
+          {combinedSubjects.map(sub => (
             <button
-              key={stream.id}
-              onClick={() => {
-                if (hasUnsavedChanges) {
-                  if (!window.confirm("You have unsaved changes in the current stream. Switching streams will discard them. Continue?")) return;
-                }
-                setSelectedStreamId(stream.id);
-              }}
-              className={`px-4 py-2 rounded-xl text-xs font-bold transition-all duration-200 flex items-center gap-2 ${
-                selectedStreamId === stream.id
-                  ? 'bg-gradient-to-r from-royal-600 to-indigo-600 text-white shadow-lg border border-royal-400/40'
-                  : 'bg-navy-950/60 border border-white/5 text-slate-400 hover:text-white hover:bg-white/5'
+              key={sub.id}
+              onClick={() => setSelectedSubjectFilter(sub.id)}
+              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all shrink-0 max-w-[200px] truncate ${
+                selectedSubjectFilter === sub.id
+                  ? 'bg-royal-600 text-white border border-royal-400/40 shadow-sm'
+                  : 'bg-navy-900 border border-white/5 text-slate-400 hover:text-white'
               }`}
             >
-              <BookOpen className="w-3.5 h-3.5" />
-              <span>{stream.label}</span>
+              {sub.subject}
             </button>
           ))}
         </div>
       </div>
 
-      {/* Unsaved changes notification banner */}
-      {hasUnsavedChanges && (
-        <div className="p-4 rounded-2xl bg-amber-500/15 border border-amber-500/30 flex items-center justify-between gap-4 text-xs font-bold text-amber-300">
-          <div className="flex items-center gap-2">
-            <AlertCircle className="w-4 h-4 text-amber-400 shrink-0" />
-            <span>You have unsaved changes. Don't forget to click "Save Changes" to publish them to students!</span>
-          </div>
-          <button
-            onClick={handleSaveChanges}
-            disabled={saving}
-            className="px-4 py-1.5 rounded-xl bg-amber-500 text-navy-950 font-black hover:bg-amber-400 transition-colors shrink-0"
-          >
-            Save Now
-          </button>
-        </div>
-      )}
-
-      {/* Metrics Row */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-        <div className="p-4 rounded-2xl glass-card border border-white/10 bg-navy-900/60 space-y-1">
-          <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Stream</div>
-          <div className="text-base font-black text-white truncate">{currentStream.label}</div>
-        </div>
-
-        <div className="p-4 rounded-2xl glass-card border border-white/10 bg-navy-900/60 space-y-1">
-          <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Subjects</div>
-          <div className="text-xl font-black text-royal-400">{localSubjects.length}</div>
-        </div>
-
-        <div className="p-4 rounded-2xl glass-card border border-white/10 bg-navy-900/60 space-y-1">
-          <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Active Chapters</div>
-          <div className="text-xl font-black text-emerald-400">{activeChapters} <span className="text-xs text-slate-400">/ {totalChapters}</span></div>
-        </div>
-
-        <div className="p-4 rounded-2xl glass-card border border-white/10 bg-navy-900/60 space-y-1">
-          <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Total Revision PTS</div>
-          <div className="text-xl font-black text-gold-400">{totalPoints.toLocaleString()} PTS</div>
+      {/* Automatic Sync Notice Strip */}
+      <div className="p-3.5 rounded-2xl bg-royal-500/10 border border-royal-500/20 flex items-center justify-between text-xs text-royal-200">
+        <div className="flex items-center gap-2">
+          <ShieldCheck className="w-4 h-4 text-royal-400 shrink-0" />
+          <span>
+            <strong>Automatic Sync Active:</strong> Syllabus units for <strong>{currentStream.label}</strong> flow directly into Revision without duplicate records. Changes made in Chapters & Units reflect instantly.
+          </span>
         </div>
       </div>
 
-      {/* Add New Subject Bar */}
-      <div className="p-4 rounded-2xl glass-card border border-white/10 bg-navy-900/80 flex flex-col sm:flex-row items-stretch sm:items-center gap-3 shadow-lg">
-        <input
-          type="text"
-          value={newSubjectTitle}
-          onChange={(e) => setNewSubjectTitle(e.target.value)}
-          placeholder="New Subject Title (e.g., Paper 1: Accounting or Group 1: Law)..."
-          className="flex-grow px-4 py-2.5 rounded-xl bg-navy-950 border border-white/10 text-white placeholder-slate-500 text-xs sm:text-sm focus:outline-none focus:border-royal-500"
-          onKeyDown={(e) => {
-            if (e.key === 'Enter') {
-              e.preventDefault();
-              handleAddSubject();
-            }
-          }}
-        />
-        <button
-          onClick={handleAddSubject}
-          disabled={!newSubjectTitle.trim()}
-          className="px-5 py-2.5 rounded-xl bg-royal-600 hover:bg-royal-500 disabled:opacity-50 text-white text-xs font-bold transition-all flex items-center justify-center gap-2 shadow-lg shrink-0"
-        >
-          <Plus className="w-4 h-4" />
-          <span>Add Subject</span>
-        </button>
-      </div>
+      {/* Subject & Chapter Cards */}
+      <div className="space-y-6">
+        {displayedSubjects.map(subObj => {
+          const rawChapters = subObj.chapters || [];
+          const filteredChapters = searchQuery.trim()
+            ? rawChapters.filter(ch => 
+                ch.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                ch.units?.some(u => u.title?.toLowerCase().includes(searchQuery.toLowerCase()))
+              )
+            : rawChapters;
 
-      {/* Search Bar if subjects exist */}
-      {localSubjects.length > 0 && (
-        <div className="relative">
-          <Search className="w-4 h-4 text-slate-400 absolute left-4 top-1/2 -translate-y-1/2" />
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search revision subjects or chapter titles..."
-            className="w-full pl-11 pr-4 py-2.5 rounded-xl bg-navy-900/60 border border-white/10 text-white text-xs placeholder-slate-500 focus:outline-none focus:border-royal-500"
-          />
-        </div>
-      )}
+          if (searchQuery.trim() && filteredChapters.length === 0) {
+            return null;
+          }
 
-      {/* Subject & Chapters List */}
-      {loading ? (
-        <div className="p-12 text-center text-slate-400 text-xs font-bold">
-          Loading revision blueprint for {currentStream.label}...
-        </div>
-      ) : localSubjects.length === 0 ? (
-        <EmptyState
-          icon={RotateCcw}
-          title="No Revision Subjects Configured"
-          description={`No revision subjects exist for ${currentStream.label} yet. You can import from the Syllabus in 1-click or add subjects manually above.`}
-        />
-      ) : (
-        <div className="space-y-6">
-          {localSubjects.map((sub, sIdx) => {
-            const chapters = sub.chapters || [];
-            const filteredChapters = searchQuery.trim()
-              ? chapters.filter(c => 
-                  c.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                  String(c.chapterNo || '').toLowerCase().includes(searchQuery.toLowerCase())
-                )
-              : chapters;
-
-            if (searchQuery.trim() && filteredChapters.length === 0 && !sub.subject.toLowerCase().includes(searchQuery.toLowerCase())) {
-              return null;
-            }
-
-            return (
-              <div key={sub.id} className="rounded-3xl glass-card border border-white/10 overflow-hidden shadow-xl">
-                {/* Subject Header */}
-                <div className="p-4 sm:p-5 bg-navy-900/90 border-b border-white/10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-                  <div className="flex items-center space-x-3 min-w-0">
-                    <div className="w-8 h-8 rounded-xl bg-royal-500/20 border border-royal-500/30 text-royal-400 flex items-center justify-center font-bold text-xs shrink-0">
-                      {sIdx + 1}
-                    </div>
-                    <div className="min-w-0">
-                      <h3 className="font-bold text-sm sm:text-base text-white truncate">{sub.subject}</h3>
-                      <div className="text-[11px] text-slate-400 font-medium">
-                        {chapters.length} Chapters • {chapters.filter(c => c.isActive !== false).length} Active
-                      </div>
+          return (
+            <div key={subObj.id} className="glass-card rounded-3xl border border-white/10 overflow-hidden shadow-xl">
+              
+              {/* Subject Header */}
+              <div className="p-5 bg-navy-900/90 border-b border-white/10 flex items-center justify-between">
+                <div className="flex items-center space-x-3 min-w-0">
+                  <div className="w-8 h-8 rounded-xl bg-royal-500/20 border border-royal-500/30 text-royal-400 flex items-center justify-center font-bold text-xs shrink-0">
+                    <BookOpen className="w-4 h-4" />
+                  </div>
+                  <div className="min-w-0">
+                    <h3 className="font-bold text-base text-white truncate">{subObj.subject}</h3>
+                    <div className="text-[11px] text-slate-400 font-medium">
+                      {rawChapters.length} Chapters • {rawChapters.reduce((acc, c) => acc + c.units.length, 0)} Units in Revision
                     </div>
                   </div>
-
-                  {/* Subject Controls */}
-                  <div className="flex items-center gap-1.5 self-end sm:self-auto shrink-0">
-                    <button
-                      onClick={() => handleMoveSubject(sIdx, -1)}
-                      disabled={sIdx === 0}
-                      className="p-1.5 rounded-lg bg-navy-950 border border-white/10 text-slate-400 hover:text-white disabled:opacity-30 transition-colors"
-                      title="Move Subject Up"
-                    >
-                      <ArrowUp className="w-3.5 h-3.5" />
-                    </button>
-                    <button
-                      onClick={() => handleMoveSubject(sIdx, 1)}
-                      disabled={sIdx === localSubjects.length - 1}
-                      className="p-1.5 rounded-lg bg-navy-950 border border-white/10 text-slate-400 hover:text-white disabled:opacity-30 transition-colors"
-                      title="Move Subject Down"
-                    >
-                      <ArrowDown className="w-3.5 h-3.5" />
-                    </button>
-                    <button
-                      onClick={() => openAddChapterModal(sub.id)}
-                      className="px-3 py-1.5 rounded-xl bg-royal-600/30 hover:bg-royal-600/50 border border-royal-500/40 text-royal-200 text-xs font-bold transition-all flex items-center gap-1"
-                    >
-                      <Plus className="w-3.5 h-3.5 text-royal-400" />
-                      <span>Add Chapter</span>
-                    </button>
-                    <button
-                      onClick={() => handleDeleteSubject(sub.id)}
-                      className="p-1.5 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/20 text-rose-400 transition-colors"
-                      title="Delete Subject"
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
-                </div>
-
-                {/* Chapters List */}
-                <div className="divide-y divide-white/5">
-                  {chapters.length === 0 ? (
-                    <div className="p-6 text-center text-xs text-slate-500">
-                      No chapters in this subject yet. Click "+ Add Chapter" to add one.
-                    </div>
-                  ) : (
-                    filteredChapters.map((ch, cIdx) => {
-                      const isActive = ch.isActive !== false;
-                      const pts = Number(ch.points) || 10;
-
-                      return (
-                        <div
-                          key={ch.id}
-                          className={`p-3.5 sm:px-6 flex items-center justify-between gap-3 transition-colors ${
-                            !isActive ? 'opacity-50 bg-navy-950/40' : 'hover:bg-white/5'
-                          }`}
-                        >
-                          {/* Chapter Info */}
-                          <div className="flex items-center space-x-3 min-w-0 pr-2">
-                            <span className="text-[11px] font-mono font-bold px-2 py-0.5 rounded bg-navy-950 border border-white/10 text-royal-300 shrink-0">
-                              Ch {ch.chapterNo || cIdx + 1}
-                            </span>
-                            <div className="min-w-0">
-                              <span className="text-xs sm:text-sm font-medium text-slate-200 truncate block">
-                                {ch.title}
-                              </span>
-                              <span className="text-[10px] text-slate-400 font-mono">
-                                Reward: <strong className="text-gold-400">+{pts} PTS</strong>
-                              </span>
-                            </div>
-                          </div>
-
-                          {/* Chapter Actions */}
-                          <div className="flex items-center gap-1.5 shrink-0">
-                            {/* Toggle Active / Inactive */}
-                            <button
-                              onClick={() => handleToggleChapterActive(sub.id, ch.id)}
-                              className={`p-1.5 rounded-lg border transition-colors ${
-                                isActive 
-                                  ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/20' 
-                                  : 'bg-white/5 border-white/10 text-slate-500 hover:text-slate-300'
-                              }`}
-                              title={isActive ? "Active (visible to students) - click to hide" : "Inactive (hidden from students) - click to activate"}
-                            >
-                              {isActive ? <Eye className="w-3.5 h-3.5" /> : <EyeOff className="w-3.5 h-3.5" />}
-                            </button>
-
-                            {/* Move Up */}
-                            <button
-                              onClick={() => handleMoveChapter(sub.id, cIdx, -1)}
-                              disabled={cIdx === 0}
-                              className="p-1.5 rounded-lg bg-navy-950 border border-white/10 text-slate-400 hover:text-white disabled:opacity-30 transition-colors"
-                              title="Move Chapter Up"
-                            >
-                              <ArrowUp className="w-3.5 h-3.5" />
-                            </button>
-
-                            {/* Move Down */}
-                            <button
-                              onClick={() => handleMoveChapter(sub.id, cIdx, 1)}
-                              disabled={cIdx === chapters.length - 1}
-                              className="p-1.5 rounded-lg bg-navy-950 border border-white/10 text-slate-400 hover:text-white disabled:opacity-30 transition-colors"
-                              title="Move Chapter Down"
-                            >
-                              <ArrowDown className="w-3.5 h-3.5" />
-                            </button>
-
-                            {/* Edit Chapter */}
-                            <button
-                              onClick={() => openEditChapterModal(sub.id, ch)}
-                              className="p-1.5 rounded-lg bg-navy-950 border border-white/10 text-slate-400 hover:text-white transition-colors"
-                              title="Edit Chapter Details"
-                            >
-                              <Edit3 className="w-3.5 h-3.5" />
-                            </button>
-
-                            {/* Delete Chapter */}
-                            <button
-                              onClick={() => handleDeleteChapter(sub.id, ch.id)}
-                              className="p-1.5 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/20 text-rose-400 transition-colors"
-                              title="Delete Chapter"
-                            >
-                              <Trash2 className="w-3.5 h-3.5" />
-                            </button>
-                          </div>
-                        </div>
-                      );
-                    })
-                  )}
                 </div>
               </div>
-            );
-          })}
-        </div>
-      )}
 
-      {/* Chapter Modal (Add / Edit) */}
-      {activeSubjectId && (
-        <div className="fixed inset-0 z-[120] flex items-center justify-center p-4 bg-navy-950/80 backdrop-blur-md animate-in fade-in duration-200">
-          <div className="glass-card p-6 sm:p-7 rounded-3xl border border-white/15 max-w-md w-full shadow-2xl space-y-5">
-            <div className="flex items-center justify-between border-b border-white/10 pb-3">
-              <h3 className="text-base font-bold text-white flex items-center gap-2">
-                <RotateCcw className="w-4 h-4 text-royal-400" />
-                <span>{chapterModalMode === 'add' ? 'Add Revision Chapter' : 'Edit Revision Chapter'}</span>
-              </h3>
-              <button
-                onClick={() => setActiveSubjectId(null)}
-                className="text-slate-400 hover:text-white text-sm"
+              {/* Chapters & Units List */}
+              <div className="divide-y divide-white/5">
+                {filteredChapters.map(ch => {
+                  const isExpanded = expandedChapters[ch.id] !== false; // default expanded
+                  const units = ch.units || [];
+
+                  return (
+                    <div key={ch.id} className="border-b border-white/5 last:border-b-0">
+                      
+                      {/* Chapter Accordion Bar */}
+                      <div className="p-4 sm:px-6 bg-navy-950/40 flex flex-col sm:flex-row sm:items-center justify-between gap-3 select-none">
+                        
+                        <div 
+                          onClick={() => handleToggleExpandChapter(ch.id)}
+                          className="flex items-center space-x-3 cursor-pointer min-w-0"
+                        >
+                          <button
+                            type="button"
+                            className="p-1 rounded-lg bg-navy-900 border border-white/10 text-slate-400 hover:text-white shrink-0"
+                          >
+                            {isExpanded ? <ChevronUp className="w-4 h-4 text-royal-400" /> : <ChevronDown className="w-4 h-4 text-slate-400" />}
+                          </button>
+
+                          <div className="min-w-0">
+                            <span className="text-[11px] font-mono font-bold px-2 py-0.5 rounded bg-navy-900 border border-white/10 text-royal-300 mr-2">
+                              {ch.chapterNo ? `Ch ${ch.chapterNo}` : 'Ch'}
+                            </span>
+                            <span className="text-sm font-bold text-white">
+                              {ch.title}
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Chapter Action & Unit Counts */}
+                        <div className="flex items-center gap-2 self-end sm:self-auto shrink-0">
+                          <span className="text-xs px-2.5 py-1 rounded-xl bg-navy-900 border border-white/10 text-slate-300 font-mono">
+                            <strong className="text-emerald-400">{ch.activeUnitsCount}</strong>/{units.length} Units Active
+                          </span>
+
+                          <button
+                            type="button"
+                            onClick={() => handleOpenAddManualUnit(ch, subObj)}
+                            className="px-3 py-1.5 rounded-xl bg-purple-500/20 hover:bg-purple-500/30 text-purple-300 border border-purple-500/30 text-xs font-bold transition-all flex items-center gap-1.5"
+                          >
+                            <Plus className="w-3.5 h-3.5 text-purple-400" />
+                            <span>Add Manual Unit</span>
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Units List */}
+                      {isExpanded && (
+                        <div className="bg-navy-950/60 divide-y divide-white/5 pl-4 sm:pl-12 pr-4 sm:pr-6 py-2">
+                          {units.length === 0 ? (
+                            <div className="p-4 text-xs text-slate-500 text-center">
+                              No revision units found in this chapter. Click "+ Add Manual Unit" to add one.
+                            </div>
+                          ) : (
+                            units.map((unit) => {
+                              const isDisabled = unit.isDisabledInRevision;
+
+                              return (
+                                <div
+                                  key={unit.id}
+                                  className={`p-3 sm:px-4 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 transition-colors ${
+                                    isDisabled ? 'bg-navy-900/20 opacity-60' : 'hover:bg-white/5'
+                                  }`}
+                                >
+                                  {/* Left: Unit Identity */}
+                                  <div className="flex items-start sm:items-center space-x-3 min-w-0">
+                                    <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-navy-900 border border-white/10 text-slate-400 shrink-0">
+                                      {unit.unitNo}
+                                    </span>
+
+                                    <div className="min-w-0">
+                                      <div className="flex items-center gap-2 flex-wrap">
+                                        <span className={`text-xs sm:text-sm font-semibold ${isDisabled ? 'text-slate-400 line-through' : 'text-slate-200'}`}>
+                                          {unit.title}
+                                        </span>
+
+                                        {/* Source Badge: Syllabus vs Manual */}
+                                        {unit.isManual ? (
+                                          <span className="px-2 py-0.5 rounded-md text-[10px] font-extrabold uppercase bg-purple-500/20 text-purple-300 border border-purple-500/30 inline-flex items-center gap-1">
+                                            <Sparkles className="w-2.5 h-2.5 text-purple-400" />
+                                            Manual Unit
+                                          </span>
+                                        ) : (
+                                          <span className="px-2 py-0.5 rounded-md text-[10px] font-extrabold uppercase bg-cyan-500/15 text-cyan-300 border border-cyan-500/30 inline-flex items-center gap-1">
+                                            <Layers className="w-2.5 h-2.5 text-cyan-400" />
+                                            Syllabus Unit
+                                          </span>
+                                        )}
+
+                                        {unit.hasOverride && (
+                                          <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                                            Title Overridden
+                                          </span>
+                                        )}
+
+                                        {isDisabled && (
+                                          <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-rose-500/20 text-rose-300 border border-rose-500/30">
+                                            Disabled in Revision
+                                          </span>
+                                        )}
+                                      </div>
+
+                                      {unit.description && (
+                                        <div className="text-[11px] text-slate-500 truncate max-w-lg mt-0.5">
+                                          {unit.description}
+                                        </div>
+                                      )}
+                                    </div>
+                                  </div>
+
+                                  {/* Right: Points & Actions */}
+                                  <div className="flex items-center gap-3 self-end sm:self-auto shrink-0">
+                                    <span className="text-xs font-mono font-bold px-2 py-0.5 rounded bg-navy-900 border border-white/5 text-gold-400">
+                                      {unit.points} PTS
+                                    </span>
+
+                                    {/* Enable / Disable Button */}
+                                    <button
+                                      type="button"
+                                      disabled={saving}
+                                      onClick={() => handleToggleUnitEnabled(unit)}
+                                      className={`p-1.5 rounded-lg border text-xs font-bold transition-all flex items-center gap-1 ${
+                                        isDisabled
+                                          ? 'bg-rose-500/20 text-rose-300 border-rose-500/30 hover:bg-rose-500 hover:text-white'
+                                          : 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30 hover:bg-emerald-500 hover:text-navy-950'
+                                      }`}
+                                      title={isDisabled ? "Enable this unit in Student Revision" : "Disable this unit from Student Revision"}
+                                    >
+                                      {isDisabled ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                                      <span className="hidden sm:inline">{isDisabled ? 'Enable' : 'Active'}</span>
+                                    </button>
+
+                                    {/* Edit Button */}
+                                    <button
+                                      type="button"
+                                      onClick={() => handleOpenEditUnit(unit, ch, subObj)}
+                                      className="p-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-slate-300 border border-white/10 transition-colors"
+                                      title="Edit Revision Unit"
+                                    >
+                                      <Edit3 className="w-3.5 h-3.5" />
+                                    </button>
+
+                                    {/* Delete Button (Only for Manual Units) */}
+                                    {unit.isManual && (
+                                      <button
+                                        type="button"
+                                        disabled={saving}
+                                        onClick={() => handleDeleteManualUnit(unit.id)}
+                                        className="p-1.5 rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 transition-colors"
+                                        title="Delete Manual Unit"
+                                      >
+                                        <Trash2 className="w-3.5 h-3.5" />
+                                      </button>
+                                    )}
+                                  </div>
+
+                                </div>
+                              );
+                            })
+                          )}
+                        </div>
+                      )}
+
+                    </div>
+                  );
+                })}
+              </div>
+
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Add / Edit Unit Modal */}
+      {isModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-navy-950/85 backdrop-blur-md animate-in fade-in duration-200">
+          <div className="glass-card p-6 sm:p-8 rounded-3xl border border-white/15 max-w-lg w-full max-h-[90vh] overflow-y-auto custom-scrollbar shadow-2xl space-y-6 relative">
+            
+            {/* Header */}
+            <div className="flex items-center justify-between border-b border-white/10 pb-4">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-2xl bg-purple-500/20 text-purple-400 flex items-center justify-center border border-purple-500/30">
+                  <Sparkles className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold text-white">
+                    {modalMode === 'add_manual' && 'Add Manual Revision Unit'}
+                    {modalMode === 'edit_manual' && 'Edit Manual Revision Unit'}
+                    {modalMode === 'edit_override' && 'Edit Syllabus Unit (Revision Override)'}
+                  </h3>
+                  <p className="text-xs text-slate-400">
+                    {activeChapter?.title} • {activeSubject?.subject}
+                  </p>
+                </div>
+              </div>
+              <button 
+                onClick={() => setIsModalOpen(false)}
+                className="p-2 rounded-full bg-white/5 text-slate-400 hover:text-white transition-colors"
               >
-                ✕
+                <X className="w-5 h-5" />
               </button>
             </div>
 
-            <form onSubmit={handleSaveChapter} className="space-y-4">
+            <form onSubmit={handleSaveModalForm} className="space-y-4">
+              
+              {/* Unit Number */}
               <div>
-                <label className="block text-xs font-bold text-slate-400 mb-1">
-                  Chapter Number / Code
-                </label>
-                <input
-                  type="text"
-                  value={chapNoInput}
-                  onChange={(e) => setChapNoInput(e.target.value)}
-                  placeholder="e.g., 1, 2, or 1A"
-                  className="w-full px-3.5 py-2.5 rounded-xl bg-navy-950 border border-white/10 text-white text-xs focus:outline-none focus:border-royal-500"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-slate-400 mb-1">
-                  Chapter Title <span className="text-rose-400">*</span>
+                <label className="text-xs font-bold text-slate-400 uppercase tracking-wider block mb-1">
+                  Unit Label / Number
                 </label>
                 <input
                   type="text"
                   required
-                  value={chapTitleInput}
-                  onChange={(e) => setChapTitleInput(e.target.value)}
-                  placeholder="e.g., Indian Contract Act, 1872"
-                  className="w-full px-3.5 py-2.5 rounded-xl bg-navy-950 border border-white/10 text-white text-xs focus:outline-none focus:border-royal-500"
+                  value={formUnitNo}
+                  onChange={(e) => setFormUnitNo(e.target.value)}
+                  placeholder="e.g. Unit 5 or Practice Unit"
+                  className="w-full px-4 py-2.5 rounded-xl bg-navy-900 border border-white/10 text-white placeholder-slate-500 text-xs focus:outline-none focus:border-purple-500"
                 />
               </div>
 
+              {/* Unit Title */}
               <div>
-                <label className="block text-xs font-bold text-slate-400 mb-1">
-                  Reward Points (PTS) for completing revision
+                <label className="text-xs font-bold text-slate-400 uppercase tracking-wider block mb-1">
+                  Unit Title
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={formUnitTitle}
+                  onChange={(e) => setFormUnitTitle(e.target.value)}
+                  placeholder="e.g. Past Year Paper Revision Problems"
+                  className="w-full px-4 py-2.5 rounded-xl bg-navy-900 border border-white/10 text-white placeholder-slate-500 text-xs focus:outline-none focus:border-purple-500"
+                />
+              </div>
+
+              {/* Unit Description */}
+              <div>
+                <label className="text-xs font-bold text-slate-400 uppercase tracking-wider block mb-1">
+                  Description / Study Focus (Optional)
+                </label>
+                <textarea
+                  rows="2"
+                  value={formUnitDesc}
+                  onChange={(e) => setFormUnitDesc(e.target.value)}
+                  placeholder="e.g. Focus on ICAI RTP & case-based questions"
+                  className="w-full px-4 py-2.5 rounded-xl bg-navy-900 border border-white/10 text-white placeholder-slate-500 text-xs focus:outline-none focus:border-purple-500"
+                />
+              </div>
+
+              {/* Points */}
+              <div>
+                <label className="text-xs font-bold text-slate-400 uppercase tracking-wider block mb-1">
+                  Revision Points (PTS)
                 </label>
                 <input
                   type="number"
-                  min="0"
+                  min="1"
                   max="100"
-                  value={chapPointsInput}
-                  onChange={(e) => setChapPointsInput(e.target.value)}
-                  className="w-full px-3.5 py-2.5 rounded-xl bg-navy-950 border border-white/10 text-white text-xs focus:outline-none focus:border-royal-500"
+                  required
+                  value={formUnitPts}
+                  onChange={(e) => setFormUnitPts(e.target.value)}
+                  className="w-full px-4 py-2.5 rounded-xl bg-navy-900 border border-white/10 text-white text-xs focus:outline-none focus:border-purple-500"
                 />
               </div>
 
-              <div className="flex items-center justify-end gap-3 pt-3 border-t border-white/10">
+              {/* Active Switch */}
+              <div className="flex items-center justify-between p-3 rounded-xl bg-navy-900 border border-white/5">
+                <div>
+                  <div className="text-xs font-bold text-white">Active in Student Revision</div>
+                  <div className="text-[11px] text-slate-400">If unchecked, students will not see this unit</div>
+                </div>
+                <input
+                  type="checkbox"
+                  checked={formUnitActive}
+                  onChange={(e) => setFormUnitActive(e.target.checked)}
+                  className="w-4 h-4 rounded text-purple-600 focus:ring-purple-500"
+                />
+              </div>
+
+              {/* Submit Buttons */}
+              <div className="flex gap-3 pt-3">
                 <button
                   type="button"
-                  onClick={() => setActiveSubjectId(null)}
-                  className="px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-slate-300 text-xs font-bold transition-colors"
+                  onClick={() => setIsModalOpen(false)}
+                  className="flex-1 py-3 rounded-xl border border-white/10 text-slate-300 font-bold hover:bg-white/5 transition-colors text-xs"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2 rounded-xl bg-royal-600 hover:bg-royal-500 text-white text-xs font-bold transition-all shadow-lg"
+                  disabled={saving}
+                  className="flex-1 py-3 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-bold transition-all text-xs shadow-glow-purple flex items-center justify-center gap-2 disabled:opacity-50"
                 >
-                  {chapterModalMode === 'add' ? 'Add Chapter' : 'Save Details'}
+                  {saving ? 'Saving...' : 'Save Unit'}
                 </button>
               </div>
+
             </form>
+
           </div>
         </div>
       )}
+
     </div>
   );
 }

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { doc, onSnapshot, setDoc, updateDoc } from 'firebase/firestore';
 import { db } from '../../config/firebase';
 import { SYLLABUS_DATA, getDefaultUnitsForChapter } from '../../data/syllabusData';
@@ -67,6 +67,14 @@ export default function AdminChaptersUnits() {
   const [bulkText, setBulkText] = useState('');
   const [bulkPts, setBulkPts] = useState('10');
 
+  const selectedSubjectIdRef = useRef(selectedSubjectId);
+  const selectedChapterIdRef = useRef(selectedChapterId);
+
+  useEffect(() => {
+    selectedSubjectIdRef.current = selectedSubjectId;
+    selectedChapterIdRef.current = selectedChapterId;
+  }, [selectedSubjectId, selectedChapterId]);
+
   // Real-time listener for current stream's syllabus
   useEffect(() => {
     setLoading(true);
@@ -82,9 +90,9 @@ export default function AdminChaptersUnits() {
         
         // Auto-select first subject & chapter if not selected or invalid
         if (subjects.length > 0) {
-          const currentSub = subjects.find(s => s.id === selectedSubjectId) || subjects[0];
+          const currentSub = subjects.find(s => s.id === selectedSubjectIdRef.current) || subjects[0];
           setSelectedSubjectId(currentSub.id);
-          const currentChap = currentSub.chapters?.find(c => c.id === selectedChapterId) || currentSub.chapters?.[0];
+          const currentChap = currentSub.chapters?.find(c => c.id === selectedChapterIdRef.current) || currentSub.chapters?.[0];
           if (currentChap) {
             setSelectedChapterId(currentChap.id);
           } else {

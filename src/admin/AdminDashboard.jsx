@@ -32,6 +32,9 @@ import AdminSectionLocks from './tabs/AdminSectionLocks';
 import AdminWebcamStudy from './tabs/AdminWebcamStudy';
 import AdminMotivation from './tabs/AdminMotivation';
 import AdminLevelGifts from './tabs/AdminLevelGifts';
+import AdminPrivacySecurity from './tabs/AdminPrivacySecurity';
+import AdminQuizzes from './tabs/AdminQuizzes';
+import AdminCoachingStudy from './tabs/AdminCoachingStudy';
 
 import { 
   LayoutDashboard,  
@@ -41,6 +44,7 @@ import {
   BookOpen,
   Layers,
   TrendingUp, 
+  GraduationCap,
   Trophy, 
   Target, 
   Clock, 
@@ -52,6 +56,7 @@ import {
   Settings, 
   LogOut,
   ChevronRight,
+  Shield,
   ShieldCheck,
   PenLine,
   Flag,
@@ -61,7 +66,8 @@ import {
   ShieldAlert,
   Sparkles,
   Gift,
-  RotateCcw
+  RotateCcw,
+  BrainCircuit
 } from 'lucide-react';
 
 
@@ -81,6 +87,7 @@ export default function AdminDashboard() {
     { id: 'analytics', label: 'Analytics', icon: TrendingUp },
     { id: 'leaderboard', label: 'Leaderboard', icon: Trophy },
     { id: 'targets', label: 'Targets', icon: Target },
+    { id: 'coaching_study', label: 'Coaching Study', icon: GraduationCap },
     { id: 'tests', label: 'Test Papers', icon: FileText },
     { id: 'levels', label: 'Levels & Badges', icon: Award },
     { id: 'level_gifts', label: 'Level Gifts', icon: Gift },
@@ -99,6 +106,8 @@ export default function AdminDashboard() {
     { id: 'courses', label: 'Courses & Attempts', icon: Calendar },
     { id: 'devices', label: 'Device Activity', icon: MonitorSmartphone },
     { id: 'settings', label: 'Settings', icon: Settings },
+    { id: 'privacy', label: 'Privacy & Security', icon: Shield },
+    { id: 'quizzes', label: 'Manage Quizzes', icon: BrainCircuit },
   ];
 
   return (
@@ -204,6 +213,7 @@ export default function AdminDashboard() {
             {activeTab === 'analytics' && <AdminAnalytics />}
             {activeTab === 'leaderboard' && <AdminLeaderboard />}
             {activeTab === 'targets' && <AdminTargets />}
+            {activeTab === 'coaching_study' && <AdminCoachingStudy />}
             {activeTab === 'tests' && <AdminTests />}
             {activeTab === 'levels' && <AdminLevels />}
             {activeTab === 'level_gifts' && <AdminLevelGifts />}
@@ -222,6 +232,8 @@ export default function AdminDashboard() {
             {activeTab === 'courses' && <AdminCourses />}
             {activeTab === 'devices' && <AdminDevices />}
             {activeTab === 'settings' && <AdminSettings />}
+            {activeTab === 'privacy' && <AdminPrivacySecurity />}
+            {activeTab === 'quizzes' && <AdminQuizzes />}
           </main>
 
         </div>

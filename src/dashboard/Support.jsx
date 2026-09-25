@@ -1,13 +1,13 @@
 import React, { useState } from 'react';
-import { Mail, Send, Copy, Check, Headphones, ExternalLink, ArrowLeft } from 'lucide-react';
+import { Mail, Send, Copy, Check, Headphones, ExternalLink, ArrowLeft, Clock } from 'lucide-react';
 
 export default function Support({ setActiveTab }) {
   const [copiedEmail, setCopiedEmail] = useState(false);
   const [copiedTelegram, setCopiedTelegram] = useState(false);
 
   const email = 'casuccessblueprint@gmail.com';
-  const telegram = '@study_0312';
-  const telegramUrl = 'https://t.me/study_0312';
+  const telegram = '@ca_success_blueprint_support';
+  const telegramUrl = 'https://t.me/ca_success_blueprint_support';
 
   const copyToClipboard = (text, type) => {
     navigator.clipboard.writeText(text);
@@ -53,6 +53,12 @@ export default function Support({ setActiveTab }) {
               <p className="text-xs sm:text-sm text-slate-400">Get help with your preparation & account</p>
             </div>
           </div>
+        </div>
+
+        {/* Support Hours Banner */}
+        <div className="p-3.5 rounded-2xl bg-emerald-500/10 border border-emerald-500/25 flex items-center justify-center gap-2 text-xs sm:text-sm font-bold text-emerald-400 relative z-10 text-center shadow-sm">
+          <Clock className="w-4 h-4 shrink-0 text-emerald-400" />
+          <span>Support available from 8:00 AM to 9:00 PM</span>
         </div>
 
         {/* Content Options */}
@@ -122,7 +128,7 @@ export default function Support({ setActiveTab }) {
 
         {/* Footer Note */}
         <div className="text-center text-xs font-semibold text-slate-400 pt-4 border-t border-white/5">
-          Available 24/7 for CA & CMA Students Assistance
+          Support available from 8:00 AM to 9:00 PM
         </div>
 
       </div>

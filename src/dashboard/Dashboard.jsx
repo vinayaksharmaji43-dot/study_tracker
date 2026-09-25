@@ -19,8 +19,11 @@ import Calendar from '../dashboard/Calendar';
 import Announcements from '../dashboard/Announcements';
 import OverallLeaderboard from '../dashboard/OverallLeaderboard';
 import WebcamStudy from '../dashboard/WebcamStudy';
+import StudentQuizzes from '../dashboard/StudentQuizzes';
+import Products from '../dashboard/Products';
 
 import { 
+  ShoppingBag,
   LayoutDashboard, 
   BookOpenCheck,
   Trophy, 
@@ -41,7 +44,8 @@ import {
   Megaphone,
   MessageSquare,
   Lock,
-  RotateCcw
+  RotateCcw,
+  BrainCircuit
 } from 'lucide-react';
 import SupportModal from '../components/SupportModal';
 import Support from '../dashboard/Support';
@@ -113,11 +117,13 @@ export default function Dashboard() {
     { id: 'timer', label: 'Study Timer', icon: Clock },
     { id: 'webcam_study', label: 'Webcam Study', icon: Video },
     { id: 'mentor', label: 'Mentor Session', icon: Video },
+    { id: 'quiz', label: 'Quiz', icon: BrainCircuit },
     { id: 'writing', label: 'Writing Practice', icon: PenLine },
     { id: 'missions', label: 'Weekly Mission', icon: Flag },
     { id: 'targets', label: 'Self-Managed Hub', icon: Target },
     { id: 'notes', label: 'Notes & Resources', icon: FileText },
     { id: 'doubts', label: 'Academic Doubts', icon: HelpCircle },
+    { id: 'product', label: 'Product', icon: ShoppingBag, isSpecial: true },
     { id: 'profile', label: 'My Profile', icon: User },
   ];
 
@@ -158,6 +164,35 @@ export default function Dashboard() {
                   const Icon = item.icon;
                   const isActive = activeTab === item.id;
                   const isLocked = isSectionLocked(item.id);
+                  const isProduct = item.id === 'product';
+
+                  if (isProduct) {
+                    return (
+                      <button
+                        key={item.id}
+                        onClick={() => setActiveTab(item.id)}
+                        className={`w-full flex items-center justify-between px-4 py-3 rounded-2xl text-sm font-bold transition-all duration-200 cursor-pointer my-1.5 ${
+                          isActive
+                            ? 'bg-gradient-to-r from-amber-500/25 via-purple-500/25 to-amber-500/25 border border-amber-400/60 text-amber-300 shadow-[0_0_20px_rgba(245,158,11,0.25)]'
+                            : 'bg-gradient-to-r from-amber-500/10 via-purple-500/10 to-amber-500/10 border border-amber-500/30 text-amber-200 hover:border-amber-400/60 hover:text-white hover:shadow-[0_0_15px_rgba(245,158,11,0.15)]'
+                        }`}
+                      >
+                        <div className="flex items-center space-x-3">
+                          <ShoppingBag className={`w-5 h-5 ${isActive ? 'text-amber-400' : 'text-amber-400/90'}`} />
+                          <span className="bg-gradient-to-r from-amber-200 to-amber-400 bg-clip-text text-transparent font-black tracking-wide">
+                            {item.label}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-1.5">
+                          <span className="px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-amber-500/20 text-amber-300 border border-amber-500/30 flex items-center gap-1 shadow-sm">
+                            <Sparkles className="w-2.5 h-2.5" />
+                            <span>Store</span>
+                          </span>
+                          {isActive && <ChevronRight className="w-4 h-4 text-amber-400" />}
+                        </div>
+                      </button>
+                    );
+                  }
 
                   return (
                     <button
@@ -198,7 +233,7 @@ export default function Dashboard() {
                     <Headphones className="w-5 h-5 text-emerald-400" />
                     <span>Help & Support</span>
                   </div>
-                  <span className="text-[10px] font-black uppercase bg-emerald-500 text-navy-950 px-2 py-0.5 rounded-md">24/7</span>
+                  <span className="text-[10px] font-black uppercase bg-emerald-500 text-navy-950 px-2 py-0.5 rounded-md">8 AM - 9 PM</span>
                 </button>
 
                 <button
@@ -247,11 +282,13 @@ export default function Dashboard() {
                 {activeTab === 'timer' && <StudyTimer setActiveTab={setActiveTab} />}
                 {activeTab === 'webcam_study' && <WebcamStudy setActiveTab={setActiveTab} />}
                 {activeTab === 'mentor' && <MentorSession />}
+                {(activeTab === 'quiz' || activeTab === 'quizzes') && <StudentQuizzes setActiveTab={setActiveTab} />}
                 {activeTab === 'writing' && <WritingPractice />}
                 {activeTab === 'missions' && <WeeklyMissions />}
                 {activeTab === 'targets' && <Targets setActiveTab={setActiveTab} />}
                 {activeTab === 'notes' && <Notes />}
                 {activeTab === 'doubts' && <Doubts />}
+                {(activeTab === 'product' || activeTab === 'products') && <Products setActiveTab={setActiveTab} />}
                 {activeTab === 'profile' && <Profile />}
                 {activeTab === 'support' && <Support setActiveTab={setActiveTab} />}
               </ErrorBoundary>

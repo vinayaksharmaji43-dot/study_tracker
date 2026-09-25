@@ -92,40 +92,65 @@ export default function StudyTimer() {
 
   const [saving, setSaving] = useState(false);
   const [sessions, setSessions] = useState([]);
-  const [sessionViewMode, setSessionViewMode] = useState('subject'); // 'subject' | 'history'
-  const [expandedSubject, setExpandedSubject] = useState(null);
+  const [showTimerDayModal, setShowTimerDayModal] = useState(false);
+  const [timerDayDate, setTimerDayDate] = useState(() => new Date());
 
-  // Group and aggregate sessions strictly by subject name
-  const subjectGroupedSessions = useMemo(() => {
+  const todayKey = getDateKey(new Date());
+
+  // Only sessions for current stream (using subjects list) and for today
+  const todayStreamSessions = useMemo(() => {
+    return sessions.filter((sess) => {
+      const sDate = sess.date?.toDate ? sess.date.toDate() : (sess.date ? new Date(sess.date) : null);
+      if (!sDate) return false;
+      if (getDateKey(sDate) !== todayKey) return false;
+      return subjects.some(sub => isSubjectMatch(sess.subject, sub));
+    });
+  }, [sessions, todayKey, subjects]);
+
+  const todaySubjectTotals = useMemo(() => {
     const map = {};
-    sessions.forEach((sess) => {
-      const sub = (sess.subject || 'General Study').trim();
-      if (!map[sub]) {
-        map[sub] = {
-          subject: sub,
-          totalDuration: 0,
-          sessionCount: 0,
-          latestDate: sess.date,
-          sessionsList: []
-        };
-      }
-      map[sub].totalDuration += (Number(sess.duration) || 0);
-      map[sub].sessionCount += 1;
-      map[sub].sessionsList.push(sess);
-
-      const sDate = sess.date?.toDate ? sess.date.toDate() : new Date(sess.date);
-      const mDate = map[sub].latestDate?.toDate ? map[sub].latestDate.toDate() : new Date(map[sub].latestDate);
-      if (sDate > mDate) {
-        map[sub].latestDate = sess.date;
-      }
+    let totalSeconds = 0;
+    todayStreamSessions.forEach((sess) => {
+      const sub = (sess.subject || 'General').trim();
+      const officialSub = subjects.find(s => isSubjectMatch(sub, s)) || sub;
+      const dur = Number(sess.duration) || 0;
+      if (!map[officialSub]) map[officialSub] = 0;
+      map[officialSub] += dur;
+      totalSeconds += dur;
     });
+    const sorted = Object.entries(map).sort((a, b) => b[1] - a[1]);
+    return { list: sorted, totalSeconds };
+  }, [todayStreamSessions, subjects]);
 
-    return Object.values(map).sort((a, b) => {
-      const da = a.latestDate?.toDate ? a.latestDate.toDate() : new Date(a.latestDate);
-      const dbDate = b.latestDate?.toDate ? b.latestDate.toDate() : new Date(b.latestDate);
-      return dbDate - da;
+  const timerDayKey = getDateKey(timerDayDate);
+  const timerDaySessions = useMemo(() => {
+    return sessions.filter((sess) => {
+      const sDate = sess.date?.toDate ? sess.date.toDate() : (sess.date ? new Date(sess.date) : null);
+      if (!sDate) return false;
+      if (getDateKey(sDate) !== timerDayKey) return false;
+      return subjects.some(sub => isSubjectMatch(sess.subject, sub));
     });
-  }, [sessions]);
+  }, [sessions, timerDayKey, subjects]);
+
+  const timerDayTotals = useMemo(() => {
+    const map = {};
+    let totalSeconds = 0;
+    timerDaySessions.forEach((sess) => {
+      const sub = (sess.subject || 'General').trim();
+      const officialSub = subjects.find(s => isSubjectMatch(sub, s)) || sub;
+      const dur = Number(sess.duration) || 0;
+      if (!map[officialSub]) map[officialSub] = 0;
+      map[officialSub] += dur;
+      totalSeconds += dur;
+    });
+    return { list: Object.entries(map).sort((a, b) => b[1] - a[1]), totalSeconds };
+  }, [timerDaySessions, subjects]);
+
+  const formatHm = (secs) => {
+    const h = Math.floor(secs / 3600);
+    const m = Math.floor((secs % 3600) / 60);
+    return `${h.toString().padStart(2, '0')}h ${m.toString().padStart(2, '0')}m`;
+  };
   const [savedSuccess, setSavedSuccess] = useState(false);
   const [autoStoppedAlert, setAutoStoppedAlert] = useState(false);
   const [dayOffs, setDayOffs] = useState([]);
@@ -350,7 +375,7 @@ export default function StudyTimer() {
     }, (error) => console.error('Warnings subscription error:', error));
   }, [currentUser]);
 
-  const todayKey = getDateKey();
+
   const currentMonthKey = getMonthKey();
   const todayDayOff = dayOffs.find(dayOff => dayOff.dateKey === todayKey && dayOff.status === 'active');
   const dayOffsUsed = dayOffs.filter(dayOff => dayOff.status === 'active').length;
@@ -950,6 +975,17 @@ export default function StudyTimer() {
               )}
             </div>
 
+            {/* Your Timer Day Button */}
+            <div className="pt-5 border-t border-white/10 text-center">
+              <button
+                onClick={() => setShowTimerDayModal(true)}
+                className="w-full py-4 rounded-2xl bg-gradient-to-r from-purple-600/20 to-purple-500/20 hover:from-purple-600/30 hover:to-purple-500/30 border border-purple-500/30 text-purple-300 font-bold text-sm sm:text-base shadow-glow-purple hover:scale-[1.02] transition-all flex items-center justify-center gap-2"
+              >
+                <Calendar className="w-5 h-5" />
+                <span>Your Timer Day</span>
+              </button>
+            </div>
+
             <div className="pt-5 border-t border-white/10 text-left">
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 rounded-2xl bg-amber-500/10 border border-amber-500/25 p-4">
                 <div className="flex items-start gap-3">
@@ -985,133 +1021,126 @@ export default function StudyTimer() {
           </div>
         </div>
 
-        {/* Right Column: History of Logged Sessions */}
+        {/* Right Column: Today's Daily Study Summary */}
         <div className="lg:col-span-5 space-y-4">
-          <div className="flex items-center justify-between gap-2 flex-wrap">
-            <h3 className="text-lg font-bold text-white flex items-center gap-2">
-              <BookOpen className="w-5 h-5 text-gold-400" />
-              <span>Your Study Log History</span>
-            </h3>
-
-            {/* View Mode Toggle: By Subject (Consolidated) vs All Sessions */}
-            <div className="flex items-center gap-1 bg-navy-900/80 p-1 rounded-xl border border-white/10 text-xs">
-              <button
-                type="button"
-                onClick={() => setSessionViewMode('subject')}
-                className={`px-2.5 py-1 rounded-lg font-bold transition-all ${
-                  sessionViewMode === 'subject'
-                    ? 'bg-royal-600 text-white shadow-sm'
-                    : 'text-slate-400 hover:text-white'
-                }`}
-                title="Consolidated by subject — time adds up directly per subject"
-              >
-                By Subject
-              </button>
-              <button
-                type="button"
-                onClick={() => setSessionViewMode('history')}
-                className={`px-2.5 py-1 rounded-lg font-bold transition-all ${
-                  sessionViewMode === 'history'
-                    ? 'bg-royal-600 text-white shadow-sm'
-                    : 'text-slate-400 hover:text-white'
-                }`}
-                title="All individual session records"
-              >
-                All Sessions
-              </button>
-            </div>
-          </div>
-
-          {sessions.length === 0 ? (
-            <EmptyState
-              icon={Clock}
-              title="No logged sessions yet"
-              description="Your completed sessions will be saved here automatically with timestamp and subject breakdown."
-            />
-          ) : sessionViewMode === 'subject' ? (
-            /* ================= VIEW 1: BY SUBJECT (CONSOLIDATED) ================= */
-            <div className="glass-card rounded-2xl border border-white/10 divide-y divide-white/5 max-h-[460px] overflow-y-auto">
-              {subjectGroupedSessions.map((grp) => {
-                const isExpanded = expandedSubject === grp.subject;
-                return (
-                  <div key={grp.subject} className="transition-colors">
-                    <div 
-                      onClick={() => setExpandedSubject(isExpanded ? null : grp.subject)}
-                      className="p-4 flex items-center justify-between hover:bg-white/5 cursor-pointer transition-colors select-none group"
-                      title="Click to view/hide session breakdown"
-                    >
-                      <div className="space-y-1 min-w-0 pr-3">
-                        <div className="text-sm font-black text-white group-hover:text-gold-400 transition-colors flex items-center gap-2">
-                          <span className="truncate">{grp.subject}</span>
-                          <span className="px-2 py-0.5 rounded-full bg-white/5 border border-white/10 text-[10px] font-bold text-slate-400 shrink-0">
-                            {grp.sessionCount} {grp.sessionCount === 1 ? 'session' : 'sessions'}
-                          </span>
-                        </div>
-                        <div className="text-xs text-slate-400 flex items-center gap-1">
-                          <Calendar className="w-3 h-3 text-gold-400 shrink-0" />
-                          <span className="truncate">{formatDate(grp.latestDate)}</span>
-                        </div>
+          <div className="p-6 sm:p-8 rounded-3xl glass-card border border-white/10 shadow-2xl relative overflow-hidden">
+             <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
+             <div className="relative z-10 space-y-6">
+                <div className="flex items-center justify-between">
+                   <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-xl bg-emerald-500/20 flex items-center justify-center text-emerald-400">
+                         <BookOpen className="w-5 h-5" />
                       </div>
-
-                      <div className="flex items-center gap-3 shrink-0">
-                        <div className="text-right">
-                          <div className="text-sm font-mono font-black text-emerald-400">
-                            {formatTimerTime(grp.totalDuration)}
-                          </div>
-                          <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">
-                            Total Time
-                          </div>
-                        </div>
-                        <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform duration-200 ${isExpanded ? 'rotate-180 text-gold-400' : ''}`} />
+                      <div>
+                         <h3 className="text-lg font-bold text-white leading-tight">Today's Study</h3>
+                         <span className="text-[11px] font-bold text-emerald-400 tracking-wider uppercase">
+                           {userProfile?.course || 'CA'} {userProfile?.level || 'Foundation'}
+                         </span>
                       </div>
-                    </div>
-
-                    {/* Collapsible Session Breakdown */}
-                    {isExpanded && (
-                      <div className="px-4 pb-3 pt-1 space-y-1.5 bg-navy-950/60 border-t border-white/5 animate-in fade-in duration-150">
-                        <div className="text-[10px] uppercase font-bold text-slate-400 pb-1">
-                          Individual Session Records ({grp.sessionsList.length}):
-                        </div>
-                        {grp.sessionsList.map((sess, idx) => (
-                          <div key={sess.id || idx} className="flex items-center justify-between text-xs py-1.5 px-2.5 rounded-lg bg-white/5 text-slate-300">
-                            <span className="text-slate-400 font-medium">
-                              {formatDate(sess.date)}
-                            </span>
-                            <span className="font-mono font-bold text-royal-300">
-                              {formatTimerTime(sess.duration)}
-                            </span>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          ) : (
-            /* ================= VIEW 2: ALL SESSIONS (RAW HISTORY) ================= */
-            <div className="glass-card rounded-2xl border border-white/10 divide-y divide-white/5 max-h-[460px] overflow-y-auto">
-              {sessions.map((sess) => (
-                <div key={sess.id} className="p-4 flex items-center justify-between hover:bg-white/5 transition-colors">
-                  <div className="space-y-1">
-                    <div className="text-sm font-bold text-white">{sess.subject}</div>
-                    <div className="text-xs text-slate-400 flex items-center gap-1">
-                      <Calendar className="w-3 h-3 text-gold-400" />
-                      <span>{formatDate(sess.date)}</span>
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <div className="text-sm font-mono font-bold text-royal-400">
-                      {formatTimerTime(sess.duration)}
-                    </div>
-                  </div>
+                   </div>
                 </div>
-              ))}
-            </div>
-          )}
+
+                <div className="p-5 rounded-2xl bg-navy-900/60 border border-white/5 text-center space-y-1">
+                   <div className="text-3xl font-black text-white font-mono">{formatHm(todaySubjectTotals.totalSeconds)}</div>
+                   <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Total Stream Study Time</div>
+                </div>
+
+                <div className="pt-2">
+                   <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4">Subjects Studied</h4>
+                   {todaySubjectTotals.list.length === 0 ? (
+                      <div className="py-8 text-center text-slate-500 text-sm border border-white/5 rounded-2xl bg-white/5">
+                         You haven't recorded any sessions for today yet.
+                      </div>
+                   ) : (
+                      <div className="space-y-3">
+                         {todaySubjectTotals.list.map(([sub, dur]) => (
+                            <div key={sub} className="flex items-center justify-between p-3.5 rounded-2xl bg-navy-900/50 border border-white/5">
+                               <div className="font-semibold text-slate-300 text-sm truncate pr-4">{sub.split(':')[0]}</div>
+                               <div className="font-mono text-emerald-400 font-bold text-sm shrink-0">{formatHm(dur)}</div>
+                            </div>
+                         ))}
+                      </div>
+                   )}
+                </div>
+             </div>
+          </div>
         </div>
 
       </div>
+
+      {/* Your Timer Day Modal */}
+      {showTimerDayModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-navy-950/85 backdrop-blur-md">
+          <div className="glass-card w-full max-w-md max-h-[90vh] overflow-y-auto custom-scrollbar rounded-3xl border border-purple-500/30 shadow-2xl flex flex-col relative animate-in zoom-in-95 duration-200">
+            <div className="sticky top-0 bg-navy-900/95 backdrop-blur-md z-10 border-b border-white/10">
+              <div className="p-6 flex items-center justify-between">
+                <div>
+                  <h2 className="text-xl font-black text-white flex items-center gap-2">
+                    <Calendar className="w-5 h-5 text-purple-400" />
+                    Your Timer Day
+                  </h2>
+                  <p className="text-[11px] text-slate-400 font-medium uppercase tracking-wider mt-1">
+                    {userProfile?.course || 'CA'} {userProfile?.level || 'Foundation'}
+                  </p>
+                </div>
+                <button onClick={() => setShowTimerDayModal(false)} className="w-8 h-8 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-slate-400 transition-colors">
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              {/* Date Navigation */}
+              <div className="px-6 pb-4 flex items-center justify-between">
+                <button 
+                  onClick={() => setTimerDayDate(d => { const nd = new Date(d); nd.setDate(nd.getDate() - 1); return nd; })}
+                  className="px-3 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-slate-300 text-xs font-bold transition-colors"
+                >
+                  ← Prev Day
+                </button>
+                <div className="text-sm font-black text-gold-400">
+                  {timerDayDate.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
+                </div>
+                <button 
+                  onClick={() => setTimerDayDate(d => { const nd = new Date(d); nd.setDate(nd.getDate() + 1); return nd; })}
+                  disabled={getDateKey(timerDayDate) >= getDateKey(new Date())}
+                  className="px-3 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-slate-300 text-xs font-bold transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                >
+                  Next Day →
+                </button>
+              </div>
+            </div>
+
+            <div className="p-6 space-y-6">
+              <div className="p-5 rounded-2xl bg-purple-500/10 border border-purple-500/20 text-center">
+                <div className="text-[10px] font-bold text-purple-300 uppercase tracking-wider mb-1">Total Study</div>
+                <div className="text-3xl font-black text-white font-mono">{formatHm(timerDayTotals.totalSeconds)}</div>
+              </div>
+
+              <div>
+                <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">Subject-wise Study</h4>
+                {timerDayTotals.list.length === 0 ? (
+                  <div className="p-8 text-center text-slate-500 text-sm border border-white/5 rounded-2xl bg-navy-900/50">
+                    No study sessions recorded for this day.
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {timerDayTotals.list.map(([sub, dur]) => (
+                      <div key={sub} className="flex flex-col p-4 rounded-2xl bg-navy-900/80 border border-white/5">
+                        <div className="flex items-center gap-2 mb-2">
+                          <BookOpen className="w-4 h-4 text-royal-400" />
+                          <span className="font-bold text-white text-sm">{sub}</span>
+                        </div>
+                        <div className="font-mono text-emerald-400 font-bold text-sm">
+                          {formatHm(dur)}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Rules Section */}
       <div className="mt-8 p-6 sm:p-8 rounded-3xl bg-navy-900 border border-white/5 space-y-6">

@@ -13,6 +13,7 @@ import Dashboard from './dashboard/Dashboard';
 import AdminDashboard from './admin/AdminDashboard';
 
 import ErrorBoundary from './components/ErrorBoundary';
+import PrivacyShield from './components/PrivacyShield';
 
 export default function App() {
   return (
@@ -31,6 +32,7 @@ export default function App() {
           element={
             <ProtectedRoute>
               <DeviceGate>
+                <PrivacyShield />
                 <Dashboard />
               </DeviceGate>
             </ProtectedRoute>

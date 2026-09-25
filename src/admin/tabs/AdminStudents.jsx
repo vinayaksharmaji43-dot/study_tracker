@@ -22,6 +22,7 @@ import {
   UserX,
   UserCheck,
   ShieldAlert,
+  Crown,
   X
 } from 'lucide-react';
 
@@ -235,6 +236,26 @@ export default function AdminStudents() {
     } catch (err) {
       console.error('Force logout error:', err);
       alert('Failed to force logout student. Check permissions.');
+    }
+  };
+
+  const handleTogglePaidAccess = async (student) => {
+    const targetUid = student.id || student.uid;
+    const currentStatus = Boolean(student.paidQuizAccess || student.isPaid);
+    const nextStatus = !currentStatus;
+
+    try {
+      const userRef = doc(db, 'users', targetUid);
+      await updateDoc(userRef, {
+        paidQuizAccess: nextStatus,
+        isPaid: nextStatus,
+        plan: nextStatus ? 'paid' : 'free'
+      });
+      setSelectedStudent(prev => prev ? { ...prev, paidQuizAccess: nextStatus, isPaid: nextStatus, plan: nextStatus ? 'paid' : 'free' } : null);
+      alert(`Paid Quiz Access has been ${nextStatus ? 'GRANTED' : 'REVOKED'} for ${student.name}.`);
+    } catch (err) {
+      console.error('Error updating paid status:', err);
+      alert('Failed to update paid status.');
     }
   };
 
@@ -703,6 +724,33 @@ export default function AdminStudents() {
 
             {/* Detailed Activity Summaries */}
             <div className="space-y-4 pt-2">
+
+              {/* Paid Quiz Access Status */}
+              <div className="p-4 rounded-2xl bg-navy-900/60 border border-white/5 flex items-center justify-between gap-4">
+                <div className="flex items-center gap-3">
+                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${selectedStudent.paidQuizAccess || selectedStudent.isPaid ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30' : 'bg-slate-800 text-slate-400 border border-white/5'}`}>
+                    <Crown className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <div className="text-sm font-bold text-white flex items-center gap-2">
+                      <span>Paid Quiz Access</span>
+                      <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${selectedStudent.paidQuizAccess || selectedStudent.isPaid ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30' : 'bg-slate-700 text-slate-300'}`}>
+                        {selectedStudent.paidQuizAccess || selectedStudent.isPaid ? 'Authorized (Paid)' : 'Free Only'}
+                      </span>
+                    </div>
+                    <div className="text-xs text-slate-400">
+                      {selectedStudent.paidQuizAccess || selectedStudent.isPaid ? 'Student can attempt all Free and Paid Quizzes' : 'Student has access to Free Quizzes only'}
+                    </div>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => handleTogglePaidAccess(selectedStudent)}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all shrink-0 ${selectedStudent.paidQuizAccess || selectedStudent.isPaid ? 'bg-rose-500/20 text-rose-300 hover:bg-rose-500 hover:text-white border border-rose-500/30' : 'bg-amber-500/20 text-amber-300 hover:bg-amber-500 hover:text-navy-950 border border-amber-500/30'}`}
+                >
+                  {selectedStudent.paidQuizAccess || selectedStudent.isPaid ? 'Revoke Paid' : 'Grant Paid'}
+                </button>
+              </div>
               
               {/* Targets Summary */}
               <div className="p-4 rounded-2xl bg-navy-900/40 border border-white/5 space-y-2">
