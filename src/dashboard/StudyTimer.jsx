@@ -4,7 +4,27 @@ import { db } from '../config/firebase';
 import { useAuth } from '../contexts/AuthContext';
 import { formatTimerTime, formatDate, getDateKey, getMonthKey, calculateDailyPoints } from '../utils/helpers';
 import EmptyState from '../components/EmptyState';
-import { Play, Pause, Square, Clock, BookOpen, CheckCircle, Calendar, ShieldCheck, X, Zap, AlertTriangle, Target, ChevronDown, ChevronUp, Layers } from 'lucide-react';
+import { 
+  Play, 
+  Pause, 
+  Square, 
+  Clock, 
+  BookOpen, 
+  CheckCircle, 
+  CheckCircle2,
+  Calendar, 
+  ShieldCheck, 
+  X, 
+  Zap, 
+  AlertTriangle, 
+  Target, 
+  ChevronDown, 
+  ChevronUp, 
+  Layers,
+  GraduationCap,
+  Lock
+} from 'lucide-react';
+import CoachingStudyModal from '../components/CoachingStudyModal';
 import { isSubjectMatch, calculateTargetProgress } from '../utils/subjectMatcher';
 
 function normalizeAttempt(att) {
@@ -94,6 +114,7 @@ export default function StudyTimer() {
   const [sessions, setSessions] = useState([]);
   const [showTimerDayModal, setShowTimerDayModal] = useState(false);
   const [timerDayDate, setTimerDayDate] = useState(() => new Date());
+  const [showCoachingModal, setShowCoachingModal] = useState(false);
 
   const todayKey = getDateKey(new Date());
 
@@ -847,7 +868,7 @@ export default function StudyTimer() {
       </div>
 
       {/* Top Banner */}
-      <div className="p-6 sm:p-8 rounded-3xl glass-card border border-royal-500/30 relative overflow-hidden">
+      <div className="p-6 sm:p-8 rounded-3xl glass-card border border-royal-500/30 relative overflow-hidden flex flex-col sm:flex-row sm:items-center justify-between gap-6">
         <div className="absolute top-0 right-0 w-80 h-80 bg-royal-600/10 rounded-full blur-3xl pointer-events-none" />
         <div className="relative z-10 space-y-2">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-royal-500/20 text-royal-400 text-xs font-bold border border-royal-500/30">
@@ -860,6 +881,62 @@ export default function StudyTimer() {
           <p className="text-slate-300 text-sm max-w-2xl">
             Select your subject, start the stopwatch, and log real study hours to gain verified points.
           </p>
+        </div>
+
+        <div className="relative z-10 shrink-0">
+          <button
+            onClick={() => setShowCoachingModal(true)}
+            className="px-5 py-3 rounded-2xl bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-700 hover:from-indigo-500 hover:to-purple-500 text-white text-xs sm:text-sm font-black flex items-center gap-2.5 transition-all shadow-[0_0_25px_rgba(99,102,241,0.35)] hover:shadow-[0_0_30px_rgba(99,102,241,0.5)] cursor-pointer group"
+          >
+            <GraduationCap className="w-5 h-5 text-indigo-200 group-hover:scale-110 transition-transform" />
+            <span>Coaching Study</span>
+            {userProfile?.coachingStudyAccess ? (
+              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse ml-0.5" title="Access Approved"></span>
+            ) : (
+              <Lock className="w-3.5 h-3.5 text-indigo-200 ml-0.5 opacity-80" />
+            )}
+          </button>
+        </div>
+      </div>
+
+      {/* 🎓 COACHING STUDY TIME TRACKER CARD */}
+      <div 
+        onClick={() => setShowCoachingModal(true)}
+        className="p-4 sm:p-5 rounded-3xl bg-gradient-to-r from-indigo-950/70 via-navy-900 to-purple-950/70 border border-indigo-500/30 hover:border-indigo-500/60 shadow-xl hover:shadow-[0_0_30px_rgba(99,102,241,0.15)] transition-all cursor-pointer group relative overflow-hidden"
+      >
+        <div className="absolute top-0 right-0 w-72 h-72 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none -mr-16 -mt-16"></div>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 relative z-10">
+          <div className="flex items-center gap-3.5">
+            <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white shadow-glow-indigo group-hover:scale-105 transition-transform shrink-0">
+              <GraduationCap className="w-6 h-6" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2 flex-wrap">
+                <h3 className="text-base font-black text-white group-hover:text-indigo-200 transition-colors">
+                  Coaching Study Time Tracker
+                </h3>
+                {userProfile?.coachingStudyAccess ? (
+                  <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center gap-1">
+                    <CheckCircle2 className="w-2.5 h-2.5" /> Approved
+                  </span>
+                ) : (
+                  <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-amber-500/20 text-amber-400 border border-amber-500/30 flex items-center gap-1">
+                    <Lock className="w-2.5 h-2.5" /> Approval Required
+                  </span>
+                )}
+              </div>
+              <p className="text-xs text-slate-300 mt-1 max-w-xl">
+                Log your offline coaching lectures directly into daily study hours & earn milestone points.
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-3 shrink-0 self-end sm:self-auto">
+            <span className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-black transition-all flex items-center gap-1.5 shadow-glow-indigo">
+              <span>Log Coaching Study</span>
+              <span className="group-hover:translate-x-1 transition-transform">→</span>
+            </span>
+          </div>
         </div>
       </div>
 
@@ -1252,6 +1329,13 @@ export default function StudyTimer() {
           </div>
         </div>
       )}
+
+      {/* Coaching Study Modal */}
+      <CoachingStudyModal 
+        isOpen={showCoachingModal} 
+        onClose={() => setShowCoachingModal(false)} 
+        subjects={subjects} 
+      />
 
     </div>
   );
