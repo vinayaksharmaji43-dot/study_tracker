@@ -35,6 +35,7 @@ import AdminLevelGifts from './tabs/AdminLevelGifts';
 import AdminPrivacySecurity from './tabs/AdminPrivacySecurity';
 import AdminQuizzes from './tabs/AdminQuizzes';
 import AdminCoachingStudy from './tabs/AdminCoachingStudy';
+import AdminDeleteStudent from './tabs/AdminDeleteStudent';
 
 import { 
   LayoutDashboard,  
@@ -67,7 +68,8 @@ import {
   Sparkles,
   Gift,
   RotateCcw,
-  BrainCircuit
+  BrainCircuit,
+  UserX
 } from 'lucide-react';
 
 
@@ -108,6 +110,7 @@ export default function AdminDashboard() {
     { id: 'settings', label: 'Settings', icon: Settings },
     { id: 'privacy', label: 'Privacy & Security', icon: Shield },
     { id: 'quizzes', label: 'Manage Quizzes', icon: BrainCircuit },
+    { id: 'delete_student', label: 'Delete Student Database', icon: UserX },
   ];
 
   return (
@@ -234,6 +237,7 @@ export default function AdminDashboard() {
             {activeTab === 'settings' && <AdminSettings />}
             {activeTab === 'privacy' && <AdminPrivacySecurity />}
             {activeTab === 'quizzes' && <AdminQuizzes />}
+            {activeTab === 'delete_student' && <AdminDeleteStudent />}
           </main>
 
         </div>

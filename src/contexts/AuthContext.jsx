@@ -104,7 +104,24 @@ export function AuthProvider({ children }) {
 
             setUserProfile({ uid: snapshot.id, ...data, role });
           } else {
-            // Document does not exist in Firestore yet! Create it with role: 'admin'
+            // Document does not exist in Firestore yet!
+            // Check if this student account was permanently deleted by Admin
+            if (!isAuthorizedAdminEmail) {
+              try {
+                const deletedSnap = await getDoc(doc(db, 'deletedAccounts', user.uid));
+                if (deletedSnap.exists()) {
+                  alert('⚠️ ACCOUNT REMOVED: Your student account and data have been permanently deleted by the Administrator.');
+                  await signOut(auth);
+                  setUserProfile(null);
+                  setCurrentUser(null);
+                  setLoading(false);
+                  return;
+                }
+              } catch (e) {
+                console.warn("Could not check deletedAccounts:", e);
+              }
+            }
+
             if (isAuthorizedAdminEmail) {
               try {
                 await setDoc(userDocRef, {
