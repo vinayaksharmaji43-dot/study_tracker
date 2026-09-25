@@ -259,6 +259,49 @@ export default function Dashboard() {
             </div>
           </aside>
 
+          {/* Mobile/Tablet Horizontal Quick Navigation Tabs */}
+          <div className="lg:hidden col-span-1 -mt-2 mb-2">
+            <div className="flex items-center space-x-2 overflow-x-auto pb-2 px-1 custom-scrollbar">
+              {navItems.map((item) => {
+                const Icon = item.icon;
+                const isActive = activeTab === item.id;
+                const isProduct = item.id === 'product';
+
+                if (isProduct) {
+                  return (
+                    <button
+                      key={item.id}
+                      onClick={() => setActiveTab(item.id)}
+                      className={`flex items-center space-x-1.5 px-3.5 py-2 rounded-xl text-xs font-black whitespace-nowrap transition-all shrink-0 cursor-pointer shadow-sm ${
+                        isActive
+                          ? 'bg-gradient-to-r from-amber-500 via-purple-500 to-amber-500 text-white border border-amber-300 shadow-[0_0_16px_rgba(245,158,11,0.4)]'
+                          : 'bg-gradient-to-r from-amber-500/25 via-purple-500/20 to-amber-500/25 text-amber-300 border border-amber-400/50 hover:border-amber-300 hover:text-white'
+                      }`}
+                    >
+                      <ShoppingBag className="w-4 h-4 text-amber-400 shrink-0" />
+                      <span>Product 🛍️</span>
+                    </button>
+                  );
+                }
+
+                return (
+                  <button
+                    key={item.id}
+                    onClick={() => setActiveTab(item.id)}
+                    className={`flex items-center space-x-1.5 px-3 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all shrink-0 cursor-pointer ${
+                      isActive
+                        ? 'bg-emerald-600 text-white shadow-glow-emerald'
+                        : 'bg-navy-900/80 text-slate-300 border border-white/10 hover:text-white hover:bg-white/5'
+                    }`}
+                  >
+                    <Icon className="w-4 h-4 shrink-0" />
+                    <span>{item.label}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
           {/* Main Dashboard Workspace View */}
           <main className="col-span-1 lg:col-span-9 space-y-6">
             {/* Security Guard: If activeTab is locked and student directly accessed it, render maintenance placeholder */}

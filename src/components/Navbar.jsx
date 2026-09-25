@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { collection, query, onSnapshot, where, doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../config/firebase';
-import { BookOpen, Menu, X, LayoutDashboard, LogOut, User, ChevronRight, ShieldCheck, Bell, Headphones, MoreVertical, Clock, PenLine, Flag, Video, BookOpenCheck, Trophy, Medal, Target, FileText, HelpCircle, Crown, Calendar as CalendarIcon, Megaphone, Lock, RotateCcw, BrainCircuit } from 'lucide-react';
+import { BookOpen, Menu, X, LayoutDashboard, LogOut, User, ChevronRight, ShieldCheck, Bell, Headphones, MoreVertical, Clock, PenLine, Flag, Video, BookOpenCheck, Trophy, Medal, Target, FileText, HelpCircle, Crown, Calendar as CalendarIcon, Megaphone, Lock, RotateCcw, BrainCircuit, ShoppingBag } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import SupportModal from './SupportModal';
 import SectionMaintenanceModal from './SectionMaintenanceModal';
@@ -132,9 +132,11 @@ export default function Navbar({ activeTab, setActiveTab }) {
     { id: 'targets', label: 'Daily Target', icon: Target },
     { id: 'notes', label: 'Notes', icon: FileText },
     { id: 'doubts', label: 'Doubts', icon: HelpCircle },
+    { id: 'product', label: 'Product Store', icon: ShoppingBag, isSpecial: true },
     { id: 'profile', label: 'Profile', icon: User }
   ];
   const quickJoinItems = [
+    { id: 'product', label: 'Product Store', icon: ShoppingBag, color: 'text-amber-300', bg: 'bg-amber-400/20' },
     { id: 'calendar', label: 'Calendar', icon: CalendarIcon, color: 'text-emerald-400', bg: 'bg-emerald-400/20' },
     { id: 'timer', label: 'Study Timer', icon: Clock, color: 'text-amber-400', bg: 'bg-amber-400/20' },
     { id: 'webcam_study', label: 'Webcam Study', icon: Video, color: 'text-rose-400', bg: 'bg-rose-400/20' },
@@ -319,6 +321,28 @@ export default function Navbar({ activeTab, setActiveTab }) {
                 <LayoutDashboard className="w-5 h-5" />
               </Link>
             )}
+            {/* Mobile Direct Product Store Button */}
+            {currentUser && (
+              <button
+                onClick={() => {
+                  if (isDashboardRoute && setActiveTab) {
+                    setActiveTab('product');
+                  } else {
+                    navigate('/dashboard?tab=product');
+                  }
+                }}
+                className={`flex items-center gap-1 px-2.5 py-1.5 rounded-xl border text-xs font-black transition-all duration-200 cursor-pointer shadow-sm ${
+                  activeTab === 'product'
+                    ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-navy-950 border-amber-300 shadow-[0_0_14px_rgba(245,158,11,0.5)]'
+                    : 'bg-gradient-to-r from-amber-500/15 via-purple-500/15 to-amber-500/15 text-amber-300 border-amber-400/40 hover:border-amber-300 hover:text-white shadow-[0_0_10px_rgba(245,158,11,0.15)]'
+                }`}
+                aria-label="Open Product Store"
+                title="Product Store"
+              >
+                <ShoppingBag className="w-4 h-4 text-amber-400 shrink-0" />
+                <span className="text-[11px] font-black uppercase tracking-wider">Product</span>
+              </button>
+            )}
             {currentUser && (
               <button
                 onClick={handleAnnouncementClick}
@@ -416,6 +440,30 @@ export default function Navbar({ activeTab, setActiveTab }) {
                               const Icon = item.icon;
                               const isActive = activeTab === item.id;
                               const isLocked = isSectionLocked(item.id);
+                              const isProduct = item.id === 'product';
+
+                              if (isProduct) {
+                                return (
+                                  <button 
+                                    key={item.id} 
+                                    onClick={() => handleDashboardNav(item.id)} 
+                                    className={`flex items-center justify-between w-full rounded-xl px-3 py-2.5 text-xs font-black transition-all duration-150 cursor-pointer shadow-md my-1 ${
+                                      isActive 
+                                        ? 'bg-gradient-to-r from-amber-500 via-purple-500 to-amber-500 text-white border border-amber-300 shadow-[0_0_15px_rgba(245,158,11,0.4)]' 
+                                        : 'bg-gradient-to-r from-amber-500/20 via-purple-500/15 to-amber-500/20 hover:from-amber-500/30 hover:to-purple-500/25 text-amber-200 hover:text-white border border-amber-400/50 hover:border-amber-300 shadow-[0_0_12px_rgba(245,158,11,0.15)]'
+                                    }`}
+                                  >
+                                    <div className="flex items-center gap-3 truncate">
+                                      <Icon className="w-4 h-4 shrink-0 text-amber-400" />
+                                      <span className="truncate">{item.label}</span>
+                                    </div>
+                                    <span className="text-[10px] font-black uppercase bg-amber-500/30 text-amber-300 border border-amber-400/50 px-2 py-0.5 rounded shadow-sm">
+                                      PRO 🔒
+                                    </span>
+                                  </button>
+                                );
+                              }
+
                               return (
                                 <button 
                                   key={item.id} 
@@ -536,6 +584,23 @@ export default function Navbar({ activeTab, setActiveTab }) {
                   <LayoutDashboard className="w-4 h-4" />
                   <span>Go to Dashboard</span>
                 </Link>
+                <button
+                  onClick={() => {
+                    setMobileMenuOpen(false);
+                    if (isDashboardRoute && setActiveTab) {
+                      setActiveTab('product');
+                    } else {
+                      navigate('/dashboard?tab=product');
+                    }
+                  }}
+                  className="flex items-center justify-between w-full py-2.5 px-4 rounded-xl bg-gradient-to-r from-amber-500/20 via-purple-500/20 to-amber-500/20 border border-amber-500/40 text-amber-300 font-bold shadow-[0_0_15px_rgba(245,158,11,0.2)] cursor-pointer"
+                >
+                  <div className="flex items-center space-x-2">
+                    <ShoppingBag className="w-4 h-4 text-amber-400" />
+                    <span>Product Store</span>
+                  </div>
+                  <span className="text-[10px] font-black uppercase bg-amber-500/20 text-amber-300 px-2 py-0.5 rounded border border-amber-500/30">PRO 🔒</span>
+                </button>
                 <button
                   onClick={() => {
                     setMobileMenuOpen(false);

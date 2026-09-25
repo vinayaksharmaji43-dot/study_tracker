@@ -453,6 +453,28 @@ export default function Overview({ setActiveTab }) {
         </div>
       </div>
 
+      {/* ✨ Mobile-First Product Store Banner (Visible on Phones & Tablets) */}
+      <div 
+        onClick={() => setActiveTab('product')}
+        className="block sm:hidden p-4 rounded-2xl bg-gradient-to-r from-amber-500/20 via-purple-500/20 to-amber-500/20 border border-amber-400/50 shadow-[0_0_20px_rgba(245,158,11,0.2)] cursor-pointer group active:scale-[0.98] transition-all"
+      >
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-11 h-11 rounded-xl bg-gradient-to-tr from-amber-500 to-orange-500 text-navy-950 flex items-center justify-center font-bold shadow-md shrink-0 group-hover:scale-105 transition-transform">
+              <ShoppingBag className="w-6 h-6 fill-current" />
+            </div>
+            <div>
+              <div className="flex items-center gap-1.5">
+                <span className="text-sm font-black text-white group-hover:text-amber-300">Product Store</span>
+                <span className="text-[9px] font-black uppercase bg-amber-500/30 text-amber-300 border border-amber-400/40 px-1.5 py-0.5 rounded shadow-sm">PRO 🔒</span>
+              </div>
+              <div className="text-[11px] text-slate-300">Hand Notes, Test Series & Premium Quizzes</div>
+            </div>
+          </div>
+          <ChevronRight className="w-5 h-5 text-amber-400 group-hover:translate-x-1 transition-transform shrink-0" />
+        </div>
+      </div>
+
       {/* Overview Metric Cards Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
         
