@@ -134,6 +134,14 @@ export default function Profile() {
               <p className="text-xs font-semibold pt-1 text-emerald-400">
                 📚 {fullStreamTitle} • {attempt} Attempt
               </p>
+              {userProfile?.referralSource && (
+                <div className="pt-1 flex items-center justify-center sm:justify-start gap-1.5 text-xs text-slate-300">
+                  <span className="text-[11px] text-slate-400">Heard About Us:</span>
+                  <span className="px-2 py-0.5 rounded-md bg-purple-500/15 border border-purple-500/30 text-purple-300 font-bold text-[11px]">
+                    {userProfile.referralSource}
+                  </span>
+                </div>
+              )}
             </div>
           </div>
       </div>

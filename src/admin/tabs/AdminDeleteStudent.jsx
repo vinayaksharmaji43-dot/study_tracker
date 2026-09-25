@@ -573,6 +573,13 @@ export default function AdminDeleteStudent() {
             </div>
 
             <div className="space-y-1">
+              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Heard About Us</span>
+              <span className="text-xs font-bold text-purple-300 block">
+                {selectedStudent.referralSource || 'Not Specified'}
+              </span>
+            </div>
+
+            <div className="space-y-1">
               <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Joined Date</span>
               <span className="text-xs font-medium text-slate-300 block">
                 {selectedStudent.createdAt ? formatDate(selectedStudent.createdAt) : 'N/A'}

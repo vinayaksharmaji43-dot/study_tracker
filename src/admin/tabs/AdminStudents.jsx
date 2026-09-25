@@ -37,6 +37,7 @@ export default function AdminStudents() {
   const [courseFilter, setCourseFilter] = useState('all'); // 'all', 'CA Foundation', 'CMA'
   const [attemptFilter, setAttemptFilter] = useState('all'); // 'all', 'January 2027', 'September 2027'
   const [statusFilter, setStatusFilter] = useState('all'); // 'all', 'active', 'banned', 'logout'
+  const [sourceFilter, setSourceFilter] = useState('all'); // 'all', 'Instagram', 'YouTube', 'Telegram', 'Facebook', 'Friends Circle'
 
   // Selected Student Modal State
   const [selectedStudent, setSelectedStudent] = useState(null);
@@ -57,6 +58,24 @@ export default function AdminStudents() {
   const [banningStudent, setBanningStudent] = useState(null);
   const [banReason, setBanReason] = useState('Violation of study tracking rules & false session logging');
   const [submittingBan, setSubmittingBan] = useState(false);
+
+  // Helper to format referral source badges with consistent colors & icons
+  const getReferralBadge = (source) => {
+    switch (source) {
+      case 'Instagram':
+        return { icon: '📸', label: 'Instagram', bg: 'bg-pink-500/15 text-pink-300 border-pink-500/30' };
+      case 'YouTube':
+        return { icon: '▶️', label: 'YouTube', bg: 'bg-red-500/15 text-rose-300 border-red-500/30' };
+      case 'Telegram':
+        return { icon: '✈️', label: 'Telegram', bg: 'bg-sky-500/15 text-sky-300 border-sky-500/30' };
+      case 'Facebook':
+        return { icon: '👥', label: 'Facebook', bg: 'bg-blue-500/15 text-blue-300 border-blue-500/30' };
+      case 'Friends Circle':
+        return { icon: '🤝', label: 'Friends Circle', bg: 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30' };
+      default:
+        return { icon: '🌐', label: source || 'Not Specified', bg: 'bg-slate-700/30 text-slate-400 border-white/10' };
+    }
+  };
 
   useEffect(() => {
     // Real-time listener for users
@@ -116,7 +135,8 @@ export default function AdminStudents() {
       (student.name || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
       (student.email || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
       (student.rollNumber || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (student.phone || '').includes(searchQuery);
+      (student.phone || '').includes(searchQuery) ||
+      (student.referralSource || '').toLowerCase().includes(searchQuery.toLowerCase());
 
     const matchesCourse = courseFilter === 'all' || 
       (courseFilter === 'CA Foundation' && ((student.course === 'CA' && (student.level === 'Foundation' || !student.level)) || student.course === 'CA Foundation')) ||
@@ -133,7 +153,12 @@ export default function AdminStudents() {
       statusFilter === 'banned' ? Boolean(student.banned) :
       statusFilter === 'logout' ? Boolean(student.forceLoggedOutAt || student.forceLogout) : true;
 
-    return matchesSearch && matchesCourse && matchesAttempt && matchesStatus;
+    const matchesSource = 
+      sourceFilter === 'all' ? true :
+      sourceFilter === 'Not Specified' ? (!student.referralSource || student.referralSource === 'Not Specified') :
+      (student.referralSource || '') === sourceFilter;
+
+    return matchesSearch && matchesCourse && matchesAttempt && matchesStatus && matchesSource;
   });
 
   const currentMonthKey = new Date().toISOString().slice(0, 7);
@@ -393,6 +418,21 @@ export default function AdminStudents() {
             <option value="logout">🚪 Force Logged Out Only ({loggedOutStudents.length})</option>
           </select>
 
+          {/* Referral Source Filter */}
+          <select
+            value={sourceFilter}
+            onChange={(e) => setSourceFilter(e.target.value)}
+            className="px-4 py-3 rounded-2xl bg-navy-900 border border-white/10 text-white font-semibold text-xs focus:outline-none focus:border-emerald-500"
+          >
+            <option value="all">All Referral Sources</option>
+            <option value="Instagram">📸 Instagram</option>
+            <option value="YouTube">▶️ YouTube</option>
+            <option value="Telegram">✈️ Telegram</option>
+            <option value="Facebook">👥 Facebook</option>
+            <option value="Friends Circle">🤝 Friends Circle</option>
+            <option value="Not Specified">Not Specified</option>
+          </select>
+
         </div>
 
       </div>
@@ -502,6 +542,7 @@ export default function AdminStudents() {
                   <th className="px-4 py-4 text-center">Rank</th>
                   <th className="px-6 py-4">Student</th>
                   <th className="px-6 py-4">Course & Attempt</th>
+                  <th className="px-5 py-4 text-center">Referral Source</th>
                   <th className="px-6 py-4">Joined Date</th>
                   <th className="px-6 py-4 text-center">Study Hours</th>
                   <th className="px-6 py-4 text-center">Points</th>
@@ -549,6 +590,14 @@ export default function AdminStudents() {
                               <span>📞 {student.phone}</span>
                             </div>
                           )}
+                          {student.referralSource && (
+                            <div className="mt-1">
+                              <span className={`inline-flex items-center gap-1 text-[10px] font-bold px-1.5 py-0.5 rounded border ${getReferralBadge(student.referralSource).bg}`}>
+                                <span>{getReferralBadge(student.referralSource).icon}</span>
+                                <span>{student.referralSource}</span>
+                              </span>
+                            </div>
+                          )}
                         </div>
                       </div>
                     </td>
@@ -563,6 +612,14 @@ export default function AdminStudents() {
                         </span>
                         <div className="text-xs text-slate-400 pl-1">{student.attempt || 'N/A'}</div>
                       </div>
+                    </td>
+
+                    {/* Referral Source Column */}
+                    <td className="px-5 py-4 text-center">
+                      <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold border ${getReferralBadge(student.referralSource).bg}`}>
+                        <span>{getReferralBadge(student.referralSource).icon}</span>
+                        <span>{getReferralBadge(student.referralSource).label}</span>
+                      </span>
                     </td>
 
                     {/* Joined Date */}
@@ -691,7 +748,7 @@ export default function AdminStudents() {
             </div>
 
             {/* Profile Overview Grid */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
               <div className="p-4 rounded-2xl bg-navy-900/60 border border-white/5 space-y-1">
                 <div className="text-[11px] text-slate-400">Course Stream</div>
                 <div className="text-sm font-bold text-emerald-400">
@@ -719,6 +776,16 @@ export default function AdminStudents() {
               <div className="p-4 rounded-2xl bg-navy-900/60 border border-white/5 space-y-1">
                 <div className="text-[11px] text-slate-400">Day Offs This Month</div>
                 <div className="text-sm font-bold text-amber-300">{getStudentDayOffs(selectedStudent).length}/7 used</div>
+              </div>
+
+              <div className="p-4 rounded-2xl bg-navy-900/60 border border-white/5 space-y-1">
+                <div className="text-[11px] text-slate-400">Heard About Us</div>
+                <div className="text-sm font-bold text-white flex items-center gap-1.5">
+                  <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-lg text-xs font-bold border ${getReferralBadge(selectedStudent.referralSource).bg}`}>
+                    <span>{getReferralBadge(selectedStudent.referralSource).icon}</span>
+                    <span>{getReferralBadge(selectedStudent.referralSource).label}</span>
+                  </span>
+                </div>
               </div>
             </div>
 

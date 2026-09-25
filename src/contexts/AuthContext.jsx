@@ -305,7 +305,7 @@ export function AuthProvider({ children }) {
   }
 
   // Register function that also creates Firestore profile doc
-  async function register({ name, email, phone, password, course, level, attempt }) {
+  async function register({ name, email, phone, password, course, level, attempt, referralSource }) {
     // 1. Create auth user
     const res = await createUserWithEmailAndPassword(auth, email, password);
     const user = res.user;
@@ -327,6 +327,7 @@ export function AuthProvider({ children }) {
       level: level || 'Foundation',
       attempt: attempt || 'Jan 27',
       rollNumber: rollNumber,
+      referralSource: referralSource || 'Not Specified',
       createdAt: serverTimestamp(),
       role: isAuthorizedAdmin ? 'admin' : 'student',
       studyHours: 0,

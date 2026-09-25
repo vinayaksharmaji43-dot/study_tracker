@@ -19,10 +19,10 @@ export default function Register() {
     terms: false
   });
 
-  // Selected Course progressive state
   const [selectedCourse, setSelectedCourse] = useState(initialCourse); // 'CA' | 'CMA' | ''
   const [selectedLevel, setSelectedLevel] = useState('');   // 'Foundation' | 'Intermediate' | ''
   const [selectedAttempt, setSelectedAttempt] = useState(''); // 'Jan 27' | 'May 27' | 'Sep 27' | 'June 27' | 'Dec 27' | ''
+  const [referralSource, setReferralSource] = useState('');
 
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -67,6 +67,14 @@ export default function Register() {
       ? ['Dec 26', 'June 27', 'Dec 27']
       : [];
 
+  const REFERRAL_OPTIONS = [
+    { id: 'Instagram', label: 'Instagram', icon: '📸' },
+    { id: 'YouTube', label: 'YouTube', icon: '▶️' },
+    { id: 'Telegram', label: 'Telegram', icon: '✈️' },
+    { id: 'Facebook', label: 'Facebook', icon: '👥' },
+    { id: 'Friends Circle', label: 'Friends Circle', icon: '🤝' },
+  ];
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
@@ -93,6 +101,9 @@ export default function Register() {
     if (!selectedAttempt) {
       return setError('Please select your exam attempt.');
     }
+    if (!referralSource) {
+      return setError('Please select how you heard about our website.');
+    }
     if (!formData.terms) {
       return setError('You must agree to the terms and conditions to proceed.');
     }
@@ -106,7 +117,8 @@ export default function Register() {
         password: formData.password,
         course: selectedCourse,
         level: selectedLevel,
-        attempt: selectedAttempt
+        attempt: selectedAttempt,
+        referralSource: referralSource
       });
       navigate('/dashboard');
     } catch (err) {
@@ -348,6 +360,67 @@ export default function Register() {
                 </div>
               )}
 
+            </div>
+
+            {/* HOW DID YOU HEAR ABOUT US */}
+            <div className="space-y-2.5 pt-2">
+              <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center justify-between">
+                <span className="flex items-center gap-1.5">
+                  <span>How did you hear about our website?</span>
+                  <span className="text-rose-400 font-bold">*</span>
+                </span>
+                {referralSource && (
+                  <span className="text-[11px] font-bold text-emerald-400 flex items-center gap-1 normal-case">
+                    <CheckCircle className="w-3.5 h-3.5" />
+                    <span>{referralSource} selected</span>
+                  </span>
+                )}
+              </label>
+
+              {/* Selectable Cards Grid (Responsive) */}
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                {REFERRAL_OPTIONS.map((opt) => {
+                  const isSelected = referralSource === opt.id;
+                  return (
+                    <button
+                      key={opt.id}
+                      type="button"
+                      onClick={() => setReferralSource(opt.id)}
+                      className={`p-3 rounded-2xl border text-left transition-all duration-200 flex items-center justify-between cursor-pointer group ${
+                        isSelected
+                          ? 'bg-royal-600/30 border-royal-400 text-white shadow-glow-blue scale-[1.02]'
+                          : 'bg-navy-900/60 border-white/10 text-slate-300 hover:border-white/25 hover:bg-navy-900 hover:text-white'
+                      } ${opt.id === 'Friends Circle' ? 'col-span-2 sm:col-span-1' : ''}`}
+                    >
+                      <div className="flex items-center gap-2 truncate">
+                        <span className="text-base shrink-0">{opt.icon}</span>
+                        <span className="text-xs font-bold truncate">{opt.label}</span>
+                      </div>
+                      {isSelected ? (
+                        <CheckCircle className="w-4 h-4 text-emerald-400 shrink-0" />
+                      ) : (
+                        <div className="w-3.5 h-3.5 rounded-full border border-slate-600 group-hover:border-slate-400 shrink-0" />
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Native Dropdown (Synchronized with options) */}
+              <div className="pt-1">
+                <select
+                  value={referralSource}
+                  onChange={(e) => setReferralSource(e.target.value)}
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-navy-900/80 border border-white/10 text-slate-300 focus:text-white text-xs font-medium focus:outline-none focus:border-royal-500 focus:ring-1 focus:ring-royal-500 transition-all cursor-pointer"
+                >
+                  <option value="" disabled>-- Or select from dropdown menu --</option>
+                  <option value="Instagram">📸 Instagram</option>
+                  <option value="YouTube">▶️ YouTube</option>
+                  <option value="Telegram">✈️ Telegram</option>
+                  <option value="Facebook">👥 Facebook</option>
+                  <option value="Friends Circle">🤝 Friends Circle</option>
+                </select>
+              </div>
             </div>
 
             {/* Terms Checkbox */}
