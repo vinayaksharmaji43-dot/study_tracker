@@ -20,6 +20,7 @@ import {
   Activity,
   ArrowLeft
 } from 'lucide-react';
+import ProBadge from './ProBadge';
 
 // Helpers
 function getBadge(durationSecs) {
@@ -408,6 +409,7 @@ export default function StudentProfileModal({ student, activeSession: initialAct
                 <h2 className="text-base font-black text-white truncate max-w-[160px] sm:max-w-[220px]">
                   {displayName}
                 </h2>
+                {Boolean(student?.isPro || student?.proAccess || userData?.isPro) && <ProBadge size="sm" />}
                 <span className="text-base">{studentLevel.badge}</span>
                 {student?.badge && (
                   <span className="text-xs px-2 py-0.5 rounded-full bg-white/5 border border-white/10 text-slate-300">

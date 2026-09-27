@@ -18,11 +18,11 @@ import {
   X,
   ChevronRight,
   Flame,
-  Star
+  Star,
+  MessageCircle
 } from 'lucide-react';
+import { usePremiumAccess } from '../hooks/usePremiumAccess';
 
-const TELEGRAM_HANDLE = '@ca_success_blueprint_support';
-const TELEGRAM_URL = 'https://t.me/ca_success_blueprint_support';
 const SUPPORT_HOURS = 'Support available from 8:00 AM to 9:00 PM';
 
 export const PRODUCTS_CATALOG = [
@@ -110,8 +110,8 @@ export const PRODUCTS_CATALOG = [
 ];
 
 export default function Products({ setActiveTab }) {
+  const { whatsappNumber, getWhatsAppUrl } = usePremiumAccess();
   const [selectedProduct, setSelectedProduct] = useState(null);
-  const [copied, setCopied] = useState(false);
   const [activeCategory, setActiveCategory] = useState('all');
 
   useEffect(() => {
@@ -124,10 +124,10 @@ export default function Products({ setActiveTab }) {
     }
   }, [selectedProduct]);
 
-  const copyTelegram = () => {
-    navigator.clipboard.writeText(TELEGRAM_HANDLE);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+  const handleBuyNow = (product, e) => {
+    e?.stopPropagation();
+    const url = getWhatsAppUrl(`Hello, I want to purchase ${product.title}.`);
+    window.open(url, '_blank', 'noopener,noreferrer');
   };
 
   const categories = [
@@ -266,18 +266,24 @@ export default function Products({ setActiveTab }) {
               </div>
 
               {/* Action Button */}
-              <div className="pt-6 relative z-10">
+              <div className="pt-6 relative z-10 flex items-center gap-2">
                 <button
                   type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setSelectedProduct(product);
-                  }}
-                  className={`w-full py-3.5 rounded-2xl font-black text-xs sm:text-sm flex items-center justify-center gap-2 transition-all cursor-pointer group/btn ${product.theme.buttonBg}`}
+                  onClick={(e) => handleBuyNow(product, e)}
+                  className={`flex-1 py-3.5 rounded-2xl font-black text-xs sm:text-sm flex items-center justify-center gap-2 transition-all cursor-pointer group/btn ${product.theme.buttonBg}`}
                 >
-                  <Lock className="w-4 h-4 shrink-0 group-hover/btn:scale-110 transition-transform" />
-                  <span>{product.actionText}</span>
-                  <ChevronRight className="w-4 h-4 shrink-0 group-hover/btn:translate-x-1 transition-transform" />
+                  <MessageCircle className="w-4 h-4 shrink-0 group-hover/btn:scale-110 transition-transform" />
+                  <span>BUY NOW</span>
+                  <ExternalLink className="w-3.5 h-3.5 opacity-80" />
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setSelectedProduct(product)}
+                  className="px-3.5 py-3.5 rounded-2xl bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white text-xs font-bold transition-all border border-white/10 cursor-pointer"
+                  title="View Details"
+                >
+                  <ChevronRight className="w-4 h-4" />
                 </button>
               </div>
 
@@ -289,23 +295,23 @@ export default function Products({ setActiveTab }) {
       {/* Trust & Guarantee Banner */}
       <div className="relative z-10 max-w-4xl mx-auto p-5 sm:p-6 rounded-3xl bg-white/5 border border-white/10 backdrop-blur-md flex flex-col sm:flex-row items-center justify-between gap-4 text-center sm:text-left">
         <div className="flex items-center gap-3.5">
-          <div className="w-12 h-12 rounded-2xl bg-indigo-500/20 text-indigo-400 flex items-center justify-center shrink-0 border border-indigo-500/30">
+          <div className="w-12 h-12 rounded-2xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0 border border-emerald-500/30">
             <ShieldCheck className="w-6 h-6" />
           </div>
           <div>
-            <h4 className="text-sm font-bold text-white">Direct Administrator Access</h4>
-            <p className="text-xs text-slate-400">All premium enrollments are handled with personalized guidance on Telegram.</p>
+            <h4 className="text-sm font-bold text-white">Direct Administrator WhatsApp</h4>
+            <p className="text-xs text-slate-400">All premium enrollments are handled with personalized guidance on WhatsApp.</p>
           </div>
         </div>
 
         <a
-          href={TELEGRAM_URL}
+          href={getWhatsAppUrl('Hello, I want to purchase premium academic products.')}
           target="_blank"
           rel="noopener noreferrer"
-          className="px-5 py-2.5 rounded-xl bg-sky-500 hover:bg-sky-400 text-navy-950 font-black text-xs flex items-center gap-2 transition-all shadow-glow-blue shrink-0"
+          className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-white font-black text-xs flex items-center gap-2 transition-all shadow-glow-emerald shrink-0"
         >
-          <Send className="w-3.5 h-3.5" />
-          <span>Telegram Support</span>
+          <MessageCircle className="w-4 h-4" />
+          <span>Contact WhatsApp: +{whatsappNumber}</span>
           <ExternalLink className="w-3.5 h-3.5" />
         </a>
       </div>
@@ -360,46 +366,40 @@ export default function Products({ setActiveTab }) {
             {/* Message Body */}
             <div className="space-y-3">
               <p className="text-xs sm:text-sm text-slate-200 font-semibold leading-relaxed">
-                To purchase or get access, please contact Admin on Telegram.
+                To purchase or get access, click below to open WhatsApp with your pre-filled product inquiry.
               </p>
 
-              {/* Telegram ID Box with Copy */}
-              <div className="p-4 rounded-2xl bg-sky-500/10 border border-sky-500/30 flex items-center justify-between gap-3">
+              {/* WhatsApp Number Box */}
+              <div className="p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-between gap-3">
                 <div className="flex items-center gap-3 min-w-0">
-                  <div className="w-10 h-10 rounded-xl bg-sky-500/20 text-sky-400 flex items-center justify-center shrink-0">
-                    <Send className="w-5 h-5" />
+                  <div className="w-10 h-10 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0">
+                    <MessageCircle className="w-5 h-5" />
                   </div>
                   <div className="min-w-0">
-                    <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Telegram Admin</div>
-                    <div className="text-sm font-mono font-black text-white truncate">
-                      {TELEGRAM_HANDLE}
+                    <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Admin WhatsApp</div>
+                    <div className="text-sm font-mono font-black text-emerald-400 truncate">
+                      +{whatsappNumber}
                     </div>
                   </div>
                 </div>
 
-                <button
-                  type="button"
-                  onClick={copyTelegram}
-                  className="p-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white text-xs font-bold flex items-center gap-1 transition-all shrink-0 cursor-pointer"
-                  title="Copy Telegram ID"
-                >
-                  {copied ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
-                </button>
+                <span className="px-2.5 py-1 rounded-lg bg-emerald-500/20 text-emerald-300 text-[10px] font-black uppercase tracking-wider border border-emerald-500/30">
+                  Active
+                </span>
               </div>
             </div>
 
             {/* Primary Redirect Button */}
             <div className="space-y-2.5 pt-1">
-              <a
-                href={TELEGRAM_URL}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-sky-500 to-blue-600 hover:from-sky-400 hover:to-blue-500 text-white font-black text-sm transition-all flex items-center justify-center gap-2 shadow-glow-blue cursor-pointer"
+              <button
+                type="button"
+                onClick={(e) => handleBuyNow(selectedProduct, e)}
+                className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-white font-black text-sm transition-all flex items-center justify-center gap-2 shadow-glow-emerald cursor-pointer"
               >
-                <Send className="w-4 h-4" />
-                <span>Contact Admin on Telegram</span>
+                <MessageCircle className="w-4 h-4" />
+                <span>BUY NOW ON WHATSAPP</span>
                 <ExternalLink className="w-4 h-4 ml-1 opacity-80" />
-              </a>
+              </button>
 
               <button
                 type="button"

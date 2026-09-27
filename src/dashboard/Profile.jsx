@@ -5,11 +5,21 @@ import { useAuth } from '../contexts/AuthContext';
 import { formatDate, formatHours } from '../utils/helpers';
 import { User, Mail, GraduationCap, Calendar, Award, BookOpen, LogOut, CheckCircle, ShieldCheck, Edit3, BookOpenCheck, Sparkles, Trophy, Flame, Crown, ChevronRight } from 'lucide-react';
 import { collection, query, orderBy, onSnapshot } from 'firebase/firestore';
-import { useLevelGifts } from '../hooks/useLevelGifts';
-import { Gift, Lock as LockIcon } from 'lucide-react';
+import { Gift, Lock as LockIcon, MessageCircle, ExternalLink } from 'lucide-react';
+import usePremiumAccess from '../hooks/usePremiumAccess';
+import ProBadge from '../components/ProBadge';
 
 export default function Profile() {
   const { userProfile, currentUser, logout, levelInfo } = useAuth();
+  const { 
+    isPro, 
+    isTrialActive, 
+    isTrialExpired, 
+    daysRemaining, 
+    trialEndDate, 
+    registrationDate,
+    getWhatsAppUrl 
+  } = usePremiumAccess();
 
   const [name, setName] = useState('');
   const [course, setCourse] = useState('CA');
@@ -97,6 +107,7 @@ export default function Profile() {
             <div className="space-y-1 text-center sm:text-left">
               <div className="flex items-center gap-2.5 justify-center sm:justify-start flex-wrap">
                 <h1 className="text-2xl font-extrabold text-white">{userProfile?.name || 'Student'}</h1>
+                {isPro && <ProBadge size="lg" />}
                 
                 {/* Current Level Badge Pill */}
                 <span className="px-3 py-1 rounded-xl bg-gold-500/20 text-gold-300 text-xs font-black border border-gold-500/30 flex items-center gap-1.5 shadow-glow-gold">
@@ -144,6 +155,63 @@ export default function Profile() {
               )}
             </div>
           </div>
+      </div>
+
+      {/* --- MEMBERSHIP & TRIAL STATUS CARD --- */}
+      <div className={`p-6 rounded-3xl glass-card border relative overflow-hidden shadow-xl space-y-4 ${
+        isPro 
+          ? 'border-amber-500/40 bg-gradient-to-r from-amber-950/30 via-navy-900/90 to-navy-950' 
+          : isTrialExpired
+            ? 'border-rose-500/30 bg-gradient-to-r from-rose-950/20 via-navy-900/90 to-navy-950'
+            : 'border-emerald-500/30 bg-gradient-to-r from-emerald-950/20 via-navy-900/90 to-navy-950'
+      }`}>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="flex items-center gap-3.5">
+            <div className={`w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 border ${
+              isPro 
+                ? 'bg-amber-500/20 text-amber-400 border-amber-500/30 shadow-[0_0_20px_rgba(245,158,11,0.25)]' 
+                : isTrialExpired
+                  ? 'bg-rose-500/20 text-rose-400 border-rose-500/30'
+                  : 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30'
+            }`}>
+              {isPro ? <Crown className="w-6 h-6 text-amber-400" /> : isTrialExpired ? <LockIcon className="w-6 h-6" /> : <Clock className="w-6 h-6" />}
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h3 className="text-lg font-black text-white">
+                  {isPro ? 'Pro Membership Active' : isTrialExpired ? 'Free Trial Expired' : '12-Day Free Trial'}
+                </h3>
+                {isPro && <ProBadge size="sm" />}
+              </div>
+              <p className="text-xs text-slate-300 mt-0.5">
+                {isPro 
+                  ? 'You have unrestricted full access to all sections, practice tools, notes, and study tracking.'
+                  : isTrialExpired
+                    ? 'Your 12-day free trial has expired. Normal sections are locked until Pro access is granted.'
+                    : `Enjoy full platform access! You have ${daysRemaining} days remaining in your free trial.`}
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-3 shrink-0">
+            {isTrialExpired && !isPro && (
+              <a
+                href={getWhatsAppUrl('Hello, I want to purchase Premium access.')}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-white font-extrabold text-xs shadow-glow-emerald flex items-center gap-2 transition-all"
+              >
+                <MessageCircle className="w-4 h-4" />
+                <span>Contact Owner for Pro</span>
+                <ExternalLink className="w-3.5 h-3.5 opacity-80" />
+              </a>
+            )}
+            <div className="text-right text-[11px] font-mono text-slate-400 bg-navy-950/60 px-3 py-2 rounded-xl border border-white/5">
+              <div>Start: {registrationDate.toLocaleDateString()}</div>
+              <div>End: {trialEndDate.toLocaleDateString()}</div>
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* --- PROFILE LEVEL PROGRESS CARD (Section 8) --- */}

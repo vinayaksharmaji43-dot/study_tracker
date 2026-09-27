@@ -8,6 +8,7 @@ import SupportModal from './SupportModal';
 import SectionMaintenanceModal from './SectionMaintenanceModal';
 import { useSectionLocks } from '../hooks/useSectionLocks';
 import { getSectionById } from '../config/dashboardSections';
+import ProBadge from './ProBadge';
 
 function parseStream(userProfile) {
   if (!userProfile) return { course: 'CA', level: 'Foundation', attempt: '' };
@@ -277,7 +278,10 @@ export default function Navbar({ activeTab, setActiveTab }) {
                   )}
 
                   <div className="text-right hidden sm:block">
-                    <div className="text-xs font-semibold text-white">{userProfile?.name || currentUser.email}</div>
+                    <div className="text-xs font-semibold text-white flex items-center justify-end gap-1.5">
+                      <span className="truncate max-w-[140px]">{userProfile?.name || currentUser.email}</span>
+                      {userProfile?.isPro && <ProBadge size="sm" />}
+                    </div>
                     <div className="text-[11px] text-gold-400 font-medium font-mono">
                       {isAdmin ? 'Administrator' : (userProfile?.rollNumber || userProfile?.course || 'Student')}
                     </div>
@@ -389,8 +393,13 @@ export default function Navbar({ activeTab, setActiveTab }) {
                       {/* Fixed Top Header inside Menu */}
                       <div className="flex items-center justify-between px-4 py-3.5 border-b border-white/10 shrink-0 bg-[#090510]">
                         <div>
-                          <div className="text-sm font-black text-white">Dashboard Menu</div>
-                          <div className="text-[10px] text-gold-400 font-extrabold uppercase tracking-[0.16em]">Quick access</div>
+                          <div className="text-sm font-black text-white flex items-center gap-1.5">
+                            <span>{userProfile?.name ? userProfile.name.split(' ')[0] : 'Dashboard'}</span>
+                            {userProfile?.isPro && <ProBadge size="sm" />}
+                          </div>
+                          <div className="text-[10px] text-gold-400 font-extrabold uppercase tracking-[0.16em]">
+                            {userProfile?.rollNumber || 'Quick access'}
+                          </div>
                         </div>
                         <button 
                           onClick={() => setMobileActionMenuOpen(false)} 

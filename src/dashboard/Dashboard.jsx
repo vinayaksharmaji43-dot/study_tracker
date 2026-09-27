@@ -59,10 +59,22 @@ import useDailyEvaluator from '../hooks/useDailyEvaluator';
 import LevelUpModal from '../components/LevelUpModal';
 import ErrorBoundary from '../components/ErrorBoundary';
 import MandatoryProfileModal from '../components/MandatoryProfileModal';
+import usePremiumAccess from '../hooks/usePremiumAccess';
+import ProBadge from '../components/ProBadge';
+import PremiumLockScreen from '../components/PremiumLockScreen';
+import TrialExpiredBanner from '../components/TrialExpiredBanner';
 
 export default function Dashboard() {
   const { userProfile, currentUser, logout, levelInfo, isAdmin } = useAuth();
   const { isSectionLocked, getMaintenanceMessage } = useSectionLocks();
+  const {
+    isPro,
+    isTrialActive,
+    isTrialExpired,
+    daysRemaining,
+    canShowTrialExpiredUI,
+    isSectionAccessible
+  } = usePremiumAccess();
 
   const [searchParams, setSearchParams] = useSearchParams();
   const [activeTab, setActiveTabState] = useState(() => {
@@ -137,6 +149,9 @@ export default function Dashboard() {
         {/* Exam Countdown Banner */}
         <CountdownWidget setActiveTab={setActiveTab} />
 
+        {/* 12-Day Trial Expired Banner (Shown only after Name+Phone form is complete) */}
+        <TrialExpiredBanner setActiveTab={setActiveTab} />
+
         {/* Main Dashboard Layout: Sidebar + View Content */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
           
@@ -145,17 +160,31 @@ export default function Dashboard() {
             <div className="p-4 rounded-3xl glass-card border border-white/10 space-y-2 shadow-xl">
               
               {/* User Snapshot Header */}
-              <div className="p-4 rounded-2xl bg-navy-900/80 border border-white/5 space-y-1 mb-2">
+              <div className="p-4 rounded-2xl bg-navy-900/80 border border-white/5 space-y-1.5 mb-2">
                 <div className="text-sm font-bold text-white truncate flex items-center justify-between gap-1">
-                  <span className="truncate">{userProfile?.name || currentUser?.email}</span>
+                  <div className="flex items-center gap-1.5 truncate">
+                    <span className="truncate">{userProfile?.name || currentUser?.email}</span>
+                    {isPro && <ProBadge size="sm" />}
+                  </div>
                   <span className="text-xs px-2 py-0.5 rounded-lg bg-gold-500/20 text-gold-300 font-bold border border-gold-500/30 shrink-0" title={`Level ${levelInfo?.currentLevelNumber}: ${levelInfo?.currentLevelName}`}>
                     {levelInfo?.badge} {levelInfo?.currentLevelName}
                   </span>
                 </div>
-                <div className="text-xs font-semibold text-gold-400 flex items-center gap-1.5">
-                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-                  <span>{userProfile?.course || 'CA Foundation'}</span>
-                  {userProfile?.attempt ? ` • ${userProfile.attempt}` : ''}
+                <div className="text-xs font-semibold text-gold-400 flex items-center justify-between gap-1.5 pt-0.5">
+                  <div className="flex items-center gap-1.5 truncate">
+                    <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                    <span className="truncate">{userProfile?.course || 'CA Foundation'}</span>
+                    {userProfile?.attempt ? ` • ${userProfile.attempt}` : ''}
+                  </div>
+                  {!isPro && !isAdmin && (
+                    <span className={`text-[10px] font-black uppercase px-2 py-0.5 rounded-md border shrink-0 ${
+                      canShowTrialExpiredUI 
+                        ? 'bg-rose-500/20 text-rose-300 border-rose-500/30' 
+                        : 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30'
+                    }`}>
+                      {canShowTrialExpiredUI ? 'Trial Expired' : `${daysRemaining}d Trial`}
+                    </span>
+                  )}
                 </div>
               </div>
 
@@ -164,7 +193,9 @@ export default function Dashboard() {
                 {navItems.map((item) => {
                   const Icon = item.icon;
                   const isActive = activeTab === item.id;
-                  const isLocked = isSectionLocked(item.id);
+                  const isMaintenanceLocked = isSectionLocked(item.id);
+                  const isTrialLocked = canShowTrialExpiredUI && !isSectionAccessible(item.id);
+                  const isLocked = isMaintenanceLocked || isTrialLocked;
                   const isProduct = item.id === 'product';
 
                   if (isProduct) {
@@ -212,11 +243,16 @@ export default function Dashboard() {
                         <span>{item.label}</span>
                       </div>
                       <div className="flex items-center gap-1.5">
-                        {isLocked && (
+                        {isTrialLocked ? (
+                          <span title="Free Trial Expired - Premium Required" className="px-1.5 py-0.5 rounded-md bg-amber-500/15 text-amber-300 border border-amber-500/30 text-[10px] font-black flex items-center gap-1">
+                            <Lock className="w-3 h-3 text-amber-400" />
+                            <span>PRO</span>
+                          </span>
+                        ) : isMaintenanceLocked ? (
                           <span title="Under Maintenance" className="p-1 rounded-md bg-amber-500/10 text-amber-400 border border-amber-500/20">
                             <Lock className="w-3.5 h-3.5" />
                           </span>
-                        )}
+                        ) : null}
                         {isActive && <ChevronRight className="w-4 h-4 text-emerald-400" />}
                       </div>
                     </button>
@@ -267,6 +303,9 @@ export default function Dashboard() {
                 const Icon = item.icon;
                 const isActive = activeTab === item.id;
                 const isProduct = item.id === 'product';
+                const isMaintenanceLocked = isSectionLocked(item.id);
+                const isTrialLocked = canShowTrialExpiredUI && !isSectionAccessible(item.id);
+                const isLocked = isMaintenanceLocked || isTrialLocked;
 
                 if (isProduct) {
                   return (
@@ -292,11 +331,18 @@ export default function Dashboard() {
                     className={`flex items-center space-x-1.5 px-3 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all shrink-0 cursor-pointer ${
                       isActive
                         ? 'bg-emerald-600 text-white shadow-glow-emerald'
-                        : 'bg-navy-900/80 text-slate-300 border border-white/10 hover:text-white hover:bg-white/5'
+                        : isLocked
+                          ? 'bg-navy-900/80 text-slate-400 border border-amber-500/20 hover:text-white'
+                          : 'bg-navy-900/80 text-slate-300 border border-white/10 hover:text-white hover:bg-white/5'
                     }`}
                   >
                     <Icon className="w-4 h-4 shrink-0" />
                     <span>{item.label}</span>
+                    {isTrialLocked && (
+                      <span className="text-[9px] font-black uppercase text-amber-300 bg-amber-500/20 px-1 py-0.2 rounded border border-amber-500/30">
+                        PRO
+                      </span>
+                    )}
                   </button>
                 );
               })}
@@ -305,8 +351,13 @@ export default function Dashboard() {
 
           {/* Main Dashboard Workspace View */}
           <main className="col-span-1 lg:col-span-9 space-y-6">
-            {/* Security Guard: If activeTab is locked and student directly accessed it, render maintenance placeholder */}
-            {isSectionLocked(activeTab) && adminOverrideTab !== activeTab ? (
+            {/* 12-Day Trial Expired Lock Screen Guard */}
+            {canShowTrialExpiredUI && !isSectionAccessible(activeTab) ? (
+              <PremiumLockScreen
+                sectionTitle={navItems.find(n => n.id === activeTab)?.label || 'This Section'}
+                setActiveTab={setActiveTab}
+              />
+            ) : isSectionLocked(activeTab) && adminOverrideTab !== activeTab ? (
               <SectionMaintenancePlaceholder
                 sectionTitle={getSectionById(activeTab)?.label}
                 customMessage={getMaintenanceMessage(activeTab)}

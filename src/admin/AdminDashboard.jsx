@@ -36,6 +36,7 @@ import AdminPrivacySecurity from './tabs/AdminPrivacySecurity';
 import AdminQuizzes from './tabs/AdminQuizzes';
 import AdminCoachingStudy from './tabs/AdminCoachingStudy';
 import AdminDeleteStudent from './tabs/AdminDeleteStudent';
+import AdminPremiumAccess from './tabs/AdminPremiumAccess';
 
 import { 
   LayoutDashboard,  
@@ -69,7 +70,8 @@ import {
   Gift,
   RotateCcw,
   BrainCircuit,
-  UserX
+  UserX,
+  Crown
 } from 'lucide-react';
 
 
@@ -80,6 +82,7 @@ export default function AdminDashboard() {
   const navItems = [
     { id: 'overview', label: 'Dashboard', icon: LayoutDashboard },
     { id: 'students', label: 'Students', icon: Users },
+    { id: 'premium_access', label: '👑 Premium / Pro Access', icon: Crown },
     { id: 'section_locks', label: 'Section Access Control', icon: Lock },
     { id: 'discipline', label: 'Inactive / Discipline', icon: ShieldAlert },
     { id: 'syllabus', label: 'Student Progress', icon: BookOpenCheck },
@@ -207,6 +210,7 @@ export default function AdminDashboard() {
           <main className="col-span-1 lg:col-span-9 space-y-6">
             {activeTab === 'overview' && <AdminOverview setActiveTab={setActiveTab} />}
             {activeTab === 'students' && <AdminStudents />}
+            {activeTab === 'premium_access' && <AdminPremiumAccess />}
             {activeTab === 'section_locks' && <AdminSectionLocks />}
             {activeTab === 'discipline' && <AdminDiscipline />}
             {activeTab === 'syllabus' && <AdminSyllabus />}
