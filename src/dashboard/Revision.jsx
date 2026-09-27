@@ -99,13 +99,16 @@ export default function Revision() {
     return fallbackCourse.map((sub, sIdx) => ({
       id: `fallback_sub_${sIdx}`,
       subject: sub.subject,
-      chapters: (sub.chapters || []).map((ch, cIdx) => ({
-        id: ch.id,
-        chapterNo: String(cIdx + 1),
-        title: ch.title,
-        points: 10,
-        units: getDefaultUnitsForChapter(ch.id, ch.title)
-      }))
+      chapters: (sub.chapters || []).map((ch, cIdx) => {
+        const chId = ch.id || `fallback_ch_${sIdx}_${cIdx}`;
+        return {
+          id: chId,
+          chapterNo: String(cIdx + 1),
+          title: ch.title,
+          points: 10,
+          units: getDefaultUnitsForChapter(chId, ch.title, cIdx + 1, chId)
+        };
+      })
     }));
   }, [syllabusDoc, courseKey, levelKey]);
 
@@ -129,21 +132,29 @@ export default function Revision() {
     let earnedPts = 0;
 
     const mergedSubjects = baseSubjects.map(sub => {
-      const activeChapters = (sub.chapters || []).map(ch => {
+      const activeChapters = (sub.chapters || []).map((ch, cIdx) => {
         // 1. Base syllabus units
         const chSyllabusUnits = (ch.units && ch.units.length > 0)
           ? ch.units
-          : getDefaultUnitsForChapter(ch.id, ch.title);
+          : getDefaultUnitsForChapter(ch.id, ch.title, cIdx + 1, ch.id);
 
         const mappedSyllabusUnits = chSyllabusUnits
-          .filter(u => !disabledUnitIds.includes(u.id) && u.isActive !== false)
           .map((u, uIdx) => {
+            const unitId = u.id || `${ch.id}_u${uIdx + 1}`;
+            return {
+              ...u,
+              id: unitId,
+              uIdx
+            };
+          })
+          .filter(u => !disabledUnitIds.includes(u.id) && u.isActive !== false)
+          .map(u => {
             const override = unitOverrides[u.id] || {};
             return {
               id: u.id,
               chapterId: ch.id,
               subjectId: sub.id,
-              unitNo: u.unitNo || `Unit ${uIdx + 1}`,
+              unitNo: u.unitNo || `Unit ${u.uIdx + 1}`,
               title: override.title || u.title,
               description: u.description || '',
               points: override.points !== undefined ? Number(override.points) : (Number(u.points) || 10),

@@ -123,13 +123,16 @@ export default function AdminRevisionManager() {
     return fallbackCourse.map((sub, sIdx) => ({
       id: `fallback_sub_${sIdx}`,
       subject: sub.subject,
-      chapters: (sub.chapters || []).map((ch, cIdx) => ({
-        id: ch.id,
-        chapterNo: String(cIdx + 1),
-        title: ch.title,
-        points: 10,
-        units: getDefaultUnitsForChapter(ch.id, ch.title)
-      }))
+      chapters: (sub.chapters || []).map((ch, cIdx) => {
+        const chId = ch.id || `fallback_ch_${sIdx}_${cIdx}`;
+        return {
+          id: chId,
+          chapterNo: String(cIdx + 1),
+          title: ch.title,
+          points: 10,
+          units: getDefaultUnitsForChapter(chId, ch.title, cIdx + 1, chId)
+        };
+      })
     }));
   }, [syllabusDoc, currentStream]);
 
@@ -141,18 +144,19 @@ export default function AdminRevisionManager() {
   // Build combined Subject -> Chapter -> Units hierarchy
   const combinedSubjects = useMemo(() => {
     return baseSubjects.map(sub => {
-      const chapters = (sub.chapters || []).map(ch => {
+      const chapters = (sub.chapters || []).map((ch, cIdx) => {
         // 1. Base syllabus units
         const chSyllabusUnits = (ch.units && ch.units.length > 0)
           ? ch.units
-          : getDefaultUnitsForChapter(ch.id, ch.title);
+          : getDefaultUnitsForChapter(ch.id, ch.title, cIdx + 1, ch.id);
 
         const mappedSyllabusUnits = chSyllabusUnits.map((u, uIdx) => {
-          const override = unitOverrides[u.id] || {};
-          const isDisabled = disabledUnitIds.includes(u.id) || u.isActive === false;
+          const unitId = u.id || `${ch.id}_u${uIdx + 1}`;
+          const override = unitOverrides[unitId] || (u.id ? unitOverrides[u.id] : {}) || {};
+          const isDisabled = disabledUnitIds.includes(unitId) || (u.id && disabledUnitIds.includes(u.id)) || u.isActive === false;
 
           return {
-            id: u.id,
+            id: unitId,
             chapterId: ch.id,
             subjectId: sub.id,
             unitNo: u.unitNo || `Unit ${uIdx + 1}`,
@@ -410,11 +414,22 @@ export default function AdminRevisionManager() {
           }
         };
 
+        // Also sync active/disabled state for syllabus unit
+        let updatedDisabled = [...disabledUnitIds];
+        if (formUnitActive) {
+          updatedDisabled = updatedDisabled.filter(id => id !== targetUnit.id);
+        } else {
+          if (!updatedDisabled.includes(targetUnit.id)) {
+            updatedDisabled.push(targetUnit.id);
+          }
+        }
+
         await setDoc(revRef, {
           streamId: selectedStreamId,
           course: currentStream.course,
           level: currentStream.level,
           unitOverrides: updatedOverrides,
+          disabledUnitIds: updatedDisabled,
           updatedAt: serverTimestamp()
         }, { merge: true });
       }

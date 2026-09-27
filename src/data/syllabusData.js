@@ -351,7 +351,27 @@ export function getStudentSyllabus(userCourse, userLevel) {
 // Preset standard units generator according to ICSI / ICAI academic syllabus structure
 export function getDefaultUnitsForChapter(streamId, chapterTitle, chapterNo = 1, chapterId = '') {
   const normTitle = (chapterTitle || '').toLowerCase();
-  const baseId = chapterId || `ch_${Date.now()}`;
+  
+  // Deterministic baseId - NEVER use Date.now() or random timestamps so unit IDs remain stable across renders
+  let baseId = '';
+  if (chapterId && typeof chapterId === 'string' && chapterId.trim()) {
+    baseId = chapterId.trim();
+  } else if (streamId && typeof streamId === 'string' && (
+    streamId.startsWith('ch_') || 
+    streamId.startsWith('rev_ch_') || 
+    streamId.includes('_ch') || 
+    streamId.includes('_c') ||
+    !['ca_foundation', 'ca_intermediate', 'ca_final', 'cma_foundation', 'cma_intermediate', 'cma_final'].includes(streamId.toLowerCase())
+  )) {
+    baseId = streamId.trim();
+  } else {
+    const slug = (chapterTitle || '')
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '_')
+      .replace(/^_+|_+$/g, '')
+      .slice(0, 30);
+    baseId = `${streamId || 'ch'}_ch${chapterNo}${slug ? '_' + slug : ''}`;
+  }
 
   // Accounting Theoretical Framework
   if (normTitle.includes('theoretical framework')) {
