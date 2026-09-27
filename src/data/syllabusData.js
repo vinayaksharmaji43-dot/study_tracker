@@ -824,121 +824,632 @@ export const SYLLABUS_DATA = {
   },
   CMA: {
     Foundation: [
+  {
+    id: 'sub_1789667235064_0',
+    order: 1,
+    subject: 'Paper 1 — Fundamentals of Business Laws and Business Communication',
+    chapters: [
       {
-        subject: 'Paper 1 — Fundamentals of Business Laws and Business Communication',
-        chapters: [
-          { id: 'cma_fnd_p1_ch1', title: 'Chapter 1: Introduction to Law and Legal System in India' },
-          { id: 'cma_fnd_p1_ch2', title: 'Chapter 2: Indian Contract Act, 1872' },
-          { id: 'cma_fnd_p1_ch3', title: 'Chapter 3: Sale of Goods Act, 1930' },
-          { id: 'cma_fnd_p1_ch4', title: 'Chapter 4: Negotiable Instruments Act, 1881' },
-          { id: 'cma_fnd_p1_ch5', title: 'Chapter 5: Business Communication' },
-          { id: 'cma_fnd_p1_ch6', title: 'Chapter 6: Written Communication & Drafting Commercial Correspondence' },
+        id: 'cma_fnd_p1_ch1',
+        chapterNo: 1,
+        order: 1,
+        title: 'Chapter 1: Introduction to Law and Legislative Process',
+        points: 10,
+        isActive: true,
+        units: [
+          { id: 'cma_fnd_p1_ch1_u1', unitNo: 'Unit 1', order: 1, title: 'Sources of Law, Legislative Process in India', description: 'Sources of Law, Legislative Process in India', points: 10, isActive: true }
         ]
       },
       {
-        subject: 'Paper 2 — Fundamentals of Financial and Cost Accounting',
-        chapters: [
-          { id: 'cma_fnd_p2_ch1', title: 'Chapter 1: Accounting Fundamentals' },
-          { id: 'cma_fnd_p2_ch2', title: 'Chapter 2: Accounting for Special Transactions' },
-          { id: 'cma_fnd_p2_ch3', title: 'Chapter 3: Preparation of Final Accounts' },
-          { id: 'cma_fnd_p2_ch4', title: 'Chapter 4: Fundamentals of Cost Accounting' },
+        id: 'cma_fnd_p1_ch2',
+        chapterNo: 2,
+        order: 2,
+        title: 'Chapter 2: Indian Contract Act, 1872',
+        points: 10,
+        isActive: true,
+        units: [
+          { id: 'cma_fnd_p1_ch2_u1', unitNo: 'Unit 1', order: 1, title: 'Essential Elements of a Contract, Offer and Acceptance', description: 'Essential elements of a contract, offer and acceptance', points: 10, isActive: true },
+          { id: 'cma_fnd_p1_ch2_u2', unitNo: 'Unit 2', order: 2, title: 'Consideration, Legality of Object and Consideration', description: 'Consideration, legality of object and consideration', points: 10, isActive: true },
+          { id: 'cma_fnd_p1_ch2_u3', unitNo: 'Unit 3', order: 3, title: 'Capacity of Parties, Free Consent', description: 'Capacity of parties, free consent', points: 10, isActive: true },
+          { id: 'cma_fnd_p1_ch2_u4', unitNo: 'Unit 4', order: 4, title: 'Void and Voidable Agreements', description: 'Void and voidable agreements', points: 10, isActive: true },
+          { id: 'cma_fnd_p1_ch2_u5', unitNo: 'Unit 5', order: 5, title: 'Discharge of Contracts, Breach and Remedies', description: 'Discharge of contracts, breach of contract and remedies', points: 10, isActive: true }
         ]
       },
       {
-        subject: 'Paper 3 — Fundamentals of Business Mathematics and Statistics',
-        chapters: [
-          { id: 'cma_fnd_p3_ch1', title: 'Chapter 1: Arithmetic' },
-          { id: 'cma_fnd_p3_ch2', title: 'Chapter 2: Algebra' },
-          { id: 'cma_fnd_p3_ch3', title: 'Chapter 3: Calculus' },
-          { id: 'cma_fnd_p3_ch4', title: 'Chapter 4: Statistical Representation of Data' },
-          { id: 'cma_fnd_p3_ch5', title: 'Chapter 5: Measures of Central Tendency and Dispersion' },
-          { id: 'cma_fnd_p3_ch6', title: 'Chapter 6: Correlation and Regression' },
-          { id: 'cma_fnd_p3_ch7', title: 'Chapter 7: Probability' },
-          { id: 'cma_fnd_p3_ch8', title: 'Chapter 8: Index Numbers and Time Series' },
+        id: 'cma_fnd_p1_ch3',
+        chapterNo: 3,
+        order: 3,
+        title: 'Chapter 3: Sale of Goods Act, 1930',
+        points: 10,
+        isActive: true,
+        units: [
+          { id: 'cma_fnd_p1_ch3_u1', unitNo: 'Unit 1', order: 1, title: 'Definition, Transfer of Ownership', description: 'Definition, transfer of ownership', points: 10, isActive: true },
+          { id: 'cma_fnd_p1_ch3_u2', unitNo: 'Unit 2', order: 2, title: 'Conditions and Warranties', description: 'Conditions and Warranties', points: 10, isActive: true },
+          { id: 'cma_fnd_p1_ch3_u3', unitNo: 'Unit 3', order: 3, title: 'Performance of Contract of Sale, Rights of Unpaid Seller', description: 'Performance of the contract of sale, rights of unpaid seller', points: 10, isActive: true }
         ]
       },
       {
-        subject: 'Paper 4 — Fundamentals of Business Economics and Management',
-        chapters: [
-          { id: 'cma_fnd_p4_ch1', title: 'Chapter 1: Basic Concepts of Economics' },
-          { id: 'cma_fnd_p4_ch2', title: 'Chapter 2: Forms of Market' },
-          { id: 'cma_fnd_p4_ch3', title: 'Chapter 3: Money and Banking' },
-          { id: 'cma_fnd_p4_ch4', title: 'Chapter 4: Economic and Business Environment' },
-          { id: 'cma_fnd_p4_ch5', title: 'Chapter 5: Fundamentals of Management' },
-        ]
-      }
-    ],
-    Intermediate: [
-      {
-        subject: 'Group I — Business Laws and Ethics',
-        chapters: [
-          { id: 'cma_int_g1_law_1', title: 'Chapter 1: Commercial Laws' },
-          { id: 'cma_int_g1_law_2', title: 'Chapter 2: Industrial Laws' },
-          { id: 'cma_int_g1_law_3', title: 'Chapter 3: Corporate Laws' },
-          { id: 'cma_int_g1_law_4', title: 'Chapter 4: Business Ethics' },
+        id: 'cma_fnd_p1_ch4',
+        chapterNo: 4,
+        order: 4,
+        title: 'Chapter 4: Negotiable Instruments Act, 1881',
+        points: 10,
+        isActive: true,
+        units: [
+          { id: 'cma_fnd_p1_ch4_u1', unitNo: 'Unit 1', order: 1, title: 'Definition & Features of Promissory Note, Bill of Exchange, Cheque', description: 'Definition and features of Promissory Note, Bill of Exchange, and Cheque', points: 10, isActive: true },
+          { id: 'cma_fnd_p1_ch4_u2', unitNo: 'Unit 2', order: 2, title: 'Holder and Holder in Due Course', description: 'Holder and Holder in Due Course', points: 10, isActive: true },
+          { id: 'cma_fnd_p1_ch4_u3', unitNo: 'Unit 3', order: 3, title: 'Negotiation, Assignment, Dishonour of Negotiable Instruments', description: 'Negotiation and assignment, dishonour of negotiable instruments', points: 10, isActive: true }
         ]
       },
       {
-        subject: 'Group I — Financial Accounting',
-        chapters: [
-          { id: 'cma_int_g1_fa_1', title: 'Chapter 1: Accounting Fundamentals & Special Transactions' },
-          { id: 'cma_int_g1_fa_2', title: 'Chapter 2: Preparation of Financial Statements' },
-          { id: 'cma_int_g1_fa_3', title: 'Chapter 3: Partnership Accounts' },
-          { id: 'cma_int_g1_fa_4', title: 'Chapter 4: Lease, Branch & Departmental Accounts, Incomplete Records' },
-          { id: 'cma_int_g1_fa_5', title: 'Chapter 5: Computerised Accounting Environment & Accounting Standards (AS)' },
-        ]
-      },
-      {
-        subject: 'Group I — Direct and Indirect Taxation',
-        chapters: [
-          { id: 'cma_int_g1_tax_1', title: 'Chapter 1: Direct Taxation — Income Tax Act & Heads of Income' },
-          { id: 'cma_int_g1_tax_2', title: 'Chapter 2: Direct Taxation — Clubbing, Deductions & Assessment' },
-          { id: 'cma_int_g1_tax_3', title: 'Chapter 3: Indirect Taxation — CGST Act 2017' },
-          { id: 'cma_int_g1_tax_4', title: 'Chapter 4: Indirect Taxation — IGST Act 2017 & Customs Act 1962' },
-        ]
-      },
-      {
-        subject: 'Group I — Cost Accounting',
-        chapters: [
-          { id: 'cma_int_g1_ca_1', title: 'Chapter 1: Introduction to Cost Accounting' },
-          { id: 'cma_int_g1_ca_2', title: 'Chapter 2: Cost Elements — Material, Employee and Overheads' },
-          { id: 'cma_int_g1_ca_3', title: 'Chapter 3: Cost Accounting Standards (CAS) & Cost Book-keeping' },
-          { id: 'cma_int_g1_ca_4', title: 'Chapter 4: Methods of Costing' },
-          { id: 'cma_int_g1_ca_5', title: 'Chapter 5: Cost Accounting Techniques' },
-        ]
-      },
-      {
-        subject: 'Group II — Operations Management and Strategic Management',
-        chapters: [
-          { id: 'cma_int_g2_om_1', title: 'Chapter 1: Operations Management' },
-          { id: 'cma_int_g2_om_2', title: 'Chapter 2: Strategic Management' },
-        ]
-      },
-      {
-        subject: 'Group II — Corporate Accounting and Auditing',
-        chapters: [
-          { id: 'cma_int_g2_caa_1', title: 'Chapter 1: Corporate Accounting' },
-          { id: 'cma_int_g2_caa_2', title: 'Chapter 2: Auditing' },
-        ]
-      },
-      {
-        subject: 'Group II — Financial Management and Business Data Analytics',
-        chapters: [
-          { id: 'cma_int_g2_fmbda_1', title: 'Chapter 1: Financial Management' },
-          { id: 'cma_int_g2_fmbda_2', title: 'Chapter 2: Business Data Analytics' },
-        ]
-      },
-      {
-        subject: 'Group II — Management Accounting',
-        chapters: [
-          { id: 'cma_int_g2_ma_1', title: 'Chapter 1: Activity-Based Costing (ABC)' },
-          { id: 'cma_int_g2_ma_2', title: 'Chapter 2: Marginal Costing & Decision Making' },
-          { id: 'cma_int_g2_ma_3', title: 'Chapter 3: Standard Costing & Variance Analysis' },
-          { id: 'cma_int_g2_ma_4', title: 'Chapter 4: Budgetary Control & Transfer Pricing' },
-          { id: 'cma_int_g2_ma_5', title: 'Chapter 5: Strategic Performance Management' },
+        id: 'cma_fnd_p1_ch5',
+        chapterNo: 5,
+        order: 5,
+        title: 'Chapter 5: Business Communication',
+        points: 10,
+        isActive: true,
+        units: [
+          { id: 'cma_fnd_p1_ch5_u1', unitNo: 'Unit 1', order: 1, title: 'Introduction to Business Communication: Process, Types, Channels', description: 'Introduction to Business Communication: Process, types, channels', points: 10, isActive: true },
+          { id: 'cma_fnd_p1_ch5_u2', unitNo: 'Unit 2', order: 2, title: 'Barriers to Communication, Effective Communication Skills', description: 'Barriers to communication, effective communication skills', points: 10, isActive: true },
+          { id: 'cma_fnd_p1_ch5_u3', unitNo: 'Unit 3', order: 3, title: 'Commercial Letters, Reports, Minutes, and Resume Writing', description: 'Commercial letters, reports, minutes, and resume writing', points: 10, isActive: true }
         ]
       }
     ]
+  },
+  {
+    id: 'sub_1789667235064_1',
+    order: 2,
+    subject: 'Paper 2 — Fundamentals of Financial and Cost Accounting',
+    chapters: [
+      {
+        id: 'cma_fnd_p2_ch1',
+        chapterNo: 1,
+        order: 1,
+        title: 'Chapter 1: Accounting Fundamentals',
+        points: 10,
+        isActive: true,
+        units: [
+          { id: 'cma_fnd_p2_ch1_u1', unitNo: 'Unit 1', order: 1, title: 'Accounting Principles, Concepts, and Conventions', description: 'Accounting Principles, Concepts, and Conventions', points: 10, isActive: true },
+          { id: 'cma_fnd_p2_ch1_u2', unitNo: 'Unit 2', order: 2, title: 'Capital & Revenue Transactions, Journal, Ledger, Trial Balance', description: 'Capital and Revenue transactions, Journal, Ledger, Trial Balance', points: 10, isActive: true },
+          { id: 'cma_fnd_p2_ch1_u3', unitNo: 'Unit 3', order: 3, title: 'Rectification of Errors, Bank Reconciliation Statement (BRS)', description: 'Rectification of Errors, Bank Reconciliation Statement (BRS)', points: 10, isActive: true }
+        ]
+      },
+      {
+        id: 'cma_fnd_p2_ch2',
+        chapterNo: 2,
+        order: 2,
+        title: 'Chapter 2: Accounting for Special Transactions',
+        points: 10,
+        isActive: true,
+        units: [
+          { id: 'cma_fnd_p2_ch2_u1', unitNo: 'Unit 1', order: 1, title: 'Consignment Accounts', description: 'Consignment Accounts', points: 10, isActive: true },
+          { id: 'cma_fnd_p2_ch2_u2', unitNo: 'Unit 2', order: 2, title: 'Joint Venture Accounts', description: 'Joint Venture Accounts', points: 10, isActive: true },
+          { id: 'cma_fnd_p2_ch2_u3', unitNo: 'Unit 3', order: 3, title: 'Bills of Exchange', description: 'Bills of Exchange', points: 10, isActive: true }
+        ]
+      },
+      {
+        id: 'cma_fnd_p2_ch3',
+        chapterNo: 3,
+        order: 3,
+        title: 'Chapter 3: Preparation of Final Accounts',
+        points: 10,
+        isActive: true,
+        units: [
+          { id: 'cma_fnd_p2_ch3_u1', unitNo: 'Unit 1', order: 1, title: 'Financial Statements of Sole Proprietorship (Trading, P&L, Balance Sheet)', description: 'Preparation of Financial Statements of Sole Proprietorship (Trading, P&L, Balance Sheet)', points: 10, isActive: true },
+          { id: 'cma_fnd_p2_ch3_u2', unitNo: 'Unit 2', order: 2, title: 'Financial Statements of Non-Profit Organisations', description: 'Financial Statements of Non-Profit Organisations (Receipts & Payments, Income & Expenditure)', points: 10, isActive: true }
+        ]
+      },
+      {
+        id: 'cma_fnd_p2_ch4',
+        chapterNo: 4,
+        order: 4,
+        title: 'Chapter 4: Fundamentals of Cost Accounting',
+        points: 10,
+        isActive: true,
+        units: [
+          { id: 'cma_fnd_p2_ch4_u1', unitNo: 'Unit 1', order: 1, title: 'Meaning, Definition, Significance, Elements of Cost', description: 'Meaning, definition, significance, and elements of Cost', points: 10, isActive: true },
+          { id: 'cma_fnd_p2_ch4_u2', unitNo: 'Unit 2', order: 2, title: 'Classification of Costs, Cost Centre and Cost Unit', description: 'Classification of costs, Cost Centre and Cost Unit', points: 10, isActive: true },
+          { id: 'cma_fnd_p2_ch4_u3', unitNo: 'Unit 3', order: 3, title: 'Preparation of Cost Sheet', description: 'Preparation of Cost Sheet', points: 10, isActive: true }
+        ]
+      }
+    ]
+  },
+  {
+    id: 'sub_1789667235064_2',
+    order: 3,
+    subject: 'Paper 3 — Fundamentals of Business Mathematics and Statistics',
+    chapters: [
+      {
+        id: 'cma_fnd_p3_ch1',
+        chapterNo: 1,
+        order: 1,
+        title: 'Chapter 1: Arithmetic',
+        points: 10,
+        isActive: true,
+        units: [
+          { id: 'cma_fnd_p3_ch1_u1', unitNo: 'Unit 1', order: 1, title: 'Ratios, Proportions, and Variations', description: 'Ratios, Proportions, and Variations', points: 10, isActive: true },
+          { id: 'cma_fnd_p3_ch1_u2', unitNo: 'Unit 2', order: 2, title: 'Simple and Compound Interest, Annuities', description: 'Simple and Compound Interest, Annuities', points: 10, isActive: true }
+        ]
+      },
+      {
+        id: 'cma_fnd_p3_ch2',
+        chapterNo: 2,
+        order: 2,
+        title: 'Chapter 2: Algebra',
+        points: 10,
+        isActive: true,
+        units: [
+          { id: 'cma_fnd_p3_ch2_u1', unitNo: 'Unit 1', order: 1, title: 'Set Theory', description: 'Set Theory', points: 10, isActive: true },
+          { id: 'cma_fnd_p3_ch2_u2', unitNo: 'Unit 2', order: 2, title: 'Indices, Logarithms, Permutations, and Combinations', description: 'Indices, Logarithms, Permutations, and Combinations', points: 10, isActive: true },
+          { id: 'cma_fnd_p3_ch2_u3', unitNo: 'Unit 3', order: 3, title: 'Quadratic Equations', description: 'Quadratic Equations', points: 10, isActive: true }
+        ]
+      },
+      {
+        id: 'cma_fnd_p3_ch3',
+        chapterNo: 3,
+        order: 3,
+        title: 'Chapter 3: Statistical Representation of Data',
+        points: 10,
+        isActive: true,
+        units: [
+          { id: 'cma_fnd_p3_ch3_u1', unitNo: 'Unit 1', order: 1, title: 'Diagrammatic and Graphical Representation of Data', description: 'Diagrammatic and Graphical representation of data', points: 10, isActive: true },
+          { id: 'cma_fnd_p3_ch3_u2', unitNo: 'Unit 2', order: 2, title: 'Frequency Distribution', description: 'Frequency Distribution', points: 10, isActive: true }
+        ]
+      },
+      {
+        id: 'cma_fnd_p3_ch4',
+        chapterNo: 4,
+        order: 4,
+        title: 'Chapter 4: Measures of Central Tendency and Dispersion',
+        points: 10,
+        isActive: true,
+        units: [
+          { id: 'cma_fnd_p3_ch4_u1', unitNo: 'Unit 1', order: 1, title: 'Mean, Median, Mode, AM, GM, HM', description: 'Mean, Median, Mode, AM, GM, HM', points: 10, isActive: true },
+          { id: 'cma_fnd_p3_ch4_u2', unitNo: 'Unit 2', order: 2, title: 'Mean Deviation, Standard Deviation, Quartile Deviation, Variance', description: 'Mean Deviation, Standard Deviation, Quartile Deviation, Variance', points: 10, isActive: true }
+        ]
+      },
+      {
+        id: 'cma_fnd_p3_ch5',
+        chapterNo: 5,
+        order: 5,
+        title: 'Chapter 5: Measures of Skewness',
+        points: 10,
+        isActive: true,
+        units: [
+          { id: 'cma_fnd_p3_ch5_u1', unitNo: 'Unit 1', order: 1, title: 'Karl Pearson and Bowley\'s Coefficients of Skewness', description: 'Karl Pearson and Bowley\'s Coefficients of Skewness', points: 10, isActive: true }
+        ]
+      },
+      {
+        id: 'cma_fnd_p3_ch6',
+        chapterNo: 6,
+        order: 6,
+        title: 'Chapter 6: Correlation and Regression',
+        points: 10,
+        isActive: true,
+        units: [
+          { id: 'cma_fnd_p3_ch6_u1', unitNo: 'Unit 1', order: 1, title: 'Scatter Diagram, Karl Pearson\'s Coefficient of Correlation', description: 'Scatter diagram, Karl Pearson\'s Coefficient of Correlation', points: 10, isActive: true },
+          { id: 'cma_fnd_p3_ch6_u2', unitNo: 'Unit 2', order: 2, title: 'Regression Lines and Equations', description: 'Regression lines and equations', points: 10, isActive: true }
+        ]
+      },
+      {
+        id: 'cma_fnd_p3_ch7',
+        chapterNo: 7,
+        order: 7,
+        title: 'Chapter 7: Probability',
+        points: 10,
+        isActive: true,
+        units: [
+          { id: 'cma_fnd_p3_ch7_u1', unitNo: 'Unit 1', order: 1, title: 'Independent and Dependent Events, Addition & Multiplication Theorems', description: 'Independent and dependent events, Addition and Multiplication Theorems', points: 10, isActive: true },
+          { id: 'cma_fnd_p3_ch7_u2', unitNo: 'Unit 2', order: 2, title: 'Conditional Probability', description: 'Conditional Probability', points: 10, isActive: true }
+        ]
+      }
+    ]
+  },
+  {
+    id: 'sub_1789667235064_3',
+    order: 4,
+    subject: 'Paper 4 — Fundamentals of Business Economics and Management',
+    chapters: [
+      {
+        id: 'cma_fnd_p4_ch1',
+        chapterNo: 1,
+        order: 1,
+        title: 'Chapter 1: Basic Concepts of Economics',
+        points: 10,
+        isActive: true,
+        units: [
+          { id: 'cma_fnd_p4_ch1_u1', unitNo: 'Unit 1', order: 1, title: 'Nature, Scope, and Basic Problems of an Economy', description: 'Nature, scope, and basic problems of an economy', points: 10, isActive: true }
+        ]
+      },
+      {
+        id: 'cma_fnd_p4_ch2',
+        chapterNo: 2,
+        order: 2,
+        title: 'Chapter 2: Theory of Demand and Supply',
+        points: 10,
+        isActive: true,
+        units: [
+          { id: 'cma_fnd_p4_ch2_u1', unitNo: 'Unit 1', order: 1, title: 'Law of Demand, Elasticity, Law of Supply, Market Equilibrium', description: 'Law of Demand, Elasticity of Demand, Law of Supply, Market Equilibrium', points: 10, isActive: true }
+        ]
+      },
+      {
+        id: 'cma_fnd_p4_ch3',
+        chapterNo: 3,
+        order: 3,
+        title: 'Chapter 3: Theory of Production and Cost',
+        points: 10,
+        isActive: true,
+        units: [
+          { id: 'cma_fnd_p4_ch3_u1', unitNo: 'Unit 1', order: 1, title: 'Production Function, Variable Proportions, Returns to Scale, Cost Concepts', description: 'Production Function, Law of Variable Proportions, Returns to Scale, Cost concepts', points: 10, isActive: true }
+        ]
+      },
+      {
+        id: 'cma_fnd_p4_ch4',
+        chapterNo: 4,
+        order: 4,
+        title: 'Chapter 4: Market Forms',
+        points: 10,
+        isActive: true,
+        units: [
+          { id: 'cma_fnd_p4_ch4_u1', unitNo: 'Unit 1', order: 1, title: 'Perfect Competition, Monopoly, Monopolistic Competition, Oligopoly', description: 'Perfect Competition, Monopoly, Monopolistic Competition, Oligopoly', points: 10, isActive: true }
+        ]
+      },
+      {
+        id: 'cma_fnd_p4_ch5',
+        chapterNo: 5,
+        order: 5,
+        title: 'Chapter 5: Money and Banking',
+        points: 10,
+        isActive: true,
+        units: [
+          { id: 'cma_fnd_p4_ch5_u1', unitNo: 'Unit 1', order: 1, title: 'Functions of Money, Commercial Banks, RBI and Monetary Policy', description: 'Functions of Money, Commercial Banks, Reserve Bank of India (RBI) and Monetary Policy', points: 10, isActive: true }
+        ]
+      },
+      {
+        id: 'cma_fnd_p4_ch6',
+        chapterNo: 6,
+        order: 6,
+        title: 'Chapter 6: Management Process',
+        points: 10,
+        isActive: true,
+        units: [
+          { id: 'cma_fnd_p4_ch6_u1', unitNo: 'Unit 1', order: 1, title: 'Evolution of Management Thought', description: 'Evolution of Management thought', points: 10, isActive: true },
+          { id: 'cma_fnd_p4_ch6_u2', unitNo: 'Unit 2', order: 2, title: 'Planning, Organizing, Staffing, Directing, Coordinating, Controlling', description: 'Planning, Organizing, Staffing, Directing, Coordinating, and Controlling', points: 10, isActive: true },
+          { id: 'cma_fnd_p4_ch6_u3', unitNo: 'Unit 3', order: 3, title: 'Leadership, Motivation, and Decision Making', description: 'Leadership, Motivation, and Decision Making', points: 10, isActive: true }
+        ]
+      }
+    ]
+  }
+],
+Intermediate: [
+  {
+    id: 'sub_1789667239761_0',
+    order: 1,
+    subject: 'Group I: Paper 5 — Business Laws and Ethics',
+    chapters: [
+      {
+        id: 'cma_int_p5_ch1',
+        chapterNo: 1,
+        order: 1,
+        title: 'Chapter 1: Commercial Laws',
+        points: 10,
+        isActive: true,
+        units: [
+          { id: 'cma_int_p5_ch1_u1', unitNo: 'Unit 1', order: 1, title: 'Indian Contract Act, 1872 (Indemnity, Guarantee, Bailment, Pledge, Agency)', description: 'Advanced concepts, Indemnity, Guarantee, Bailment, Pledge, Agency', points: 10, isActive: true },
+          { id: 'cma_int_p5_ch1_u2', unitNo: 'Unit 2', order: 2, title: 'Sale of Goods Act, 1930', description: 'Sale of Goods Act, 1930', points: 10, isActive: true },
+          { id: 'cma_int_p5_ch1_u3', unitNo: 'Unit 3', order: 3, title: 'Negotiable Instruments Act, 1881', description: 'Negotiable Instruments Act, 1881', points: 10, isActive: true },
+          { id: 'cma_int_p5_ch1_u4', unitNo: 'Unit 4', order: 4, title: 'Indian Partnership Act, 1932 & Limited Liability Partnership Act, 2008', description: 'Indian Partnership Act, 1932 & Limited Liability Partnership Act, 2008', points: 10, isActive: true }
+        ]
+      },
+      {
+        id: 'cma_int_p5_ch2',
+        chapterNo: 2,
+        order: 2,
+        title: 'Chapter 2: Industrial Laws',
+        points: 10,
+        isActive: true,
+        units: [
+          { id: 'cma_int_p5_ch2_u1', unitNo: 'Unit 1', order: 1, title: 'Factories Act, 1948; Payment of Wages Act, 1936; Minimum Wages Act, 1948', description: 'Factories Act, 1948; Payment of Wages Act, 1936; Minimum Wages Act, 1948', points: 10, isActive: true },
+          { id: 'cma_int_p5_ch2_u2', unitNo: 'Unit 2', order: 2, title: 'Employees\' Provident Funds, ESI, Bonus, Gratuity Acts', description: 'Employees\' Provident Funds Act, 1952; ESI Act, 1948; Payment of Bonus Act, 1965; Payment of Gratuity Act, 1972', points: 10, isActive: true },
+          { id: 'cma_int_p5_ch2_u3', unitNo: 'Unit 3', order: 3, title: 'Code on Wages, 2019', description: 'Code on Wages, 2019', points: 10, isActive: true }
+        ]
+      },
+      {
+        id: 'cma_int_p5_ch3',
+        chapterNo: 3,
+        order: 3,
+        title: 'Chapter 3: Corporate Laws',
+        points: 10,
+        isActive: true,
+        units: [
+          { id: 'cma_int_p5_ch3_u1', unitNo: 'Unit 1', order: 1, title: 'Companies Act, 2013 (Incorporation, Shares, Directors, Meetings, Management)', description: 'Companies Act, 2013 (Incorporation, Shares, Directors, Meetings, Management)', points: 10, isActive: true }
+        ]
+      },
+      {
+        id: 'cma_int_p5_ch4',
+        chapterNo: 4,
+        order: 4,
+        title: 'Chapter 4: Business Ethics',
+        points: 10,
+        isActive: true,
+        units: [
+          { id: 'cma_int_p5_ch4_u1', unitNo: 'Unit 1', order: 1, title: 'Business Ethics and Emotional Intelligence', description: 'Business Ethics and Emotional Intelligence', points: 10, isActive: true }
+        ]
+      }
+    ]
+  },
+  {
+    id: 'sub_1789667239761_1',
+    order: 2,
+    subject: 'Group I: Paper 6 — Financial Accounting',
+    chapters: [
+      {
+        id: 'cma_int_p6_ch1',
+        chapterNo: 1,
+        order: 1,
+        title: 'Chapter 1: Accounting Fundamentals & Special Transactions',
+        points: 10,
+        isActive: true,
+        units: [
+          { id: 'cma_int_p6_ch1_u1', unitNo: 'Unit 1', order: 1, title: 'Accounting Process & Framework', description: 'Accounting Process & Framework', points: 10, isActive: true },
+          { id: 'cma_int_p6_ch1_u2', unitNo: 'Unit 2', order: 2, title: 'Bills of Exchange, Consignment, Joint Venture', description: 'Bills of Exchange, Consignment, Joint Venture', points: 10, isActive: true }
+        ]
+      },
+      {
+        id: 'cma_int_p6_ch2',
+        chapterNo: 2,
+        order: 2,
+        title: 'Chapter 2: Preparation of Financial Statements',
+        points: 10,
+        isActive: true,
+        units: [
+          { id: 'cma_int_p6_ch2_u1', unitNo: 'Unit 1', order: 1, title: 'Profit & Loss Account and Balance Sheet (Sole Proprietorship & Partnership)', description: 'Profit & Loss Account and Balance Sheet (Sole Proprietorship & Partnership)', points: 10, isActive: true },
+          { id: 'cma_int_p6_ch2_u2', unitNo: 'Unit 2', order: 2, title: 'Non-Profit Organisations & Single Entry System', description: 'Non-Profit Organisations & Single Entry System', points: 10, isActive: true }
+        ]
+      },
+      {
+        id: 'cma_int_p6_ch3',
+        chapterNo: 3,
+        order: 3,
+        title: 'Chapter 3: Self-Balancing Ledgers, Royalties, Hire Purchase',
+        points: 10,
+        isActive: true,
+        units: [
+          { id: 'cma_int_p6_ch3_u1', unitNo: 'Unit 1', order: 1, title: 'Self-Balancing Ledgers, Royalty Accounts, Hire Purchase & Installment System', description: 'Self-Balancing Ledgers, Royalty Accounts, Hire Purchase, and Installment System', points: 10, isActive: true },
+          { id: 'cma_int_p6_ch3_u2', unitNo: 'Unit 2', order: 2, title: 'Branch & Departmental Accounts, Insurance Claims', description: 'Branch & Departmental Accounts, Insurance Claims', points: 10, isActive: true }
+        ]
+      },
+      {
+        id: 'cma_int_p6_ch4',
+        chapterNo: 4,
+        order: 4,
+        title: 'Chapter 4: Accounting Standards',
+        points: 10,
+        isActive: true,
+        units: [
+          { id: 'cma_int_p6_ch4_u1', unitNo: 'Unit 1', order: 1, title: 'Overview of Accounting Standards (AS)', description: 'Overview of Accounting Standards (AS)', points: 10, isActive: true }
+        ]
+      }
+    ]
+  },
+  {
+    id: 'sub_1789667239761_2',
+    order: 3,
+    subject: 'Group I: Paper 7 — Direct and Indirect Taxation',
+    chapters: [
+      {
+        id: 'cma_int_p7_ch1',
+        chapterNo: 1,
+        order: 1,
+        title: 'Chapter 1: Direct Taxation',
+        points: 10,
+        isActive: true,
+        units: [
+          { id: 'cma_int_p7_ch1_u1', unitNo: 'Unit 1', order: 1, title: 'Basic Concepts and Residential Status', description: 'Basic Concepts and Residential Status', points: 10, isActive: true },
+          { id: 'cma_int_p7_ch1_u2', unitNo: 'Unit 2', order: 2, title: 'Heads of Income (Salary, HP, PGBP, Capital Gains, Other Sources)', description: 'Heads of Income (Salary, House Property, PGBP, Capital Gains, Other Sources)', points: 10, isActive: true },
+          { id: 'cma_int_p7_ch1_u3', unitNo: 'Unit 3', order: 3, title: 'Clubbing of Income, Set-off & Carry Forward, Chapter VI-A Deductions', description: 'Clubbing of Income, Set-off and Carry Forward, Deductions (Chapter VI-A)', points: 10, isActive: true },
+          { id: 'cma_int_p7_ch1_u4', unitNo: 'Unit 4', order: 4, title: 'Computation of Total Income and Tax Liability of Individuals', description: 'Computation of Total Income and Tax Liability of Individuals', points: 10, isActive: true },
+          { id: 'cma_int_p7_ch1_u5', unitNo: 'Unit 5', order: 5, title: 'TDS, TCS, Advance Tax, and Return Filing', description: 'TDS, TCS, Advance Tax, and Return Filing', points: 10, isActive: true }
+        ]
+      },
+      {
+        id: 'cma_int_p7_ch2',
+        chapterNo: 2,
+        order: 2,
+        title: 'Chapter 2: Indirect Taxation',
+        points: 10,
+        isActive: true,
+        units: [
+          { id: 'cma_int_p7_ch2_u1', unitNo: 'Unit 1', order: 1, title: 'Concept of Indirect Taxes & GST Fundamentals', description: 'Concept of Indirect Taxes & GST Fundamentals', points: 10, isActive: true },
+          { id: 'cma_int_p7_ch2_u2', unitNo: 'Unit 2', order: 2, title: 'Levy and Collection of GST, Supply (Time, Value, Place)', description: 'Levy and Collection of GST, Supply (Time, Value, Place)', points: 10, isActive: true },
+          { id: 'cma_int_p7_ch2_u3', unitNo: 'Unit 3', order: 3, title: 'Input Tax Credit (ITC), Registration under GST', description: 'Input Tax Credit (ITC), Registration under GST', points: 10, isActive: true },
+          { id: 'cma_int_p7_ch2_u4', unitNo: 'Unit 4', order: 4, title: 'GST Invoices, Returns, and Customs Act Basic Concepts', description: 'GST Invoices, Returns, and Customs Act Basic Concepts', points: 10, isActive: true }
+        ]
+      }
+    ]
+  },
+  {
+    id: 'sub_1789667239761_3',
+    order: 4,
+    subject: 'Group I: Paper 8 — Cost Accounting',
+    chapters: [
+      {
+        id: 'cma_int_p8_ch1',
+        chapterNo: 1,
+        order: 1,
+        title: 'Chapter 1: Cost Accounting Introduction & Elements of Cost',
+        points: 10,
+        isActive: true,
+        units: [
+          { id: 'cma_int_p8_ch1_u1', unitNo: 'Unit 1', order: 1, title: 'Introduction to Cost Accounting', description: 'Introduction to Cost Accounting', points: 10, isActive: true },
+          { id: 'cma_int_p8_ch1_u2', unitNo: 'Unit 2', order: 2, title: 'Material Costs, Employee Costs, Direct Expenses', description: 'Material Costs, Employee Costs, Direct Expenses', points: 10, isActive: true },
+          { id: 'cma_int_p8_ch1_u3', unitNo: 'Unit 3', order: 3, title: 'Overheads (Production, Administration, Selling & Distribution)', description: 'Overheads (Production, Administration, Selling & Distribution)', points: 10, isActive: true }
+        ]
+      },
+      {
+        id: 'cma_int_p8_ch2',
+        chapterNo: 2,
+        order: 2,
+        title: 'Chapter 2: Methods of Costing',
+        points: 10,
+        isActive: true,
+        units: [
+          { id: 'cma_int_p8_ch2_u1', unitNo: 'Unit 1', order: 1, title: 'Job, Batch, and Contract Costing', description: 'Job, Batch, and Contract Costing', points: 10, isActive: true },
+          { id: 'cma_int_p8_ch2_u2', unitNo: 'Unit 2', order: 2, title: 'Process Costing, Joint Products & By-Products', description: 'Process Costing, Joint Products & By-Products', points: 10, isActive: true },
+          { id: 'cma_int_p8_ch2_u3', unitNo: 'Unit 3', order: 3, title: 'Operating / Service Costing', description: 'Operating/Service Costing', points: 10, isActive: true }
+        ]
+      },
+      {
+        id: 'cma_int_p8_ch3',
+        chapterNo: 3,
+        order: 3,
+        title: 'Chapter 3: Cost Accounting Records & Techniques',
+        points: 10,
+        isActive: true,
+        units: [
+          { id: 'cma_int_p8_ch3_u1', unitNo: 'Unit 1', order: 1, title: 'Cost Control Accounts, Integral and Non-Integral Systems', description: 'Cost Control Accounts, Integral and Non-Integral Systems', points: 10, isActive: true },
+          { id: 'cma_int_p8_ch3_u2', unitNo: 'Unit 2', order: 2, title: 'Standard Costing, Marginal Costing, Budgetary Control', description: 'Standard Costing, Marginal Costing, Budgetary Control', points: 10, isActive: true }
+        ]
+      }
+    ]
+  },
+  {
+    id: 'sub_1789667239761_4',
+    order: 5,
+    subject: 'Group II: Paper 9 — Operations Management and Strategic Management',
+    chapters: [
+      {
+        id: 'cma_int_p9_ch1',
+        chapterNo: 1,
+        order: 1,
+        title: 'Chapter 1: Operations Management',
+        points: 10,
+        isActive: true,
+        units: [
+          { id: 'cma_int_p9_ch1_u1', unitNo: 'Unit 1', order: 1, title: 'Operations Management Introduction', description: 'Operations Management Introduction', points: 10, isActive: true },
+          { id: 'cma_int_p9_ch1_u2', unitNo: 'Unit 2', order: 2, title: 'Operations Planning & Design', description: 'Operations Planning & Design', points: 10, isActive: true },
+          { id: 'cma_int_p9_ch1_u3', unitNo: 'Unit 3', order: 3, title: 'Production Planning and Control (PPC)', description: 'Production Planning and Control (PPC)', points: 10, isActive: true },
+          { id: 'cma_int_p9_ch1_u4', unitNo: 'Unit 4', order: 4, title: 'Productivity Management, Project Management (PERT/CPM)', description: 'Productivity Management, Project Management (PERT/CPM)', points: 10, isActive: true },
+          { id: 'cma_int_p9_ch1_u5', unitNo: 'Unit 5', order: 5, title: 'Economics of Maintenance and Spares Management', description: 'Economics of Maintenance and Spares Management', points: 10, isActive: true }
+        ]
+      },
+      {
+        id: 'cma_int_p9_ch2',
+        chapterNo: 2,
+        order: 2,
+        title: 'Chapter 2: Strategic Management',
+        points: 10,
+        isActive: true,
+        units: [
+          { id: 'cma_int_p9_ch2_u1', unitNo: 'Unit 1', order: 1, title: 'Strategic Management Introduction', description: 'Strategic Management Introduction', points: 10, isActive: true },
+          { id: 'cma_int_p9_ch2_u2', unitNo: 'Unit 2', order: 2, title: 'Strategic Analysis and Strategic Planning', description: 'Strategic Analysis and Strategic Planning', points: 10, isActive: true },
+          { id: 'cma_int_p9_ch2_u3', unitNo: 'Unit 3', order: 3, title: 'Strategy Implementation and Control', description: 'Strategy Implementation and Control', points: 10, isActive: true }
+        ]
+      }
+    ]
+  },
+  {
+    id: 'sub_1789667239761_5',
+    order: 6,
+    subject: 'Group II: Paper 10 — Corporate Accounting and Auditing',
+    chapters: [
+      {
+        id: 'cma_int_p10_ch1',
+        chapterNo: 1,
+        order: 1,
+        title: 'Chapter 1: Corporate Accounting',
+        points: 10,
+        isActive: true,
+        units: [
+          { id: 'cma_int_p10_ch1_u1', unitNo: 'Unit 1', order: 1, title: 'Accounting for Shares and Debentures', description: 'Accounting for Shares and Debentures', points: 10, isActive: true },
+          { id: 'cma_int_p10_ch1_u2', unitNo: 'Unit 2', order: 2, title: 'Preparation of Financial Statements of Companies', description: 'Preparation of Financial Statements of Companies', points: 10, isActive: true },
+          { id: 'cma_int_p10_ch1_u3', unitNo: 'Unit 3', order: 3, title: 'Cash Flow Statement, Valuation of Shares & Goodwill', description: 'Cash Flow Statement, Valuation of Shares & Goodwill', points: 10, isActive: true },
+          { id: 'cma_int_p10_ch1_u4', unitNo: 'Unit 4', order: 4, title: 'Accounting for Banking, Electricity, and Insurance Companies', description: 'Accounting for Banking, Electricity, and Insurance Companies', points: 10, isActive: true }
+        ]
+      },
+      {
+        id: 'cma_int_p10_ch2',
+        chapterNo: 2,
+        order: 2,
+        title: 'Chapter 2: Auditing',
+        points: 10,
+        isActive: true,
+        units: [
+          { id: 'cma_int_p10_ch2_u1', unitNo: 'Unit 1', order: 1, title: 'Basic Concepts of Auditing', description: 'Basic Concepts of Auditing', points: 10, isActive: true },
+          { id: 'cma_int_p10_ch2_u2', unitNo: 'Unit 2', order: 2, title: 'Provisions Relating to Audit under Companies Act', description: 'Provision Relating to Audit under Companies Act', points: 10, isActive: true },
+          { id: 'cma_int_p10_ch2_u3', unitNo: 'Unit 3', order: 3, title: 'Auditing Techniques, Internal Audit, Auditing Standards', description: 'Auditing Techniques, Internal Audit, Auditing Standards', points: 10, isActive: true }
+        ]
+      }
+    ]
+  },
+  {
+    id: 'sub_1789667239761_6',
+    order: 7,
+    subject: 'Group II: Paper 11 — Financial Management and Business Data Analytics',
+    chapters: [
+      {
+        id: 'cma_int_p11_ch1',
+        chapterNo: 1,
+        order: 1,
+        title: 'Chapter 1: Financial Management',
+        points: 10,
+        isActive: true,
+        units: [
+          { id: 'cma_int_p11_ch1_u1', unitNo: 'Unit 1', order: 1, title: 'Introduction to Financial Management', description: 'Introduction to Financial Management', points: 10, isActive: true },
+          { id: 'cma_int_p11_ch1_u2', unitNo: 'Unit 2', order: 2, title: 'Tools for Financial Analysis (Ratio Analysis, Cash Flow)', description: 'Tools for Financial Analysis (Ratio Analysis, Cash Flow)', points: 10, isActive: true },
+          { id: 'cma_int_p11_ch1_u3', unitNo: 'Unit 3', order: 3, title: 'Working Capital Management', description: 'Working Capital Management', points: 10, isActive: true },
+          { id: 'cma_int_p11_ch1_u4', unitNo: 'Unit 4', order: 4, title: 'Cost of Capital, Capital Structure, Leverage, Dividend Decisions', description: 'Cost of Capital, Capital Structure, Leverage, Dividend Decisions', points: 10, isActive: true },
+          { id: 'cma_int_p11_ch1_u5', unitNo: 'Unit 5', order: 5, title: 'Capital Budgeting & Investment Decisions', description: 'Capital Budgeting & Investment Decisions', points: 10, isActive: true }
+        ]
+      },
+      {
+        id: 'cma_int_p11_ch2',
+        chapterNo: 2,
+        order: 2,
+        title: 'Chapter 2: Business Data Analytics',
+        points: 10,
+        isActive: true,
+        units: [
+          { id: 'cma_int_p11_ch2_u1', unitNo: 'Unit 1', order: 1, title: 'Data Analytics Framework, Big Data, Data Types', description: 'Data Analytics Framework, Big Data, Data Types', points: 10, isActive: true },
+          { id: 'cma_int_p11_ch2_u2', unitNo: 'Unit 2', order: 2, title: 'Data Visualization, AI, Blockchain, ERP Basics', description: 'Data Visualization, AI, Blockchain, ERP Basics', points: 10, isActive: true }
+        ]
+      }
+    ]
+  },
+  {
+    id: 'sub_1789667239761_7',
+    order: 8,
+    subject: 'Group II: Paper 12 — Management Accounting',
+    chapters: [
+      {
+        id: 'cma_int_p12_ch1',
+        chapterNo: 1,
+        order: 1,
+        title: 'Chapter 1: Management Accounting Introduction & Tools',
+        points: 10,
+        isActive: true,
+        units: [
+          { id: 'cma_int_p12_ch1_u1', unitNo: 'Unit 1', order: 1, title: 'Introduction to Management Accounting', description: 'Introduction to Management Accounting', points: 10, isActive: true },
+          { id: 'cma_int_p12_ch1_u2', unitNo: 'Unit 2', order: 2, title: 'Activity-Based Costing (ABC)', description: 'Activity-Based Costing (ABC)', points: 10, isActive: true },
+          { id: 'cma_int_p12_ch1_u3', unitNo: 'Unit 3', order: 3, title: 'Marginal Costing & Decision Making Tools', description: 'Marginal Costing & Decision Making Tools', points: 10, isActive: true }
+        ]
+      },
+      {
+        id: 'cma_int_p12_ch2',
+        chapterNo: 2,
+        order: 2,
+        title: 'Chapter 2: Advanced Cost & Management Accounting',
+        points: 10,
+        isActive: true,
+        units: [
+          { id: 'cma_int_p12_ch2_u1', unitNo: 'Unit 1', order: 1, title: 'Advanced Applications of Standard Costing & Variance Analysis', description: 'Advanced Applications of Standard Costing & Variance Analysis', points: 10, isActive: true },
+          { id: 'cma_int_p12_ch2_u2', unitNo: 'Unit 2', order: 2, title: 'Transfer Pricing', description: 'Transfer Pricing', points: 10, isActive: true },
+          { id: 'cma_int_p12_ch2_u3', unitNo: 'Unit 3', order: 3, title: 'Budgetary Control & Performance Measurement, Reporting to Management', description: 'Budgetary Control & Performance Measurement, Reporting to Management', points: 10, isActive: true }
+        ]
+      }
+    ]
+  }
+]
   }
 };
 
