@@ -1,13 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { collection, collectionGroup, onSnapshot, query, where, doc, updateDoc, addDoc, increment, serverTimestamp } from 'firebase/firestore';
 import { db } from '../../config/firebase';
-import { formatDate, formatHours } from '../../utils/helpers';
+import { formatDate, formatHours, formatTabAwayTime, formatDateTime } from '../../utils/helpers';
 import EmptyState from '../../components/EmptyState';
 import { 
   Users, 
   Search, 
   Filter, 
   Eye, 
+  EyeOff,
   Award, 
   Clock, 
   BookOpen, 
@@ -114,6 +115,32 @@ export default function AdminStudents() {
       unsubDayOffs();
     };
   }, []);
+
+  // Keep selectedStudent in sync with real-time updates
+  useEffect(() => {
+    if (selectedStudent) {
+      const currentId = selectedStudent.id || selectedStudent.uid;
+      const updated = students.find(s => (s.id || s.uid) === currentId);
+      if (updated) {
+        setSelectedStudent(prev => {
+          if (!prev) return null;
+          if (
+            prev.totalTabAwayTime !== updated.totalTabAwayTime ||
+            prev.totalTabAwayTimeMs !== updated.totalTabAwayTimeMs ||
+            prev.lastTabHiddenAt !== updated.lastTabHiddenAt ||
+            prev.lastTabVisibleAt !== updated.lastTabVisibleAt ||
+            prev.tabAwaySessionsCount !== updated.tabAwaySessionsCount ||
+            prev.points !== updated.points ||
+            prev.studyHours !== updated.studyHours ||
+            prev.paidQuizAccess !== updated.paidQuizAccess
+          ) {
+            return { ...prev, ...updated };
+          }
+          return prev;
+        });
+      }
+    }
+  }, [students]);
 
   // Prevent background scroll when any modal is open
   useEffect(() => {
@@ -779,6 +806,13 @@ export default function AdminStudents() {
               </div>
 
               <div className="p-4 rounded-2xl bg-navy-900/60 border border-white/5 space-y-1">
+                <div className="text-[11px] text-slate-400">Total Tab Away Time</div>
+                <div className="text-sm font-bold font-mono text-rose-400">
+                  {formatTabAwayTime(selectedStudent.totalTabAwayTime ?? (selectedStudent.totalTabAwayTimeMs ? Math.floor(selectedStudent.totalTabAwayTimeMs / 1000) : 0))}
+                </div>
+              </div>
+
+              <div className="p-4 rounded-2xl bg-navy-900/60 border border-white/5 space-y-1">
                 <div className="text-[11px] text-slate-400">Heard About Us</div>
                 <div className="text-sm font-bold text-white flex items-center gap-1.5">
                   <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-lg text-xs font-bold border ${getReferralBadge(selectedStudent.referralSource).bg}`}>
@@ -791,6 +825,65 @@ export default function AdminStudents() {
 
             {/* Detailed Activity Summaries */}
             <div className="space-y-4 pt-2">
+
+              {/* Tab Away Time Tracking (Page Visibility API - Admin Only) */}
+              <div className="p-4 sm:p-5 rounded-2xl bg-navy-900/60 border border-rose-500/20 space-y-3">
+                <div className="flex items-center justify-between border-b border-white/5 pb-2.5">
+                  <h4 className="text-sm font-bold text-white flex items-center gap-2">
+                    <EyeOff className="w-4 h-4 text-rose-400" />
+                    <span>Page Visibility & Tab Away Tracking</span>
+                  </h4>
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-500/20 text-rose-300 border border-rose-500/30">
+                    Admin Only
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                  {/* Total Tab Away Time */}
+                  <div className="p-3.5 rounded-xl bg-navy-950/80 border border-white/5 space-y-1">
+                    <div className="text-[11px] text-slate-400 font-medium">Total Tab Away Time</div>
+                    <div className="text-lg sm:text-xl font-black font-mono text-rose-400">
+                      {formatTabAwayTime(selectedStudent.totalTabAwayTime ?? (selectedStudent.totalTabAwayTimeMs ? Math.floor(selectedStudent.totalTabAwayTimeMs / 1000) : 0))}
+                    </div>
+                    <div className="text-[10px] text-slate-500">
+                      Accumulated browser tab hidden duration (HH:MM:SS)
+                    </div>
+                  </div>
+
+                  {/* Number of Tab Away Sessions */}
+                  <div className="p-3.5 rounded-xl bg-navy-950/80 border border-white/5 space-y-1">
+                    <div className="text-[11px] text-slate-400 font-medium">Number of Tab Away Sessions</div>
+                    <div className="text-lg sm:text-xl font-bold font-mono text-amber-300">
+                      {selectedStudent.tabAwaySessionsCount || 0} {(selectedStudent.tabAwaySessionsCount || 0) === 1 ? 'session' : 'sessions'}
+                    </div>
+                    <div className="text-[10px] text-slate-500">
+                      Total switch-away / hide cycles detected
+                    </div>
+                  </div>
+
+                  {/* Last Tab Hidden At */}
+                  <div className="p-3.5 rounded-xl bg-navy-950/80 border border-white/5 space-y-1">
+                    <div className="text-[11px] text-slate-400 font-medium">Last Tab Hidden At</div>
+                    <div className="text-xs font-semibold text-slate-200">
+                      {formatDateTime(selectedStudent.lastTabHiddenAt)}
+                    </div>
+                    <div className="text-[10px] text-slate-500">
+                      Timestamp student last left this tab
+                    </div>
+                  </div>
+
+                  {/* Last Tab Visible At */}
+                  <div className="p-3.5 rounded-xl bg-navy-950/80 border border-white/5 space-y-1">
+                    <div className="text-[11px] text-slate-400 font-medium">Last Tab Visible At</div>
+                    <div className="text-xs font-semibold text-slate-200">
+                      {formatDateTime(selectedStudent.lastTabVisibleAt)}
+                    </div>
+                    <div className="text-[10px] text-slate-500">
+                      Timestamp student returned back to tab
+                    </div>
+                  </div>
+                </div>
+              </div>
 
               {/* Paid Quiz Access Status */}
               <div className="p-4 rounded-2xl bg-navy-900/60 border border-white/5 flex items-center justify-between gap-4">

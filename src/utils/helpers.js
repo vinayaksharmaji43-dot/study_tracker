@@ -92,3 +92,35 @@ export function calculateDailyPoints(hours) {
   return 5 + Math.floor(hours - 6) * 2;
 }
 
+export function formatTabAwayTime(totalSeconds) {
+  if (totalSeconds === null || totalSeconds === undefined || isNaN(totalSeconds) || totalSeconds <= 0) {
+    return '00:00:00';
+  }
+  const sec = Math.floor(Number(totalSeconds));
+  const hrs = Math.floor(sec / 3600);
+  const mins = Math.floor((sec % 3600) / 60);
+  const secs = sec % 60;
+
+  const pad = (n) => String(n).padStart(2, '0');
+  return `${pad(hrs)}:${pad(mins)}:${pad(secs)}`;
+}
+
+export function formatDateTime(timestamp) {
+  if (!timestamp) return 'No activity recorded';
+  try {
+    const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
+    if (isNaN(date.getTime())) return 'No activity recorded';
+    return new Intl.DateTimeFormat('en-IN', {
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      hour12: true
+    }).format(date);
+  } catch {
+    return 'No activity recorded';
+  }
+}
+

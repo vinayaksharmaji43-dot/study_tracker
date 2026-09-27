@@ -58,6 +58,7 @@ import CountdownWidget from '../components/CountdownWidget';
 import useDailyEvaluator from '../hooks/useDailyEvaluator';
 import LevelUpModal from '../components/LevelUpModal';
 import ErrorBoundary from '../components/ErrorBoundary';
+import MandatoryProfileModal from '../components/MandatoryProfileModal';
 
 export default function Dashboard() {
   const { userProfile, currentUser, logout, levelInfo, isAdmin } = useAuth();
@@ -371,6 +372,9 @@ export default function Dashboard() {
 
       {/* Global Feedback Modal */}
       <FeedbackModal isOpen={showFeedbackModal} onClose={() => setShowFeedbackModal(false)} />
+
+      {/* Mandatory Profile Information Modal (Dashboard Only) */}
+      <MandatoryProfileModal />
     </div>
   );
 }
