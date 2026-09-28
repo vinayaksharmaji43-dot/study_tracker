@@ -1,6 +1,6 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
-  "name": "cacmasuccessblueprint",
+  "name": "cacma",
   "compatibility_date": "2026-09-28",
   "observability": {
     "enabled": true
