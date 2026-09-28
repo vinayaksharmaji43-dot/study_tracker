@@ -3,7 +3,7 @@ import react from '@vitejs/plugin-react';
 
 // https://vitejs.dev/config/
 export default defineConfig({
-  // Cloudflare Pages serves from root '/', while GitHub Pages serves from '/study_tracker/'
-  base: process.env.CF_PAGES ? '/' : (process.env.VITE_BASE_PATH || '/study_tracker/'),
+  // Default to '/' for Cloudflare Workers/Pages & custom domains; supports custom base via VITE_BASE_PATH
+  base: process.env.VITE_BASE_PATH || '/',
   plugins: [react()],
 });
