@@ -63,6 +63,7 @@ import usePremiumAccess from '../hooks/usePremiumAccess';
 import ProBadge from '../components/ProBadge';
 import PremiumLockScreen from '../components/PremiumLockScreen';
 import TrialExpiredBanner from '../components/TrialExpiredBanner';
+import TrialExpiredModal from '../components/TrialExpiredModal';
 
 export default function Dashboard() {
   const { userProfile, currentUser, logout, levelInfo, isAdmin } = useAuth();
@@ -73,7 +74,9 @@ export default function Dashboard() {
     isTrialExpired,
     daysRemaining,
     canShowTrialExpiredUI,
-    isSectionAccessible
+    isSectionAccessible,
+    toggleAdminSimulateExpired,
+    isSimulatingExpired
   } = usePremiumAccess();
 
   const [searchParams, setSearchParams] = useSearchParams();
@@ -184,6 +187,20 @@ export default function Dashboard() {
                     }`}>
                       {canShowTrialExpiredUI ? 'Trial Expired' : `${daysRemaining}d Trial`}
                     </span>
+                  )}
+                  {isAdmin && (
+                    <button
+                      type="button"
+                      onClick={toggleAdminSimulateExpired}
+                      className={`text-[9px] font-black uppercase px-2 py-0.5 rounded-md border transition-all cursor-pointer shrink-0 ${
+                        isSimulatingExpired
+                          ? 'bg-rose-500/25 border-rose-500/40 text-rose-300 shadow-glow-rose'
+                          : 'bg-white/5 border-white/10 text-slate-400 hover:text-white'
+                      }`}
+                      title="Test student trial expired view as administrator"
+                    >
+                      {isSimulatingExpired ? '🔴 Exit Test' : '👁️ Test Expired'}
+                    </button>
                   )}
                 </div>
               </div>
@@ -426,6 +443,9 @@ export default function Dashboard() {
 
       {/* Mandatory Profile Information Modal (Dashboard Only) */}
       <MandatoryProfileModal />
+
+      {/* 12-Day Free Trial Expired Modal (Pops up strictly after mandatory profile completion) */}
+      <TrialExpiredModal setActiveTab={setActiveTab} />
     </div>
   );
 }

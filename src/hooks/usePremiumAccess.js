@@ -121,13 +121,24 @@ export function usePremiumAccess() {
   const msRemaining = Math.max(0, trialEndDate.getTime() - nowMs);
   const daysRemaining = Math.ceil(msRemaining / (1000 * 60 * 60 * 24));
 
+  // Optional Admin Simulator mode for previewing Trial Expired state
+  const [adminSimulateExpired, setAdminSimulateExpired] = useState(() => {
+    return localStorage.getItem('admin_preview_trial_expired') === 'true';
+  });
+
+  const toggleAdminSimulateExpired = () => {
+    const nextVal = !adminSimulateExpired;
+    setAdminSimulateExpired(nextVal);
+    localStorage.setItem('admin_preview_trial_expired', String(nextVal));
+  };
+
+  const isSimulatingExpired = Boolean(isAdmin && adminSimulateExpired);
+
   // Determine if the trial expired message and locks can be presented:
   // MUST ONLY BE TRUE AFTER MANDATORY PROFILE POPUP IS COMPLETED!
   const canShowTrialExpiredUI = Boolean(
-    !isAdmin &&
-    !isPro &&
-    isTrialExpired &&
-    isProfileCompleted
+    isSimulatingExpired ||
+    (!isAdmin && !isPro && isTrialExpired && isProfileCompleted)
   );
 
   // Full access flag
@@ -135,6 +146,10 @@ export function usePremiumAccess() {
 
   // Check if a specific dashboard section is allowed for this user
   const isSectionAccessible = (sectionId) => {
+    if (isSimulatingExpired) {
+      const normalized = (sectionId || '').toLowerCase();
+      return UNLOCKED_SECTIONS_AFTER_EXPIRY.includes(normalized);
+    }
     if (isAdmin || isPro) return true;
     if (!isProfileCompleted) return true; // Let them finish profile without section lock interfering
     if (isTrialActive) return true;
@@ -159,7 +174,10 @@ export function usePremiumAccess() {
     canShowTrialExpiredUI,
     hasFullAccess,
     isSectionAccessible,
-    loadingSettings
+    loadingSettings,
+    adminSimulateExpired,
+    toggleAdminSimulateExpired,
+    isSimulatingExpired
   };
 }
 

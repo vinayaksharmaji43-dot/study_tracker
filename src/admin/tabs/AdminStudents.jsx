@@ -26,6 +26,7 @@ import {
   Crown,
   X
 } from 'lucide-react';
+import ProBadge from '../../components/ProBadge';
 
 export default function AdminStudents() {
   const [students, setStudents] = useState([]);
@@ -597,6 +598,7 @@ export default function AdminStudents() {
                         <div>
                           <div className="flex items-center gap-2">
                             <span className="font-bold text-white group-hover:text-gold-400 transition-colors">{student.name}</span>
+                            {Boolean(student.isPro || student.proAccess) && <ProBadge size="sm" />}
                             <span className="text-xs px-2 py-0.5 rounded bg-gold-500/20 text-gold-300 font-bold border border-gold-500/30 flex items-center gap-1">
                               <span>{student.badge || '🌱'}</span>
                               <span>Lvl {student.currentLevel || 1}</span>
@@ -909,6 +911,55 @@ export default function AdminStudents() {
                   className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all shrink-0 ${selectedStudent.paidQuizAccess || selectedStudent.isPaid ? 'bg-rose-500/20 text-rose-300 hover:bg-rose-500 hover:text-white border border-rose-500/30' : 'bg-amber-500/20 text-amber-300 hover:bg-amber-500 hover:text-navy-950 border border-amber-500/30'}`}
                 >
                   {selectedStudent.paidQuizAccess || selectedStudent.isPaid ? 'Revoke Paid' : 'Grant Paid'}
+                </button>
+              </div>
+
+              {/* 12-Day Trial & Full PRO Access Status */}
+              <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-between gap-4">
+                <div className="flex items-center gap-3">
+                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${selectedStudent.isPro || selectedStudent.proAccess ? 'bg-amber-500/25 text-amber-400 border border-amber-500/40 shadow-glow-amber' : 'bg-slate-800 text-slate-400 border border-white/5'}`}>
+                    <Crown className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <div className="text-sm font-bold text-white flex items-center gap-2">
+                      <span>Pro Platform Access</span>
+                      <span className={`px-2 py-0.5 rounded-full text-[10px] font-black uppercase ${selectedStudent.isPro || selectedStudent.proAccess ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40' : 'bg-slate-700 text-slate-300'}`}>
+                        {selectedStudent.isPro || selectedStudent.proAccess ? 'PRO ACTIVE' : '12-Day Trial'}
+                      </span>
+                    </div>
+                    <div className="text-xs text-slate-300">
+                      {selectedStudent.isPro || selectedStudent.proAccess ? 'Unrestricted access to all dashboard tools, subjects, and sessions' : 'Standard 12-day free trial limits apply'}
+                    </div>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={async () => {
+                    const isCurrentlyPro = Boolean(selectedStudent.isPro || selectedStudent.proAccess);
+                    const targetId = selectedStudent.id || selectedStudent.uid;
+                    try {
+                      await updateDoc(doc(db, 'users', targetId), {
+                        isPro: !isCurrentlyPro,
+                        proAccess: !isCurrentlyPro,
+                        [isCurrentlyPro ? 'proRevokedAt' : 'proGrantedAt']: serverTimestamp()
+                      });
+                      setSelectedStudent(prev => ({
+                        ...prev,
+                        isPro: !isCurrentlyPro,
+                        proAccess: !isCurrentlyPro
+                      }));
+                      alert(`PRO Access ${!isCurrentlyPro ? 'granted to' : 'revoked for'} ${selectedStudent.name}!`);
+                    } catch (e) {
+                      alert('Failed to update Pro status: ' + e.message);
+                    }
+                  }}
+                  className={`px-3.5 py-2 rounded-xl text-xs font-black transition-all shrink-0 cursor-pointer ${
+                    selectedStudent.isPro || selectedStudent.proAccess 
+                      ? 'bg-rose-500/20 text-rose-300 hover:bg-rose-500 hover:text-white border border-rose-500/30' 
+                      : 'bg-gradient-to-r from-amber-500 to-yellow-500 text-navy-950 hover:from-amber-400 hover:to-yellow-400 font-extrabold shadow-glow-amber'
+                  }`}
+                >
+                  {selectedStudent.isPro || selectedStudent.proAccess ? 'Revoke Pro' : 'Grant Pro Access'}
                 </button>
               </div>
               
