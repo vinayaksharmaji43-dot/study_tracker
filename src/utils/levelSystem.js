@@ -65,7 +65,37 @@ export function normalizeLevelConfig(levels, streamId) {
     .sort((a, b) => a.levelNumber - b.levelNumber);
 }
 
+export const STREAM_OPTIONS = [
+  { id: 'CA_Foundation', label: 'CA Foundation', course: 'CA', level: 'Foundation' },
+  { id: 'CA_Intermediate', label: 'CA Intermediate', course: 'CA', level: 'Intermediate' },
+  { id: 'CMA_Foundation', label: 'CMA Foundation', course: 'CMA', level: 'Foundation' },
+  { id: 'CMA_Intermediate', label: 'CMA Intermediate', course: 'CMA', level: 'Intermediate' }
+];
+
+export const STREAM_LABELS = {
+  CA_Foundation: 'CA Foundation',
+  CA_Intermediate: 'CA Intermediate',
+  CMA_Foundation: 'CMA Foundation',
+  CMA_Intermediate: 'CMA Intermediate'
+};
+
+export function getStreamDetails(streamId) {
+  const found = STREAM_OPTIONS.find(s => s.id === streamId);
+  if (found) return found;
+  const course = (streamId || '').toUpperCase().includes('CMA') ? 'CMA' : 'CA';
+  const level = (streamId || '').toLowerCase().includes('intermediate') ? 'Intermediate' : 'Foundation';
+  return {
+    id: `${course}_${level}`,
+    label: `${course} ${level}`,
+    course,
+    level
+  };
+}
+
 export function getStreamId(userCourse, userLevel) {
+  if (userCourse && (userCourse === 'CA_Foundation' || userCourse === 'CA_Intermediate' || userCourse === 'CMA_Foundation' || userCourse === 'CMA_Intermediate')) {
+    return userCourse;
+  }
   const c = (userCourse || 'CA').toUpperCase().includes('CMA') ? 'CMA' : 'CA';
   const l = (userLevel || 'Foundation').toLowerCase().includes('intermediate') ? 'Intermediate' : 'Foundation';
   return `${c}_${l}`;

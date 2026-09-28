@@ -1,14 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { doc, updateDoc } from 'firebase/firestore';
+import { doc, updateDoc, collection, query, orderBy, onSnapshot, serverTimestamp, addDoc, where } from 'firebase/firestore';
 import { db } from '../config/firebase';
 import { useAuth } from '../contexts/AuthContext';
 import { formatDate, formatHours } from '../utils/helpers';
-import { User, Mail, GraduationCap, Calendar, Award, BookOpen, LogOut, CheckCircle, ShieldCheck, Edit3, BookOpenCheck, Sparkles, Trophy, Flame, Crown, ChevronRight } from 'lucide-react';
-import { collection, query, orderBy, onSnapshot } from 'firebase/firestore';
+import { User, Mail, GraduationCap, Calendar, Award, BookOpen, LogOut, CheckCircle, ShieldCheck, Edit3, BookOpenCheck, Sparkles, Trophy, Flame, Crown, ChevronRight, Clock, ArrowRight, X } from 'lucide-react';
 import { Gift, Lock as LockIcon, MessageCircle, ExternalLink } from 'lucide-react';
 import usePremiumAccess from '../hooks/usePremiumAccess';
 import ProBadge from '../components/ProBadge';
 import { useLevelGifts } from '../hooks/useLevelGifts';
+import { getStreamId, getStreamDetails, STREAM_OPTIONS, STREAM_LABELS } from '../utils/levelSystem';
 
 export default function Profile() {
   const { userProfile, currentUser, logout, levelInfo } = useAuth();
@@ -56,14 +56,39 @@ export default function Profile() {
     return () => unsub();
   }, [currentUser]);
 
-  const handleCourseChange = (newCourse) => {
-    setCourse(newCourse);
-    if (newCourse === 'CA') {
-      if (!['Jan 27', 'May 27', 'Sep 27'].includes(attempt)) setAttempt('Jan 27');
-    } else {
-      if (!['Dec 26', 'June 27', 'Dec 27'].includes(attempt)) setAttempt('Dec 26');
-    }
-  };
+  const rawStream = userProfile?.stream || (userProfile?.course ? getStreamId(userProfile.course, userProfile.level) : null);
+  const isStreamLocked = Boolean(userProfile?.streamLocked || (userProfile?.course && userProfile?.role !== 'admin'));
+
+  // For initial selection if unset
+  const [selectedInitialStream, setSelectedInitialStream] = useState(rawStream || 'CA_Foundation');
+
+  // Stream Change Request State
+  const [showRequestModal, setShowRequestModal] = useState(false);
+  const [requestedTargetStream, setRequestedTargetStream] = useState('');
+  const [changeReason, setChangeReason] = useState('');
+  const [submittingRequest, setSubmittingRequest] = useState(false);
+  const [latestRequest, setLatestRequest] = useState(null);
+
+  // Listen for user's stream change requests in real-time
+  useEffect(() => {
+    if (!currentUser?.uid) return;
+    const reqRef = collection(db, 'streamChangeRequests');
+    const q = query(reqRef, where('uid', '==', currentUser.uid));
+
+    const unsub = onSnapshot(q, (snapshot) => {
+      const list = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+      list.sort((a, b) => {
+        const tA = a.createdAt?.toMillis ? a.createdAt.toMillis() : (a.createdAt?.seconds ? a.createdAt.seconds * 1000 : 0);
+        const tB = b.createdAt?.toMillis ? b.createdAt.toMillis() : (b.createdAt?.seconds ? b.createdAt.seconds * 1000 : 0);
+        return tB - tA;
+      });
+      setLatestRequest(list[0] || null);
+    }, (err) => {
+      console.error("Stream requests listener error:", err);
+    });
+
+    return () => unsub();
+  }, [currentUser?.uid]);
 
   const handleUpdateProfile = async (e) => {
     e.preventDefault();
@@ -74,20 +99,67 @@ export default function Profile() {
       setSuccessMsg('');
 
       const userRef = doc(db, 'users', currentUser.uid);
-      await updateDoc(userRef, {
+      
+      const payload = {
         name: name.trim(),
-        course,
-        level,
         attempt
-      });
+      };
 
-      setSuccessMsg('Academic stream & profile updated successfully!');
-      setTimeout(() => setSuccessMsg(''), 3000);
+      if (!isStreamLocked) {
+        const details = getStreamDetails(selectedInitialStream);
+        payload.stream = selectedInitialStream;
+        payload.course = details.course;
+        payload.level = details.level;
+        payload.streamLocked = true;
+        payload.streamSelectedAt = serverTimestamp();
+      }
+
+      await updateDoc(userRef, payload);
+
+      setSuccessMsg(isStreamLocked ? 'Academic profile settings updated successfully!' : 'Your stream has been saved and is now locked.');
+      setTimeout(() => setSuccessMsg(''), 4000);
     } catch (err) {
       console.error("Profile update error:", err);
-      alert("Failed to update profile.");
+      alert("Failed to update profile: " + err.message);
     } finally {
       setUpdating(false);
+    }
+  };
+
+  const handleSubmitStreamChangeRequest = async (e) => {
+    e.preventDefault();
+    if (!requestedTargetStream) return;
+
+    if (requestedTargetStream === rawStream) {
+      alert("Please choose a stream different from your current stream.");
+      return;
+    }
+
+    try {
+      setSubmittingRequest(true);
+      const reqRef = collection(db, 'streamChangeRequests');
+      await addDoc(reqRef, {
+        uid: currentUser.uid,
+        studentName: userProfile?.name || currentUser?.displayName || currentUser?.email?.split('@')[0] || 'Student',
+        studentEmail: currentUser?.email || '',
+        rollNumber: userProfile?.rollNumber || 'N/A',
+        currentStream: rawStream || 'CA_Foundation',
+        requestedStream: requestedTargetStream,
+        reason: changeReason.trim(),
+        status: 'pending',
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp()
+      });
+
+      setShowRequestModal(false);
+      setChangeReason('');
+      setRequestedTargetStream('');
+      alert("Stream change request submitted successfully to Admin.");
+    } catch (err) {
+      console.error("Error submitting stream request:", err);
+      alert("Failed to submit request: " + err.message);
+    } finally {
+      setSubmittingRequest(false);
     }
   };
 
@@ -436,67 +508,96 @@ export default function Profile() {
                 </div>
               </div>
 
-              {/* Course Selection (CA / CMA) */}
-              <div>
-                <label className="block text-xs font-bold text-gold-400 uppercase tracking-wider mb-2">
-                  Select Course
-                </label>
-                <div className="grid grid-cols-2 gap-3">
-                  <button
-                    type="button"
-                    onClick={() => handleCourseChange('CA')}
-                    className={`p-3.5 rounded-xl border text-sm font-bold transition-all ${
-                      course === 'CA'
-                        ? 'bg-royal-600/30 border-royal-500 text-white shadow-glow-blue'
-                        : 'bg-navy-900 border-white/10 text-slate-400 hover:border-white/20'
-                    }`}
-                  >
-                    CA (ICAI)
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => handleCourseChange('CMA')}
-                    className={`p-3.5 rounded-xl border text-sm font-bold transition-all ${
-                      course === 'CMA'
-                        ? 'bg-gold-500/20 border-gold-500 text-white shadow-glow-gold'
-                        : 'bg-navy-900 border-white/10 text-slate-400 hover:border-white/20'
-                    }`}
-                  >
-                    CMA (ICMAI)
-                  </button>
-                </div>
-              </div>
+              {/* Academic Stream Field */}
+              {isStreamLocked ? (
+                <div className="space-y-2">
+                  <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider">
+                    Academic Stream
+                  </label>
+                  
+                  <div className="p-4 rounded-2xl bg-navy-950 border border-white/10 flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-2">
+                      <span className="text-base font-black text-white">
+                        {STREAM_LABELS[rawStream] || `${course} ${level}`}
+                      </span>
+                      <span className="text-amber-400 text-sm" title="Stream Locked">🔒</span>
+                    </div>
 
-              {/* Level Selection (Foundation / Intermediate) */}
-              <div>
-                <label className="block text-xs font-bold text-gold-400 uppercase tracking-wider mb-2">
-                  Select Level
-                </label>
-                <div className="grid grid-cols-2 gap-3">
-                  <button
-                    type="button"
-                    onClick={() => setLevel('Foundation')}
-                    className={`p-3.5 rounded-xl border text-sm font-bold transition-all ${
-                      level === 'Foundation'
-                        ? 'bg-emerald-600/30 border-emerald-500 text-white shadow-glow-emerald'
-                        : 'bg-navy-900 border-white/10 text-slate-400 hover:border-white/20'
-                    }`}
-                  >
-                    Foundation
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setLevel('Intermediate')}
-                    className={`p-3.5 rounded-xl border text-sm font-bold transition-all ${
-                      level === 'Intermediate'
-                        ? 'bg-emerald-600/30 border-emerald-500 text-white shadow-glow-emerald'
-                        : 'bg-navy-900 border-white/10 text-slate-400 hover:border-white/20'
-                    }`}
-                  >
-                    Intermediate
-                  </button>
+                    <span className="px-2.5 py-1 rounded-full bg-slate-800 border border-white/10 text-[10px] font-bold text-slate-400">
+                      Locked
+                    </span>
+                  </div>
+
+                  <p className="text-[11px] text-slate-400">
+                    Stream can only be changed with admin approval.
+                  </p>
+
+                  {/* Stream Change Request Status or Request Button */}
+                  {latestRequest && latestRequest.status === 'pending' ? (
+                    <div className="p-3.5 rounded-2xl bg-amber-500/10 border border-amber-500/30 space-y-1">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-bold text-amber-300 flex items-center gap-1.5">
+                          <Clock className="w-3.5 h-3.5 text-amber-400" />
+                          <span>Stream Change Request: Pending</span>
+                        </span>
+                        <span className="text-[10px] text-slate-400">
+                          {formatDate(latestRequest.createdAt)}
+                        </span>
+                      </div>
+                      <p className="text-xs text-slate-300">
+                        Requested change to <strong className="text-white">{STREAM_LABELS[latestRequest.requestedStream] || latestRequest.requestedStream}</strong> is currently awaiting Administrator approval.
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="pt-1 flex items-center justify-between flex-wrap gap-2">
+                      {latestRequest && latestRequest.status === 'rejected' && (
+                        <span className="text-[11px] text-rose-400 font-medium">
+                          Previous request rejected{latestRequest.rejectionReason ? `: ${latestRequest.rejectionReason}` : ''}
+                        </span>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const other = STREAM_OPTIONS.find(s => s.id !== rawStream);
+                          setRequestedTargetStream(other?.id || 'CA_Intermediate');
+                          setShowRequestModal(true);
+                        }}
+                        className="px-3.5 py-1.5 rounded-xl bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/30 text-amber-300 text-xs font-bold transition-all flex items-center gap-1.5 ml-auto"
+                      >
+                        <GraduationCap className="w-3.5 h-3.5" />
+                        <span>Request Stream Change</span>
+                      </button>
+                    </div>
+                  )}
                 </div>
-              </div>
+              ) : (
+                /* Select Your Stream (First Time Unset Flow) */
+                <div className="space-y-3">
+                  <label className="block text-xs font-bold text-gold-400 uppercase tracking-wider">
+                    Select Your Stream (One-Time Selection) *
+                  </label>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {STREAM_OPTIONS.map(opt => (
+                      <button
+                        key={opt.id}
+                        type="button"
+                        onClick={() => setSelectedInitialStream(opt.id)}
+                        className={`p-3.5 rounded-2xl border text-left transition-all ${
+                          selectedInitialStream === opt.id
+                            ? 'bg-amber-500/20 border-amber-500 text-white shadow-glow-amber'
+                            : 'bg-navy-950/80 border-white/10 text-slate-300 hover:border-white/20'
+                        }`}
+                      >
+                        <div className="font-bold text-sm text-white">{opt.label}</div>
+                        <div className="text-[11px] text-slate-400">{opt.course} • {opt.level} Level</div>
+                      </button>
+                    ))}
+                  </div>
+                  <p className="text-[11px] text-amber-300 font-medium">
+                    ⚠️ Please select carefully. After your first selection, your stream is permanently saved and locked.
+                  </p>
+                </div>
+              )}
 
               {/* Attempt Selection */}
               <div>
@@ -508,19 +609,12 @@ export default function Profile() {
                   onChange={(e) => setAttempt(e.target.value)}
                   className="w-full px-4 py-3 rounded-xl bg-navy-900 border border-white/10 text-white text-sm font-bold focus:outline-none focus:border-royal-500"
                 >
-                  {course === 'CA' ? (
-                    <>
-                      <option value="Jan 27">Jan 27</option>
-                      <option value="May 27">May 27</option>
-                      <option value="Sep 27">Sep 27</option>
-                    </>
-                  ) : (
-                    <>
-                      <option value="Dec 26">Dec 26</option>
-                      <option value="June 27">June 27</option>
-                      <option value="Dec 27">Dec 27</option>
-                    </>
-                  )}
+                  <option value="Jan 27">Jan 27</option>
+                  <option value="May 27">May 27</option>
+                  <option value="Sep 27">Sep 27</option>
+                  <option value="Dec 26">Dec 26</option>
+                  <option value="June 27">June 27</option>
+                  <option value="Dec 27">Dec 27</option>
                 </select>
               </div>
 
@@ -530,7 +624,7 @@ export default function Profile() {
                   disabled={updating}
                   className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-royal-600 to-royal-500 hover:from-royal-500 hover:to-royal-600 text-white font-bold text-sm shadow-glow-blue transition-all disabled:opacity-50"
                 >
-                  {updating ? 'Updating...' : 'Save Academic Stream Changes'}
+                  {updating ? 'Updating...' : isStreamLocked ? 'Save Academic Profile Settings' : 'Confirm & Lock Stream'}
                 </button>
               </div>
             </form>
@@ -632,6 +726,86 @@ export default function Profile() {
         </div>
 
       </div>
+
+      {/* Request Stream Change Modal */}
+      {showRequestModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-navy-950/85 backdrop-blur-md">
+          <div className="glass-card p-6 sm:p-8 rounded-3xl border border-white/15 max-w-md w-full shadow-2xl space-y-5">
+            <div className="flex items-center justify-between border-b border-white/10 pb-3">
+              <h3 className="text-lg font-bold text-white flex items-center gap-2">
+                <GraduationCap className="w-5 h-5 text-amber-400" />
+                <span>Request Stream Change</span>
+              </h3>
+              <button 
+                onClick={() => setShowRequestModal(false)}
+                className="text-slate-400 hover:text-white font-bold"
+              >
+                ✕
+              </button>
+            </div>
+
+            <form onSubmit={handleSubmitStreamChangeRequest} className="space-y-4">
+              <div>
+                <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">
+                  Current Stream
+                </label>
+                <div className="px-3.5 py-2.5 rounded-xl bg-navy-950 border border-white/10 text-slate-300 text-xs font-bold">
+                  {STREAM_LABELS[rawStream] || `${course} ${level}`} 🔒
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-1">
+                  Select Requested New Stream *
+                </label>
+                <select
+                  value={requestedTargetStream}
+                  onChange={(e) => setRequestedTargetStream(e.target.value)}
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-navy-900 border border-white/10 text-white text-xs font-bold focus:outline-none focus:border-amber-400"
+                >
+                  {STREAM_OPTIONS.filter(s => s.id !== rawStream).map(opt => (
+                    <option key={opt.id} value={opt.id}>{opt.label}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-1">
+                  Reason for Change (Optional)
+                </label>
+                <textarea
+                  rows="3"
+                  value={changeReason}
+                  onChange={(e) => setChangeReason(e.target.value)}
+                  placeholder="e.g. Cleared CA Foundation exams and starting CA Intermediate preparation..."
+                  className="w-full p-3 rounded-xl bg-navy-900 border border-white/10 text-white text-xs placeholder-slate-500 focus:outline-none focus:border-amber-400 resize-none"
+                />
+              </div>
+
+              <p className="text-[11px] text-slate-400 leading-relaxed">
+                Your request will be submitted to the platform Administrator. Your dashboard and stream-specific resources will be updated once approved.
+              </p>
+
+              <div className="flex gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowRequestModal(false)}
+                  className="w-full py-2.5 rounded-xl border border-white/10 text-slate-300 text-xs font-bold hover:bg-white/5"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={submittingRequest}
+                  className="w-full py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-navy-950 text-xs font-black shadow-glow-gold disabled:opacity-50"
+                >
+                  {submittingRequest ? 'Submitting...' : 'Submit Request'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
     </div>
   );

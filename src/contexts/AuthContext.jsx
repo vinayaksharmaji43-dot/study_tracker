@@ -13,7 +13,7 @@ import { doc, getDoc, setDoc, updateDoc, onSnapshot, serverTimestamp } from 'fir
 import { auth, db } from '../config/firebase';
 import { generateRollNumber } from '../utils/rollNumberGenerator';
 import LoadingSpinner from '../components/LoadingSpinner';
-import { calculateStudentLevel, getDefaultStreamLevels, getStreamId, normalizeLevelConfig } from '../utils/levelSystem';
+import { calculateStudentLevel, getDefaultStreamLevels, getStreamId, getStreamDetails, normalizeLevelConfig } from '../utils/levelSystem';
 
 const AuthContext = createContext();
 
@@ -99,6 +99,27 @@ export function AuthProvider({ children }) {
                 data.rollNumber = newRoll; // Update local copy immediately
               } catch (e) {
                 console.error("Could not backfill roll number:", e);
+              }
+            }
+
+            // Treat existing student with valid course/stream as already locked
+            const resolvedStream = getStreamId(data.course, data.level);
+            const hasValidStream = Boolean(data.stream || data.course);
+            if (hasValidStream && data.streamLocked !== true && role !== 'admin') {
+              try {
+                const details = getStreamDetails(resolvedStream);
+                await updateDoc(userDocRef, { 
+                  stream: resolvedStream,
+                  course: details.course,
+                  level: details.level,
+                  streamLocked: true 
+                });
+                data.stream = resolvedStream;
+                data.course = details.course;
+                data.level = details.level;
+                data.streamLocked = true;
+              } catch (e) {
+                console.warn("Could not auto-lock existing student stream:", e);
               }
             }
 
@@ -317,14 +338,20 @@ export function AuthProvider({ children }) {
     // Generate Roll Number
     const rollNumber = await generateRollNumber(name, course || 'CA', level || 'Foundation');
 
+    const assignedStream = getStreamId(course || 'CA', level || 'Foundation');
+    const streamDetails = getStreamDetails(assignedStream);
+
     // 2. Create user profile doc in Firestore
     const userDocData = {
       uid: user.uid,
       name: name || (isAuthorizedAdmin ? 'Platform Administrator' : 'Student'),
       email,
       phone: phone || '',
-      course: course || 'CA',
-      level: level || 'Foundation',
+      course: streamDetails.course,
+      level: streamDetails.level,
+      stream: assignedStream,
+      streamLocked: true,
+      streamSelectedAt: serverTimestamp(),
       attempt: attempt || 'Jan 27',
       rollNumber: rollNumber,
       referralSource: referralSource || 'Not Specified',

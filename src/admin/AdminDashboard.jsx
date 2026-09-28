@@ -37,6 +37,7 @@ import AdminQuizzes from './tabs/AdminQuizzes';
 import AdminCoachingStudy from './tabs/AdminCoachingStudy';
 import AdminDeleteStudent from './tabs/AdminDeleteStudent';
 import AdminPremiumAccess from './tabs/AdminPremiumAccess';
+import AdminStreamRequests from './tabs/AdminStreamRequests';
 
 import { 
   LayoutDashboard,  
@@ -82,6 +83,7 @@ export default function AdminDashboard() {
   const navItems = [
     { id: 'overview', label: 'Dashboard', icon: LayoutDashboard },
     { id: 'students', label: 'Students', icon: Users },
+    { id: 'stream_requests', label: '🎓 Stream Change Requests', icon: GraduationCap },
     { id: 'premium_access', label: '👑 Premium / Pro Access', icon: Crown },
     { id: 'section_locks', label: 'Section Access Control', icon: Lock },
     { id: 'discipline', label: 'Inactive / Discipline', icon: ShieldAlert },
@@ -210,6 +212,7 @@ export default function AdminDashboard() {
           <main className="col-span-1 lg:col-span-9 space-y-6">
             {activeTab === 'overview' && <AdminOverview setActiveTab={setActiveTab} />}
             {activeTab === 'students' && <AdminStudents />}
+            {activeTab === 'stream_requests' && <AdminStreamRequests />}
             {activeTab === 'premium_access' && <AdminPremiumAccess />}
             {activeTab === 'section_locks' && <AdminSectionLocks />}
             {activeTab === 'discipline' && <AdminDiscipline />}

@@ -30,9 +30,23 @@ service cloud.firestore {
         request.resource.data.levelName == resource.data.levelName &&
         request.resource.data.badge == resource.data.badge &&
         request.resource.data.lastNotifiedLevel == resource.data.lastNotifiedLevel &&
-        request.resource.data.levelStream == resource.data.levelStream
+        request.resource.data.levelStream == resource.data.levelStream &&
+        (
+          resource.data.streamLocked != true ||
+          (
+            (!('stream' in request.resource.data) || request.resource.data.stream == resource.data.stream) &&
+            (!('course' in request.resource.data) || request.resource.data.course == resource.data.course) &&
+            (!('level' in request.resource.data) || request.resource.data.level == resource.data.level)
+          )
+        )
       );
       allow delete: if admin();
+    }
+
+    match /streamChangeRequests/{requestId} {
+      allow read: if signedIn() && (request.auth.uid == resource.data.uid || admin());
+      allow create: if signedIn() && request.auth.uid == request.resource.data.uid && request.resource.data.status == 'pending';
+      allow update, delete: if admin();
     }
 
     match /levelConfigs/{streamId} {

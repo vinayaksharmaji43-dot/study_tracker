@@ -27,6 +27,7 @@ import {
   X
 } from 'lucide-react';
 import ProBadge from '../../components/ProBadge';
+import { getStreamId, getStreamDetails, STREAM_OPTIONS, STREAM_LABELS } from '../../utils/levelSystem';
 
 export default function AdminStudents() {
   const [students, setStudents] = useState([]);
@@ -60,6 +61,11 @@ export default function AdminStudents() {
   const [banningStudent, setBanningStudent] = useState(null);
   const [banReason, setBanReason] = useState('Violation of study tracking rules & false session logging');
   const [submittingBan, setSubmittingBan] = useState(false);
+
+  // Direct Stream Change State (Admin Override)
+  const [isEditingStream, setIsEditingStream] = useState(false);
+  const [selectedNewStream, setSelectedNewStream] = useState('');
+  const [savingStream, setSavingStream] = useState(false);
 
   // Helper to format referral source badges with consistent colors & icons
   const getReferralBadge = (source) => {
@@ -360,6 +366,51 @@ export default function AdminStudents() {
   const allStudentsRankSorted = [...students]
     .filter(u => u.role !== 'admin' && u.email?.toLowerCase() !== 'vaultstore27@gmail.com' && u.email?.toLowerCase() !== 'thunderworld766@gmail.com')
     .sort((a, b) => (b.points || 0) - (a.points || 0));
+
+  const handleAdminDirectStreamChange = async () => {
+    if (!selectedNewStream || !selectedStudent) return;
+    const currentStreamId = getStreamId(selectedStudent.course, selectedStudent.level);
+    if (selectedNewStream === currentStreamId) {
+      setIsEditingStream(false);
+      return;
+    }
+
+    const confirmed = window.confirm(
+      "Are you sure you want to change this student's stream? This will affect their stream-specific dashboard, doubts, leaderboard, syllabus, targets and other stream-based features."
+    );
+    if (!confirmed) return;
+
+    try {
+      setSavingStream(true);
+      const details = getStreamDetails(selectedNewStream);
+      const targetId = selectedStudent.id || selectedStudent.uid;
+
+      await updateDoc(doc(db, 'users', targetId), {
+        stream: selectedNewStream,
+        course: details.course,
+        level: details.level,
+        streamLocked: true,
+        streamUpdatedAt: serverTimestamp(),
+        streamUpdatedBy: 'admin_direct'
+      });
+
+      setSelectedStudent(prev => ({
+        ...prev,
+        stream: selectedNewStream,
+        course: details.course,
+        level: details.level,
+        streamLocked: true
+      }));
+
+      setIsEditingStream(false);
+      alert(`Student's stream successfully changed to ${details.label}!`);
+    } catch (err) {
+      console.error("Error updating student stream:", err);
+      alert("Failed to update student stream: " + err.message);
+    } finally {
+      setSavingStream(false);
+    }
+  };
 
   const getStudentRank = (student) => {
     const idx = allStudentsRankSorted.findIndex(s => (s.id || s.uid) === (student.id || student.uid));
@@ -778,14 +829,67 @@ export default function AdminStudents() {
 
             {/* Profile Overview Grid */}
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-              <div className="p-4 rounded-2xl bg-navy-900/60 border border-white/5 space-y-1">
-                <div className="text-[11px] text-slate-400">Course Stream</div>
-                <div className="text-sm font-bold text-emerald-400">
-                  {selectedStudent.course === 'CA' || selectedStudent.course === 'CMA'
-                    ? `${selectedStudent.course} ${selectedStudent.level ? `(${selectedStudent.level})` : ''}`
-                    : selectedStudent.course}
+              {/* Course Stream Block with Admin Direct Change */}
+              {!isEditingStream ? (
+                <div className="p-4 rounded-2xl bg-navy-900/60 border border-white/5 space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <div className="text-[11px] text-slate-400 font-semibold">Course Stream</div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSelectedNewStream(getStreamId(selectedStudent.course, selectedStudent.level));
+                        setIsEditingStream(true);
+                      }}
+                      className="text-[10px] font-bold text-amber-400 hover:text-amber-300 underline"
+                    >
+                      Change Stream
+                    </button>
+                  </div>
+                  <div className="text-sm font-extrabold text-emerald-400 flex items-center gap-1.5">
+                    <span>{STREAM_LABELS[getStreamId(selectedStudent.course, selectedStudent.level)] || selectedStudent.course || 'CA Foundation'}</span>
+                    <span className="text-amber-400 text-xs" title="Stream Locked">🔒</span>
+                  </div>
                 </div>
-              </div>
+              ) : (
+                <div className="p-4 rounded-2xl bg-navy-950 border border-amber-500/50 space-y-2.5 col-span-2 sm:col-span-2 shadow-lg">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-amber-300">Directly Change Stream (Admin)</span>
+                    <button
+                      type="button"
+                      onClick={() => setIsEditingStream(false)}
+                      className="text-xs text-slate-400 hover:text-white"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                  <select
+                    value={selectedNewStream}
+                    onChange={(e) => setSelectedNewStream(e.target.value)}
+                    className="w-full px-3 py-2 rounded-xl bg-navy-900 border border-white/15 text-white text-xs font-bold focus:outline-none focus:border-amber-400"
+                  >
+                    {STREAM_OPTIONS.map(opt => (
+                      <option key={opt.id} value={opt.id}>{opt.label}</option>
+                    ))}
+                  </select>
+                  <div className="flex justify-end gap-2 pt-1">
+                    <button
+                      type="button"
+                      onClick={() => setIsEditingStream(false)}
+                      className="px-3 py-1.5 rounded-lg border border-white/10 text-slate-300 text-xs font-bold hover:bg-white/5"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="button"
+                      disabled={savingStream}
+                      onClick={handleAdminDirectStreamChange}
+                      className="px-4 py-1.5 rounded-lg bg-amber-500 text-navy-950 text-xs font-black shadow-glow-gold hover:bg-amber-400 disabled:opacity-50"
+                    >
+                      {savingStream ? 'Updating...' : 'Save Stream'}
+                    </button>
+                  </div>
+                </div>
+              )}
 
               <div className="p-4 rounded-2xl bg-navy-900/60 border border-white/5 space-y-1">
                 <div className="text-[11px] text-slate-400">Exam Attempt</div>
