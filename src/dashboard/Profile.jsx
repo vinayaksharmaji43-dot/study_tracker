@@ -8,6 +8,7 @@ import { collection, query, orderBy, onSnapshot } from 'firebase/firestore';
 import { Gift, Lock as LockIcon, MessageCircle, ExternalLink } from 'lucide-react';
 import usePremiumAccess from '../hooks/usePremiumAccess';
 import ProBadge from '../components/ProBadge';
+import { useLevelGifts } from '../hooks/useLevelGifts';
 
 export default function Profile() {
   const { userProfile, currentUser, logout, levelInfo } = useAuth();
