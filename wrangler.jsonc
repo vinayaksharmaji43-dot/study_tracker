@@ -1,6 +1,6 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
-  "name": "study-tracker",
+  "name": "cacmasuccessblueprint",
   "compatibility_date": "2026-09-28",
   "observability": {
     "enabled": true
