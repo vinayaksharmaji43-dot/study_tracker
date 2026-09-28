@@ -508,11 +508,11 @@ export default function Profile() {
                 </div>
               </div>
 
-              {/* Academic Stream Field */}
+              {/* Stream Field */}
               {isStreamLocked ? (
                 <div className="space-y-2">
                   <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider">
-                    Academic Stream
+                    Stream
                   </label>
                   
                   <div className="p-4 rounded-2xl bg-navy-950 border border-white/10 flex items-center justify-between gap-3">
@@ -574,7 +574,7 @@ export default function Profile() {
                 /* Select Your Stream (First Time Unset Flow) */
                 <div className="space-y-3">
                   <label className="block text-xs font-bold text-gold-400 uppercase tracking-wider">
-                    Select Your Stream (One-Time Selection) *
+                    Select Your Stream
                   </label>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     {STREAM_OPTIONS.map(opt => (
@@ -594,7 +594,7 @@ export default function Profile() {
                     ))}
                   </div>
                   <p className="text-[11px] text-amber-300 font-medium">
-                    ⚠️ Please select carefully. After your first selection, your stream is permanently saved and locked.
+                    ⚠️ Please select carefully. After selection, your stream will be permanently locked.
                   </p>
                 </div>
               )}
