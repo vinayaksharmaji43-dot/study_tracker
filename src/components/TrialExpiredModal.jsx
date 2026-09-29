@@ -84,7 +84,7 @@ export default function TrialExpiredModal({ setActiveTab }) {
             Your 12-day free access has now expired.
           </p>
           <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
-            If you want to continue using the website and access premium features, please contact the owner.
+            If you want to continue using the website and access premium features, please contact the batch manager.
           </p>
         </div>
 
@@ -96,14 +96,9 @@ export default function TrialExpiredModal({ setActiveTab }) {
             className="w-full py-4 px-6 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-white font-black text-sm sm:text-base shadow-[0_0_25px_rgba(16,185,129,0.35)] transition-all flex items-center justify-center gap-2.5 cursor-pointer group"
           >
             <MessageCircle className="w-5 h-5 group-hover:scale-110 transition-transform" />
-            <span>Contact Owner on WhatsApp</span>
+            <span>Contact Batch manager on WhatsApp</span>
             <ExternalLink className="w-4 h-4 text-emerald-200 opacity-80" />
           </button>
-
-          <div className="text-center text-xs text-slate-400">
-            <span>WhatsApp Number: </span>
-            <span className="font-mono font-bold text-emerald-400">+{whatsappNumber}</span>
-          </div>
         </div>
 
         {/* Unlocked sections shortcuts */}

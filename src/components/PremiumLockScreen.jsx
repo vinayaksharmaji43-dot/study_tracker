@@ -52,7 +52,7 @@ export default function PremiumLockScreen({ sectionTitle = 'This Section', setAc
           </h2>
 
           <p className="text-sm sm:text-base text-slate-300 max-w-md mx-auto font-medium leading-relaxed">
-            Your 12-day free access has now expired. If you want to continue using the website and access premium features, please contact the owner.
+            Your 12-day free access has now expired. If you want to continue using the website and access premium features, please contact the batch manager.
           </p>
         </div>
 
@@ -64,16 +64,9 @@ export default function PremiumLockScreen({ sectionTitle = 'This Section', setAc
             className="w-full py-4 px-6 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-white font-extrabold text-sm sm:text-base shadow-[0_0_25px_rgba(16,185,129,0.35)] hover:shadow-[0_0_35px_rgba(16,185,129,0.5)] active:scale-[0.99] transition-all flex items-center justify-center gap-3 cursor-pointer group"
           >
             <MessageCircle className="w-5 h-5 text-white group-hover:scale-110 transition-transform" />
-            <span>Contact Owner on WhatsApp</span>
+            <span>Contact Batch manager on WhatsApp</span>
             <ExternalLink className="w-4 h-4 text-emerald-200 opacity-80" />
           </button>
-
-          <div className="flex items-center justify-center gap-2 text-xs text-slate-400">
-            <span>Owner WhatsApp:</span>
-            <span className="font-mono font-bold text-emerald-400 tracking-wider">
-              +{whatsappNumber}
-            </span>
-          </div>
         </div>
 
         {/* Accessible Sections Notice */}

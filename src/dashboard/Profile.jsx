@@ -275,7 +275,7 @@ export default function Profile() {
                 className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-white font-extrabold text-xs shadow-glow-emerald flex items-center gap-2 transition-all"
               >
                 <MessageCircle className="w-4 h-4" />
-                <span>Contact Owner for Pro</span>
+                <span>Contact Batch Manager on WhatsApp</span>
                 <ExternalLink className="w-3.5 h-3.5 opacity-80" />
               </a>
             )}

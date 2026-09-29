@@ -311,7 +311,7 @@ export default function Products({ setActiveTab }) {
           className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-white font-black text-xs flex items-center gap-2 transition-all shadow-glow-emerald shrink-0"
         >
           <MessageCircle className="w-4 h-4" />
-          <span>Contact WhatsApp: +{whatsappNumber}</span>
+          <span>Contact Batch Manager on WhatsApp</span>
           <ExternalLink className="w-3.5 h-3.5" />
         </a>
       </div>
@@ -369,16 +369,16 @@ export default function Products({ setActiveTab }) {
                 To purchase or get access, click below to open WhatsApp with your pre-filled product inquiry.
               </p>
 
-              {/* WhatsApp Number Box */}
+              {/* WhatsApp Contact Box */}
               <div className="p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-between gap-3">
                 <div className="flex items-center gap-3 min-w-0">
                   <div className="w-10 h-10 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0">
                     <MessageCircle className="w-5 h-5" />
                   </div>
                   <div className="min-w-0">
-                    <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Admin WhatsApp</div>
-                    <div className="text-sm font-mono font-black text-emerald-400 truncate">
-                      +{whatsappNumber}
+                    <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Batch Manager</div>
+                    <div className="text-xs font-semibold text-emerald-400">
+                      Direct WhatsApp Assistance
                     </div>
                   </div>
                 </div>

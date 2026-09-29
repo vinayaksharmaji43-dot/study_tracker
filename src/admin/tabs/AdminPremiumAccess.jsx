@@ -280,7 +280,7 @@ export default function AdminPremiumAccess() {
             <div>
               <h2 className="text-lg font-bold text-white">Premium WhatsApp Number</h2>
               <p className="text-xs text-slate-300">
-                All "Buy Premium", "Contact Owner", and Product "BUY NOW" buttons automatically connect to this number.
+                All "Buy Premium", "Contact Batch Manager", and Product "BUY NOW" buttons automatically connect to this number.
               </p>
             </div>
           </div>

@@ -33,7 +33,7 @@ export default function TrialExpiredBanner({ setActiveTab }) {
               </span>
             </div>
             <p className="text-xs text-slate-300 max-w-2xl leading-relaxed">
-              Your 12-day free access has now expired. If you want to continue using the website and access premium features, please contact the owner.
+              Your 12-day free access has now expired. If you want to continue using the website and access premium features, please contact the batch manager.
             </p>
           </div>
         </div>
@@ -45,7 +45,7 @@ export default function TrialExpiredBanner({ setActiveTab }) {
             className="flex-1 md:flex-initial px-4 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-white font-black text-xs shadow-glow-emerald transition-all flex items-center justify-center gap-2 cursor-pointer group"
           >
             <MessageCircle className="w-4 h-4 group-hover:scale-110 transition-transform" />
-            <span>Contact Owner on WhatsApp</span>
+            <span>Contact Batch manager on WhatsApp</span>
             <ExternalLink className="w-3.5 h-3.5 opacity-80" />
           </button>
 
