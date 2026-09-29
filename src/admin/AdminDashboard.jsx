@@ -1,4 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
+import { collection, query, onSnapshot } from 'firebase/firestore';
+import { db } from '../config/firebase';
 import { useAuth } from '../contexts/AuthContext';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
@@ -78,10 +81,47 @@ import {
 
 export default function AdminDashboard() {
   const { userProfile, currentUser, logout } = useAuth();
-  const [activeTab, setActiveTab] = useState('overview');
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [activeTab, setActiveTabState] = useState(() => searchParams.get('tab') || 'overview');
+  const [pendingDoubtsCount, setPendingDoubtsCount] = useState(0);
+
+  const setActiveTab = (tabId) => {
+    setActiveTabState(tabId);
+    if (tabId === 'overview') {
+      const nextParams = new URLSearchParams(searchParams);
+      nextParams.delete('tab');
+      setSearchParams(nextParams, { replace: true });
+    } else {
+      const nextParams = new URLSearchParams(searchParams);
+      nextParams.set('tab', tabId);
+      setSearchParams(nextParams, { replace: true });
+    }
+  };
+
+  useEffect(() => {
+    const tabParam = searchParams.get('tab');
+    if (tabParam && tabParam !== activeTab) {
+      setActiveTabState(tabParam);
+    }
+  }, [searchParams]);
+
+  useEffect(() => {
+    const q = query(collection(db, 'doubts'));
+    const unsub = onSnapshot(q, (snapshot) => {
+      const count = snapshot.docs.filter(d => {
+        const data = d.data();
+        const st = (data.status || '').toLowerCase().trim();
+        return (st === 'new' || st === 'in review' || st === 'open') && !data.reply;
+      }).length;
+      setPendingDoubtsCount(count);
+    }, (err) => console.error("Error listening to pending doubts count:", err));
+
+    return () => unsub();
+  }, []);
 
   const navItems = [
     { id: 'overview', label: 'Dashboard', icon: LayoutDashboard },
+    { id: 'doubts', label: 'Doubt Management', icon: HelpCircle, badge: pendingDoubtsCount },
     { id: 'students', label: 'Students', icon: Users },
     { id: 'stream_requests', label: '🎓 Stream Change Requests', icon: GraduationCap },
     { id: 'premium_access', label: '👑 Premium / Pro Access', icon: Crown },
@@ -105,7 +145,6 @@ export default function AdminDashboard() {
     { id: 'mentor_sessions', label: 'Mentor Sessions', icon: Video },
     { id: 'timer_subjects', label: 'Timer Subjects', icon: Clock },
     { id: 'notes', label: 'Notes', icon: FileText },
-    { id: 'doubts', label: 'Doubt Management', icon: HelpCircle },
     { id: 'announcements', label: 'Announcements', icon: Megaphone },
     { id: 'motivation', label: 'Motivation', icon: Sparkles },
     { id: 'feedback', label: 'Student Feedback', icon: MessageSquare },
@@ -165,7 +204,14 @@ export default function AdminDashboard() {
                         <Icon className={`w-4 h-4 ${isActive ? 'text-emerald-400' : 'text-slate-400'}`} />
                         <span>{item.label}</span>
                       </div>
-                      {isActive && <ChevronRight className="w-3.5 h-3.5 text-emerald-400" />}
+                      <div className="flex items-center gap-1.5">
+                        {item.badge > 0 && (
+                          <span className="px-2 py-0.5 rounded-full bg-amber-500 text-navy-950 font-black text-[10px] shadow-sm animate-pulse">
+                            {item.badge} New
+                          </span>
+                        )}
+                        {isActive && <ChevronRight className="w-3.5 h-3.5 text-emerald-400" />}
+                      </div>
                     </button>
                   );
                 })}
@@ -203,6 +249,11 @@ export default function AdminDashboard() {
                 >
                   <Icon className="w-4 h-4" />
                   <span>{item.label}</span>
+                  {item.badge > 0 && (
+                    <span className="px-1.5 py-0.5 rounded-full bg-amber-500 text-navy-950 font-black text-[10px]">
+                      {item.badge}
+                    </span>
+                  )}
                 </button>
               );
             })}
