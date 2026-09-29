@@ -93,7 +93,7 @@ export default function AdminOverview({ setActiveTab }) {
 
   const totalStudyHours = realStudents.reduce((acc, curr) => acc + (curr.studyHours || 0), 0);
   const totalPoints = realStudents.reduce((acc, curr) => acc + (curr.points || 0), 0);
-  const pendingDoubts = doubts.filter(d => d.status === 'open').length;
+  const pendingDoubts = doubts.filter(d => d.status === 'New' || d.status === 'In Review' || d.status === 'open').length;
   const publishedNotes = notes.filter(n => n.published !== false).length;
   const publishedAnnouncements = announcements.filter(a => a.published !== false).length;
 
@@ -262,10 +262,10 @@ export default function AdminOverview({ setActiveTab }) {
         >
           <div className="flex items-center justify-between">
             <HelpCircle className="w-6 h-6 text-amber-400" />
-            <span className="text-xs font-bold text-amber-400 group-hover:translate-x-1 transition-transform">Reply ({pendingDoubts}) →</span>
+            <span className="text-xs font-bold text-amber-400 group-hover:translate-x-1 transition-transform">Manage ({pendingDoubts} New/Pending) →</span>
           </div>
-          <h3 className="text-lg font-bold text-white">Academic Doubts Portal</h3>
-          <p className="text-xs text-slate-400">Reply to student questions on Accounting, Laws, Economics & Tax.</p>
+          <h3 className="text-lg font-bold text-white">Doubt Management</h3>
+          <p className="text-xs text-slate-400">Review student questions, academic doubts, study planning, and guidance requests.</p>
         </button>
 
         <button

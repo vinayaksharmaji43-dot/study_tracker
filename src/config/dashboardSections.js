@@ -114,8 +114,8 @@ export const DASHBOARD_SECTIONS = [
   },
   {
     id: 'doubts',
-    label: 'Academic Doubts',
-    description: 'Student academic doubt forum, peer inquiries, and mentor answers',
+    label: 'Doubt & Guidance',
+    description: 'Submit academic doubts, syllabus questions, study planning, or guidance directly to Admin',
     category: 'Support',
     iconName: 'HelpCircle'
   },

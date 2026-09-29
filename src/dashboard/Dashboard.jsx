@@ -138,7 +138,7 @@ export default function Dashboard() {
     { id: 'missions', label: 'Weekly Mission', icon: Flag },
     { id: 'targets', label: 'Self-Managed Hub', icon: Target },
     { id: 'notes', label: 'Notes & Resources', icon: FileText },
-    { id: 'doubts', label: 'Academic Doubts', icon: HelpCircle },
+    { id: 'doubts', label: 'Doubt & Guidance', icon: HelpCircle },
     { id: 'product', label: 'Product', icon: ShoppingBag, isSpecial: true },
     { id: 'profile', label: 'My Profile', icon: User },
   ];

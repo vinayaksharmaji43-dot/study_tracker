@@ -132,7 +132,7 @@ export default function Navbar({ activeTab, setActiveTab }) {
     { id: 'overall_leaderboard', label: 'All Students', icon: Medal },
     { id: 'targets', label: 'Daily Target', icon: Target },
     { id: 'notes', label: 'Notes', icon: FileText },
-    { id: 'doubts', label: 'Doubts', icon: HelpCircle },
+    { id: 'doubts', label: 'Doubt & Guidance', icon: HelpCircle },
     { id: 'product', label: 'Product Store', icon: ShoppingBag, isSpecial: true },
     { id: 'profile', label: 'Profile', icon: User }
   ];

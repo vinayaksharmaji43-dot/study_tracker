@@ -16,7 +16,8 @@ service cloud.firestore {
     function protectedLevelPath(path) {
       return path.matches('levelConfigs/.*') ||
         path.matches('studentLevelData/.*') ||
-        path.matches('users/.*/levelHistory/.*');
+        path.matches('users/.*/levelHistory/.*') ||
+        path.matches('doubts/.*');
     }
 
     match /users/{userId} {
@@ -67,6 +68,12 @@ service cloud.firestore {
     match /feedbacks/{feedbackId} {
       allow read: if true;
       allow create: if true;
+      allow update, delete: if admin();
+    }
+
+    match /doubts/{doubtId} {
+      allow read: if admin() || (signedIn() && resource.data.uid == request.auth.uid);
+      allow create: if signedIn() && request.resource.data.uid == request.auth.uid;
       allow update, delete: if admin();
     }
 

@@ -4,7 +4,7 @@ import { db } from '../config/firebase';
 import { useAuth } from '../contexts/AuthContext';
 import { ShieldCheck, AlertCircle, Loader2 } from 'lucide-react';
 
-const WEBHOOK_URL = 'https://script.google.com/macros/s/AKfycbzJ24wH-gBW5_OIx9_rZzGYtV3YpCzaExPZonlf-y6VHaEIV0WH6t1n9YQZnPuXMVC_hA/exec';
+const WEBHOOK_URL = 'https://script.google.com/macros/s/AKfycbwEKisY0B4ZYfEoHihY-PI411VvzoND7uM7qclRffYj-ERsyM-7qLQ3FuncdwdeHLS7/exec';
 
 /**
  * MandatoryProfileModal

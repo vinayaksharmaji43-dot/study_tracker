@@ -704,8 +704,8 @@ export default function Overview({ setActiveTab }) {
                   <HelpCircle className="w-5 h-5" />
                 </div>
                 <div>
-                  <div className="text-sm font-bold text-white group-hover:text-amber-400 transition-colors">Academic Doubts</div>
-                  <div className="text-xs text-slate-400">Ask faculty & admin questions</div>
+                  <div className="text-sm font-bold text-white group-hover:text-amber-400 transition-colors">Doubt & Guidance</div>
+                  <div className="text-xs text-slate-400">Direct 1-on-1 help & guidance from Admin</div>
                 </div>
               </div>
             </button>

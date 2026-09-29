@@ -105,7 +105,7 @@ export default function AdminDashboard() {
     { id: 'mentor_sessions', label: 'Mentor Sessions', icon: Video },
     { id: 'timer_subjects', label: 'Timer Subjects', icon: Clock },
     { id: 'notes', label: 'Notes', icon: FileText },
-    { id: 'doubts', label: 'Doubts', icon: HelpCircle },
+    { id: 'doubts', label: 'Doubt Management', icon: HelpCircle },
     { id: 'announcements', label: 'Announcements', icon: Megaphone },
     { id: 'motivation', label: 'Motivation', icon: Sparkles },
     { id: 'feedback', label: 'Student Feedback', icon: MessageSquare },
