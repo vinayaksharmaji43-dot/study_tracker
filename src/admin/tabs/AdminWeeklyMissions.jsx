@@ -38,6 +38,10 @@ export default function AdminWeeklyMissions() {
   const [attempt, setAttempt] = useState('May 27');
   const [submitting, setSubmitting] = useState(false);
 
+  // Review State
+  const [reviewModal, setReviewModal] = useState(null);
+  const [feedback, setFeedback] = useState('');
+
   // Prevent background scroll when modal is open
   useEffect(() => {
     if (showModal || reviewModal) {
@@ -48,10 +52,6 @@ export default function AdminWeeklyMissions() {
       };
     }
   }, [showModal, reviewModal]);
-
-  // Review State
-  const [reviewModal, setReviewModal] = useState(null);
-  const [feedback, setFeedback] = useState('');
 
   useEffect(() => {
     const qM = query(collection(db, 'weeklyMissions'), orderBy('createdAt', 'desc'));
