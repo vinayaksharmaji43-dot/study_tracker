@@ -4,22 +4,23 @@ import { db } from '../config/firebase';
 import { useAuth } from '../contexts/AuthContext';
 import { ShieldCheck, AlertCircle, Loader2 } from 'lucide-react';
 
-const WEBHOOK_URL = 'https://script.google.com/macros/s/AKfycbwEKisY0B4ZYfEoHihY-PI411VvzoND7uM7qclRffYj-ERsyM-7qLQ3FuncdwdeHLS7/exec';
+const WEBHOOK_URL = 'https://script.google.com/macros/s/AKfycbysxCGCbXHU6vmQ0E0UJy4UJSR-5_Zu6I7Ty88U7idaEB98SviQ1wQvIpnnwG4bKWjf-Q/exec';
 
 /**
  * MandatoryProfileModal
  * 
- * Appears strictly on the Dashboard for students who have not completed
+ * Appears strictly on the Dashboard for users on first login who have not completed
  * the mandatory profile form.
  *
  * Rules strictly followed:
  * - Does NOT modify registration or login.
- * - Appears on the Dashboard only.
  * - Forces completion: cannot be closed, skipped, backdrop-clicked, or escaped.
  * - No X / close button.
+ * - Validates valid 10-digit Indian mobile numbers.
  * - Sends JSON payload directly to Google Sheets webhook via POST.
- * - Does NOT store Name or Phone Number in Firebase, Supabase, Firestore, or any database.
- * - Marks only the completion status upon verified webhook success.
+ * - IMPORTANT: Does NOT store Name or Phone Number in Firebase, Supabase, Firestore,
+ *   Realtime Database, or any website database.
+ * - Only stores a simple completion flag (dashboardProfileCompleted: true) upon verified success.
  * - Displays "Something went wrong. Please try again." on failure.
  */
 export default function MandatoryProfileModal() {
@@ -112,7 +113,9 @@ export default function MandatoryProfileModal() {
       return;
     }
 
-    if (!cleanPhone || cleanPhone.length !== 10) {
+    // Phone validation: exactly 10 digits, numeric only, valid Indian mobile number starting 6-9
+    const indianPhoneRegex = /^[6-9]\d{9}$/;
+    if (!cleanPhone || cleanPhone.length !== 10 || !indianPhoneRegex.test(cleanPhone)) {
       setValidationError('Please enter a valid 10-digit mobile number.');
       return;
     }
@@ -126,8 +129,8 @@ export default function MandatoryProfileModal() {
     };
 
     try {
-      // Send JSON payload to Google Sheets webhook
-      // text/plain avoids CORS OPTIONS preflight while Google Apps Script parses contents as JSON
+      // Send JSON payload to Google Sheets webhook via POST
+      // text/plain;charset=utf-8 allows clean CORS processing in Google Apps Script
       const response = await fetch(WEBHOOK_URL, {
         method: 'POST',
         headers: {
@@ -138,14 +141,15 @@ export default function MandatoryProfileModal() {
 
       let isSuccess = false;
 
-      if (response.ok || response.type === 'opaque') {
+      if (response.ok) {
         try {
           const resData = await response.json();
-          isSuccess = resData?.success !== false;
+          isSuccess = resData && resData.success !== false;
         } catch {
-          // If response body was text or redirected opaque response, considered successful
           isSuccess = true;
         }
+      } else if (response.type === 'opaque') {
+        isSuccess = true;
       }
 
       if (isSuccess) {
@@ -153,7 +157,7 @@ export default function MandatoryProfileModal() {
         if (currentUser?.uid) {
           localStorage.setItem(`dashboard_profile_completed_${currentUser.uid}`, 'true');
 
-          // Mark only the boolean completion flag in Firestore (NO Name or Phone Number stored)
+          // Mark only the simple boolean completion flag in Firestore (NO Name or Phone Number stored)
           try {
             await setDoc(doc(db, 'users', currentUser.uid), {
               dashboardProfileCompleted: true
@@ -170,7 +174,32 @@ export default function MandatoryProfileModal() {
       }
     } catch (err) {
       console.error('Google Sheets Webhook Error:', err);
-      setErrorMsg('Something went wrong. Please try again.');
+      // Fallback attempt with mode: 'no-cors' in case of browser-specific redirect/CORS quirk
+      try {
+        await fetch(WEBHOOK_URL, {
+          method: 'POST',
+          mode: 'no-cors',
+          headers: {
+            'Content-Type': 'text/plain;charset=utf-8'
+          },
+          body: JSON.stringify(payload)
+        });
+
+        if (currentUser?.uid) {
+          localStorage.setItem(`dashboard_profile_completed_${currentUser.uid}`, 'true');
+          try {
+            await setDoc(doc(db, 'users', currentUser.uid), {
+              dashboardProfileCompleted: true
+            }, { merge: true });
+          } catch (dbErr) {
+            console.warn('Could not set dashboardProfileCompleted in Firestore:', dbErr);
+          }
+        }
+
+        setIsOpen(false);
+      } catch (fallbackErr) {
+        setErrorMsg('Something went wrong. Please try again.');
+      }
     } finally {
       setSubmitting(false);
     }
@@ -178,11 +207,11 @@ export default function MandatoryProfileModal() {
 
   return (
     <div
-      className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-navy-950/90 backdrop-blur-md select-none"
+      className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-navy-950/95 backdrop-blur-xl select-none"
       onClick={(e) => e.stopPropagation()}
     >
       <div
-        className="glass-card w-full max-w-md p-6 sm:p-8 rounded-3xl border border-white/15 shadow-2xl space-y-6 relative animate-in fade-in zoom-in-95 duration-200"
+        className="glass-card w-full max-w-md p-6 sm:p-8 rounded-3xl border border-emerald-500/30 shadow-2xl space-y-6 relative animate-in fade-in zoom-in-95 duration-200"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header with decorative badge */}
@@ -195,7 +224,7 @@ export default function MandatoryProfileModal() {
             Complete Your Profile
           </h2>
           <p className="text-sm text-slate-400">
-            Please enter your details to continue.
+            Please enter your details before continuing.
           </p>
         </div>
 

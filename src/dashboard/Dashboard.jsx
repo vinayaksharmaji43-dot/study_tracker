@@ -73,6 +73,7 @@ export default function Dashboard() {
     isTrialActive,
     isTrialExpired,
     daysRemaining,
+    isProfileCompleted,
     canShowTrialExpiredUI,
     isSectionAccessible,
     toggleAdminSimulateExpired,
@@ -144,10 +145,13 @@ export default function Dashboard() {
   ];
 
   return (
-    <div className="min-h-screen bg-navy-950 text-slate-100 flex flex-col selection:bg-emerald-500 selection:text-white">
-      <Navbar activeTab={activeTab} setActiveTab={setActiveTab} />
+    <div className="min-h-screen bg-navy-950 text-slate-100 flex flex-col selection:bg-emerald-500 selection:text-white relative">
+      <div className={`flex flex-col min-h-screen transition-all duration-300 ${
+        !isProfileCompleted ? 'pointer-events-none select-none filter blur-sm opacity-40' : ''
+      }`}>
+        <Navbar activeTab={activeTab} setActiveTab={setActiveTab} />
 
-      <div className="flex-grow max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
+        <div className="flex-grow max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
         
         {/* Exam Countdown Banner */}
         <CountdownWidget setActiveTab={setActiveTab} />
@@ -412,6 +416,7 @@ export default function Dashboard() {
       </div>
 
       <Footer />
+      </div>
 
       {/* Global Section Maintenance Modal */}
       <SectionMaintenanceModal
