@@ -4,7 +4,8 @@ import { db } from '../../config/firebase';
 import { useAuth } from '../../contexts/AuthContext';
 import { formatDate } from '../../utils/helpers';
 import EmptyState from '../../components/EmptyState';
-import { Megaphone, Plus, Edit2, Trash2, CheckCircle, EyeOff, AlertCircle, ImagePlus, X, Link as LinkIcon } from 'lucide-react';
+import { Megaphone, Plus, Edit2, Trash2, CheckCircle, EyeOff, AlertCircle, ImagePlus, X, Link as LinkIcon, ExternalLink } from 'lucide-react';
+import toast from 'react-hot-toast';
 
 const COURSES = ['CA', 'CMA'];
 const LEVELS = ['Foundation', 'Intermediate'];
@@ -34,6 +35,7 @@ export default function AdminAnnouncements() {
   const [attempt, setAttempt] = useState('May 27');
   const [imageUrl, setImageUrl] = useState('');
   const [imageName, setImageName] = useState('');
+  const [link, setLink] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
   // Delete Confirmation State
@@ -108,6 +110,7 @@ export default function AdminAnnouncements() {
     setAttempt('May 27');
     setImageUrl('');
     setImageName('');
+    setLink('');
     setShowModal(true);
   };
 
@@ -121,6 +124,7 @@ export default function AdminAnnouncements() {
     setAttempt(item.attempt || 'Jan 2027');
     setImageUrl(item.imageUrl || '');
     setImageName(item.imageUrl ? 'Current announcement image' : '');
+    setLink(item.link || '');
     setShowModal(true);
   };
 
@@ -136,6 +140,7 @@ export default function AdminAnnouncements() {
         description: message.trim(),
         audienceType: audienceType,
         imageUrl: imageUrl || '',
+        link: link.trim() || '',
         ...(audienceType === 'specific' && { course, level, attempt }),
       };
 
@@ -144,6 +149,7 @@ export default function AdminAnnouncements() {
           ...payload,
           updatedAt: serverTimestamp()
         });
+        toast.success("Announcement updated successfully!");
       } else {
         await addDoc(collection(db, 'announcements'), {
           ...payload,
@@ -151,12 +157,13 @@ export default function AdminAnnouncements() {
           createdAt: serverTimestamp(),
           author: userProfile?.name || 'Platform Admin'
         });
+        toast.success("Announcement broadcasted! Popup alert triggered.");
       }
 
       setShowModal(false);
     } catch (err) {
       console.error("Error saving announcement:", err);
-      alert(`Failed to save announcement: ${err.message || err.code || 'Permission error'}`);
+      toast.error(`Failed to save announcement: ${err.message || err.code || 'Permission error'}`);
     } finally {
       setSubmitting(false);
     }
@@ -381,7 +388,7 @@ export default function AdminAnnouncements() {
 
                 <div>
                   <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-2">
-                    Message Content
+                    Message Content *
                   </label>
                   <textarea
                     rows="4"
@@ -391,6 +398,23 @@ export default function AdminAnnouncements() {
                     onChange={(e) => setMessage(e.target.value)}
                     className="w-full px-4 py-3 rounded-xl bg-navy-900 border border-white/10 text-white text-sm focus:outline-none focus:border-rose-500 resize-none"
                   ></textarea>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-1.5 flex items-center justify-between">
+                    <span>Action Link / URL (Optional)</span>
+                    <span className="text-[10px] text-slate-400 font-normal">Button appears in popup</span>
+                  </label>
+                  <div className="relative">
+                    <ExternalLink className="w-3.5 h-3.5 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                    <input
+                      type="url"
+                      placeholder="https://... (e.g. Google Meet, Test Link, or Study Material)"
+                      value={link}
+                      onChange={(e) => setLink(e.target.value)}
+                      className="w-full pl-9 pr-4 py-2.5 rounded-xl bg-navy-900 border border-white/10 text-white text-xs placeholder:text-slate-500 focus:outline-none focus:border-rose-500"
+                    />
+                  </div>
                 </div>
 
                 <div>

@@ -15,12 +15,14 @@ import AdminDashboard from './admin/AdminDashboard';
 import ErrorBoundary from './components/ErrorBoundary';
 import PrivacyShield from './components/PrivacyShield';
 import TabAwayTracker from './components/TabAwayTracker';
+import GlobalAnnouncementPopup from './components/GlobalAnnouncementPopup';
 
 export default function App() {
   return (
     <ErrorBoundary fallbackMessage="The application encountered an unexpected error. Please refresh the page.">
       <AuthProvider>
         <TabAwayTracker />
+        <GlobalAnnouncementPopup />
         <Routes>
           {/* Public Routes */}
         <Route path="/" element={<Home />} />
