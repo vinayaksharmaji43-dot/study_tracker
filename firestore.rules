@@ -77,6 +77,17 @@ service cloud.firestore {
       allow update, delete: if admin();
     }
 
+    match /communityDoubts/{doubtId} {
+      allow read, create: if signedIn();
+      allow update: if signedIn();
+      allow delete: if admin() || (signedIn() && resource.data.uid == request.auth.uid);
+
+      match /replies/{replyId} {
+        allow read, create: if signedIn();
+        allow update, delete: if admin() || (signedIn() && resource.data.uid == request.auth.uid);
+      }
+    }
+
     match /{document=**} {
       allow read, write: if signedIn() && !protectedLevelPath(document);
     }
