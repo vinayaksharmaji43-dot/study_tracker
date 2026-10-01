@@ -4,6 +4,7 @@ import { collection, query, onSnapshot, where, doc, setDoc, serverTimestamp } fr
 import { db } from '../config/firebase';
 import { BookOpen, Menu, X, LayoutDashboard, LogOut, User, ChevronRight, ShieldCheck, Bell, Headphones, MoreVertical, Clock, PenLine, Flag, Video, BookOpenCheck, Trophy, Medal, Target, FileText, HelpCircle, Crown, Calendar as CalendarIcon, Megaphone, Lock, RotateCcw, BrainCircuit, ShoppingBag } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
+import { useTheme } from '../contexts/ThemeContext';
 import SupportModal from './SupportModal';
 import SectionMaintenanceModal from './SectionMaintenanceModal';
 import { useSectionLocks } from '../hooks/useSectionLocks';
@@ -41,6 +42,7 @@ export default function Navbar({ activeTab, setActiveTab }) {
   const [readIds, setReadIds] = useState(new Set());
   
   const { currentUser, userProfile, isAdmin, logout } = useAuth();
+  const { isEyeCare, toggleEyeCare } = useTheme();
   const { isSectionLocked, getMaintenanceMessage } = useSectionLocks();
   const navigate = useNavigate();
   const location = useLocation();
@@ -251,7 +253,24 @@ export default function Navbar({ activeTab, setActiveTab }) {
                   <span>Dashboard</span>
                 </Link>
                 
-                <div className="flex items-center space-x-3 pl-2 border-l border-white/10">
+                <div className="flex items-center space-x-2.5 pl-2 border-l border-white/10">
+                  {/* Eye Care Toggle Button */}
+                  <button
+                    onClick={toggleEyeCare}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs font-bold transition-all duration-200 cursor-pointer shadow-sm ${
+                      isEyeCare
+                        ? 'bg-amber-400/20 border-amber-400/50 text-amber-300 shadow-[0_0_15px_rgba(251,191,36,0.3)] hover:bg-amber-400/30'
+                        : 'bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100 hover:border-blue-300 shadow-[0_0_10px_rgba(37,99,235,0.08)]'
+                    }`}
+                    title={isEyeCare ? 'Eye Care is ON (Black Theme) - Click for White & Blue Theme' : 'Click to enable Eye Care (Black Theme)'}
+                    aria-label="Toggle Eye Care Mode"
+                  >
+                    <span className="text-sm">👁️</span>
+                    <span className="font-extrabold tracking-wide">
+                      {isEyeCare ? 'Eye Care: ON' : 'Eye Care'}
+                    </span>
+                  </button>
+
                   {/* Support Button */}
                   <button
                     onClick={() => navigate('/dashboard?tab=support')}
@@ -266,13 +285,13 @@ export default function Navbar({ activeTab, setActiveTab }) {
                   {currentUser && (
                     <button
                       onClick={handleAnnouncementClick}
-                      className="relative p-2 rounded-xl bg-rose-500/10 border border-rose-400/25 text-rose-200 hover:bg-rose-500/20 hover:border-rose-300/45 hover:text-white transition-all mr-1 shadow-[0_0_14px_rgba(244,63,94,0.12)] cursor-pointer"
+                      className="relative p-2 rounded-xl bg-amber-500/15 border border-amber-400/40 text-amber-300 hover:bg-amber-500/25 hover:border-amber-300/60 hover:text-white transition-all mr-1 shadow-[0_0_14px_rgba(245,158,11,0.2)] cursor-pointer"
                       title="Announcements"
                       aria-label="Announcements"
                     >
-                      <Bell className="w-5 h-5" />
+                      <Bell className="w-5 h-5 text-amber-400" />
                       {announcements.filter(a => !readIds.has(a.id)).length > 0 && (
-                        <span className="absolute top-1.5 right-1.5 w-2.5 h-2.5 bg-rose-500 rounded-full border-2 border-navy-950 animate-pulse"></span>
+                        <span className="absolute top-1.5 right-1.5 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-navy-950 animate-pulse"></span>
                       )}
                     </button>
                   )}
@@ -335,7 +354,7 @@ export default function Navbar({ activeTab, setActiveTab }) {
                     navigate('/dashboard?tab=product');
                   }
                 }}
-                className={`flex items-center gap-1 px-2.5 py-1.5 rounded-xl border text-xs font-black transition-all duration-200 cursor-pointer shadow-sm ${
+                className={`flex items-center gap-1 px-2 py-1.5 rounded-xl border text-xs font-black transition-all duration-200 cursor-pointer shadow-sm ${
                   activeTab === 'product'
                     ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-navy-950 border-amber-300 shadow-[0_0_14px_rgba(245,158,11,0.5)]'
                     : 'bg-gradient-to-r from-amber-500/15 via-purple-500/15 to-amber-500/15 text-amber-300 border-amber-400/40 hover:border-amber-300 hover:text-white shadow-[0_0_10px_rgba(245,158,11,0.15)]'
@@ -343,20 +362,36 @@ export default function Navbar({ activeTab, setActiveTab }) {
                 aria-label="Open Product Store"
                 title="Product Store"
               >
-                <ShoppingBag className="w-4 h-4 text-amber-400 shrink-0" />
-                <span className="text-[11px] font-black uppercase tracking-wider">Product</span>
+                <ShoppingBag className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                <span className="text-[10px] font-black uppercase tracking-wider">Store</span>
               </button>
             )}
+
+            {/* Mobile Eye Care Toggle Button */}
+            <button
+              onClick={toggleEyeCare}
+              className={`flex items-center gap-1 px-2.5 py-1.5 rounded-xl border text-xs font-extrabold transition-all duration-200 cursor-pointer shadow-sm ${
+                isEyeCare
+                  ? 'bg-amber-400/20 border-amber-400/50 text-amber-300 shadow-[0_0_12px_rgba(251,191,36,0.25)]'
+                  : 'bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100'
+              }`}
+              title={isEyeCare ? 'Eye Care is ON (Black Theme)' : 'Eye Care (Click for Black Theme)'}
+              aria-label="Toggle Eye Care Mode"
+            >
+              <span className="text-xs">👁️</span>
+              <span className="text-[10px] font-black uppercase tracking-wider">{isEyeCare ? 'Black' : 'Eye'}</span>
+            </button>
+
             {currentUser && (
               <button
                 onClick={handleAnnouncementClick}
-                className="relative p-2.5 rounded-xl bg-rose-500/10 border border-rose-400/25 text-rose-200 hover:bg-rose-500/20 hover:border-rose-300/45 hover:text-white transition-all duration-200 shadow-[0_0_14px_rgba(244,63,94,0.12)] cursor-pointer"
+                className="relative p-2.5 rounded-xl bg-amber-500/15 border border-amber-400/35 text-amber-300 hover:bg-amber-500/25 hover:border-amber-300/55 hover:text-white transition-all duration-200 shadow-[0_0_14px_rgba(245,158,11,0.15)] cursor-pointer"
                 aria-label="Open announcements"
                 title="Announcements"
               >
-                <Bell className="w-5 h-5" />
+                <Bell className="w-5 h-5 text-amber-400" />
                 {announcements.filter(a => !readIds.has(a.id)).length > 0 && (
-                  <span className="absolute top-1.5 right-1.5 w-2.5 h-2.5 bg-rose-500 rounded-full border-2 border-navy-950 animate-pulse"></span>
+                  <span className="absolute top-1.5 right-1.5 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-navy-950 animate-pulse"></span>
                 )}
               </button>
             )}
@@ -415,6 +450,26 @@ export default function Navbar({ activeTab, setActiveTab }) {
                         className="p-3.5 space-y-4 overflow-y-auto overscroll-contain flex-1 custom-scrollbar bg-[#090510]"
                         style={{ WebkitOverflowScrolling: 'touch', overscrollBehavior: 'contain' }}
                       >
+                        {/* Eye Care Toggle */}
+                        <button
+                          onClick={toggleEyeCare}
+                          className={`w-full flex items-center justify-between p-3 rounded-xl border transition-all text-xs font-bold cursor-pointer ${
+                            isEyeCare
+                              ? 'bg-amber-400/15 border-amber-400/50 text-amber-300 shadow-[0_0_15px_rgba(251,191,36,0.2)]'
+                              : 'bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100'
+                          }`}
+                        >
+                          <div className="flex items-center gap-2.5">
+                            <span className="text-base">👁️</span>
+                            <span className="font-extrabold">Eye Care Mode (Black Theme)</span>
+                          </div>
+                          <span className={`px-2 py-0.5 rounded-md text-[10px] font-black uppercase tracking-wider ${
+                            isEyeCare ? 'bg-amber-400 text-slate-950 shadow-sm' : 'bg-blue-600 text-white'
+                          }`}>
+                            {isEyeCare ? 'ACTIVE' : 'OFF'}
+                          </span>
+                        </button>
+
                         {/* Quick Join */}
                         <div className="space-y-2">
                           <div className="px-1 text-[11px] font-black uppercase tracking-wider text-gold-400">⚡ Quick Join</div>

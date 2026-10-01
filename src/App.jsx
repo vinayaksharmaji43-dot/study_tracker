@@ -1,6 +1,7 @@
 import React from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
+import { ThemeProvider } from './contexts/ThemeContext';
 import ProtectedRoute from './components/ProtectedRoute';
 import AdminRoute from './components/AdminRoute';
 import DeviceGate from './components/DeviceGate';
@@ -20,7 +21,8 @@ import GlobalAnnouncementPopup from './components/GlobalAnnouncementPopup';
 export default function App() {
   return (
     <ErrorBoundary fallbackMessage="The application encountered an unexpected error. Please refresh the page.">
-      <AuthProvider>
+      <ThemeProvider>
+        <AuthProvider>
         <TabAwayTracker />
         <GlobalAnnouncementPopup />
         <Routes>
@@ -57,6 +59,7 @@ export default function App() {
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </AuthProvider>
+    </ThemeProvider>
     </ErrorBoundary>
   );
 }

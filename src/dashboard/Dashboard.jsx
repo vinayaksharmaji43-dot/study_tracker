@@ -64,9 +64,11 @@ import ProBadge from '../components/ProBadge';
 import PremiumLockScreen from '../components/PremiumLockScreen';
 import TrialExpiredBanner from '../components/TrialExpiredBanner';
 import TrialExpiredModal from '../components/TrialExpiredModal';
+import { useTheme } from '../contexts/ThemeContext';
 
 export default function Dashboard() {
   const { userProfile, currentUser, logout, levelInfo, isAdmin } = useAuth();
+  const { isEyeCare } = useTheme();
   const { isSectionLocked, getMaintenanceMessage } = useSectionLocks();
   const {
     isPro,
@@ -145,7 +147,11 @@ export default function Dashboard() {
   ];
 
   return (
-    <div className="min-h-screen bg-navy-950 text-slate-100 flex flex-col selection:bg-emerald-500 selection:text-white relative">
+    <div className={`min-h-screen flex flex-col relative transition-colors duration-300 ${
+      isEyeCare 
+        ? 'bg-[#000000] text-slate-100 selection:bg-emerald-500 selection:text-white' 
+        : 'bg-[#f0f7ff] text-slate-900 selection:bg-blue-600 selection:text-white'
+    }`}>
       <div className={`flex flex-col min-h-screen transition-all duration-300 ${
         !isProfileCompleted ? 'pointer-events-none select-none filter blur-sm opacity-40' : ''
       }`}>
@@ -164,30 +170,42 @@ export default function Dashboard() {
           
           {/* Sidebar Navigation (Desktop) */}
           <aside className="hidden lg:block lg:col-span-3 sticky top-28 space-y-4">
-            <div className="p-4 rounded-3xl glass-card border border-white/10 space-y-2 shadow-xl">
+            <div className={`p-4 rounded-3xl space-y-2 shadow-xl border transition-colors ${
+              isEyeCare 
+                ? 'glass-card border-white/10' 
+                : 'bg-white border-blue-200/80 shadow-[0_4px_25px_-5px_rgba(37,99,235,0.08)]'
+            }`}>
               
               {/* User Snapshot Header */}
-              <div className="p-4 rounded-2xl bg-navy-900/80 border border-white/5 space-y-1.5 mb-2">
-                <div className="text-sm font-bold text-white truncate flex items-center justify-between gap-1">
+              <div className={`p-4 rounded-2xl border space-y-1.5 mb-2 transition-colors ${
+                isEyeCare 
+                  ? 'bg-navy-900/80 border-white/5' 
+                  : 'bg-blue-50/80 border-blue-100 text-slate-900'
+              }`}>
+                <div className="text-sm font-bold truncate flex items-center justify-between gap-1">
                   <div className="flex items-center gap-1.5 truncate">
-                    <span className="truncate">{userProfile?.name || currentUser?.email}</span>
+                    <span className={`truncate ${isEyeCare ? 'text-white' : 'text-slate-900 font-extrabold'}`}>
+                      {userProfile?.name || currentUser?.email}
+                    </span>
                     {isPro && <ProBadge size="sm" />}
                   </div>
-                  <span className="text-xs px-2 py-0.5 rounded-lg bg-gold-500/20 text-gold-300 font-bold border border-gold-500/30 shrink-0" title={`Level ${levelInfo?.currentLevelNumber}: ${levelInfo?.currentLevelName}`}>
+                  <span className="text-xs px-2 py-0.5 rounded-lg bg-gold-500/20 text-gold-500 font-bold border border-gold-500/30 shrink-0" title={`Level ${levelInfo?.currentLevelNumber}: ${levelInfo?.currentLevelName}`}>
                     {levelInfo?.badge} {levelInfo?.currentLevelName}
                   </span>
                 </div>
-                <div className="text-xs font-semibold text-gold-400 flex items-center justify-between gap-1.5 pt-0.5">
+                <div className={`text-xs font-semibold flex items-center justify-between gap-1.5 pt-0.5 ${
+                  isEyeCare ? 'text-gold-400' : 'text-blue-700'
+                }`}>
                   <div className="flex items-center gap-1.5 truncate">
-                    <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                    <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
                     <span className="truncate">{userProfile?.course || 'CA Foundation'}</span>
                     {userProfile?.attempt ? ` • ${userProfile.attempt}` : ''}
                   </div>
                   {!isPro && !isAdmin && (
                     <span className={`text-[10px] font-black uppercase px-2 py-0.5 rounded-md border shrink-0 ${
                       canShowTrialExpiredUI 
-                        ? 'bg-rose-500/20 text-rose-300 border-rose-500/30' 
-                        : 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30'
+                        ? 'bg-rose-500/20 text-rose-400 border-rose-500/30' 
+                        : 'bg-emerald-500/20 text-emerald-600 border-emerald-500/30'
                     }`}>
                       {canShowTrialExpiredUI ? 'Trial Expired' : `${daysRemaining}d Trial`}
                     </span>
@@ -199,7 +217,9 @@ export default function Dashboard() {
                       className={`text-[9px] font-black uppercase px-2 py-0.5 rounded-md border transition-all cursor-pointer shrink-0 ${
                         isSimulatingExpired
                           ? 'bg-rose-500/25 border-rose-500/40 text-rose-300 shadow-glow-rose'
-                          : 'bg-white/5 border-white/10 text-slate-400 hover:text-white'
+                          : isEyeCare 
+                            ? 'bg-white/5 border-white/10 text-slate-400 hover:text-white'
+                            : 'bg-blue-100/60 border-blue-200 text-blue-700 hover:bg-blue-200'
                       }`}
                       title="Test student trial expired view as administrator"
                     >
@@ -227,7 +247,7 @@ export default function Dashboard() {
                         className={`w-full flex items-center justify-between px-4 py-3 rounded-2xl text-sm font-bold transition-all duration-200 cursor-pointer my-1.5 ${
                           isActive
                             ? 'bg-gradient-to-r from-amber-500/25 via-purple-500/25 to-amber-500/25 border border-amber-400/60 text-amber-300 shadow-[0_0_20px_rgba(245,158,11,0.25)]'
-                            : 'bg-gradient-to-r from-amber-500/10 via-purple-500/10 to-amber-500/10 border border-amber-500/30 text-amber-200 hover:border-amber-400/60 hover:text-white hover:shadow-[0_0_15px_rgba(245,158,11,0.15)]'
+                            : 'bg-gradient-to-r from-amber-500/10 via-purple-500/10 to-amber-500/10 border border-amber-500/30 text-amber-300 hover:border-amber-400/60 hover:shadow-[0_0_15px_rgba(245,158,11,0.15)]'
                         }`}
                       >
                         <div className="flex items-center space-x-3">
@@ -253,15 +273,27 @@ export default function Dashboard() {
                       onClick={() => setActiveTab(item.id)}
                       className={`w-full flex items-center justify-between px-4 py-3 rounded-2xl text-sm font-semibold transition-all duration-200 cursor-pointer ${
                         isActive
-                          ? 'bg-emerald-600/20 border border-emerald-500/40 text-emerald-400 shadow-glow-emerald'
+                          ? isEyeCare
+                            ? 'bg-blue-500/20 border border-blue-400/50 text-blue-300 shadow-[0_0_20px_rgba(59,130,246,0.3)]'
+                            : 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-md shadow-blue-500/25'
                           : isLocked
-                            ? 'text-slate-400 hover:text-amber-300 hover:bg-amber-500/5 border border-transparent'
-                            : 'text-slate-400 hover:text-white hover:bg-white/5 border border-transparent'
+                            ? isEyeCare
+                              ? 'text-slate-400 hover:text-amber-300 hover:bg-amber-500/5 border border-transparent'
+                              : 'text-slate-500 hover:text-amber-600 hover:bg-amber-50 border border-transparent'
+                            : isEyeCare
+                              ? 'text-slate-400 hover:text-white hover:bg-white/5 border border-transparent'
+                              : 'text-slate-600 hover:text-blue-700 hover:bg-blue-50/70 border border-transparent'
                       }`}
                     >
                       <div className="flex items-center space-x-3">
-                        <Icon className={`w-5 h-5 ${isActive ? 'text-emerald-400' : isLocked ? 'text-amber-400/80' : 'text-slate-400'}`} />
-                        <span>{item.label}</span>
+                        <Icon className={`w-5 h-5 ${
+                          isActive 
+                            ? isEyeCare ? 'text-blue-300' : 'text-white' 
+                            : isLocked 
+                              ? 'text-amber-400/80' 
+                              : isEyeCare ? 'text-slate-400' : 'text-slate-500'
+                        }`} />
+                        <span className="font-medium">{item.label}</span>
                       </div>
                       <div className="flex items-center gap-1.5">
                         {isTrialLocked ? (
@@ -274,7 +306,7 @@ export default function Dashboard() {
                             <Lock className="w-3.5 h-3.5" />
                           </span>
                         ) : null}
-                        {isActive && <ChevronRight className="w-4 h-4 text-emerald-400" />}
+                        {isActive && <ChevronRight className={`w-4 h-4 ${isEyeCare ? 'text-blue-300' : 'text-white'}`} />}
                       </div>
                     </button>
                   );
@@ -282,7 +314,7 @@ export default function Dashboard() {
               </nav>
 
               {/* Support & Logout Buttons */}
-              <div className="pt-2 border-t border-white/10 space-y-1">
+              <div className={`pt-2 border-t space-y-1 ${isEyeCare ? 'border-white/10' : 'border-blue-100'}`}>
                 <button
                   onClick={() => { setActiveTab('support'); if(typeof setMobileMenuOpen === 'function'){setMobileMenuOpen(false);} }}
                   className="w-full flex items-center justify-between px-4 py-3 rounded-2xl text-sm font-bold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 hover:bg-emerald-500/20 transition-all cursor-pointer"

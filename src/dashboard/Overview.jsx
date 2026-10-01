@@ -255,12 +255,12 @@ export default function Overview({ setActiveTab }) {
           <div className="flex items-center gap-3">
             <button
               onClick={() => setActiveTab('announcements')}
-              className="relative p-3 rounded-2xl bg-rose-500/10 border border-rose-400/30 text-rose-200 hover:bg-rose-500/20 hover:border-rose-300/50 transition-all shadow-[0_0_18px_rgba(244,63,94,0.14)]"
+              className="relative p-3 rounded-2xl bg-amber-500/15 border border-amber-400/40 text-amber-300 hover:bg-amber-500/25 hover:border-amber-300/60 transition-all shadow-[0_0_18px_rgba(245,158,11,0.2)] cursor-pointer"
               title="Open Announcements"
               aria-label="Open Announcements"
             >
-              <Bell className="w-5 h-5" />
-              {unreadAnnouncementCount > 0 && <span className="absolute -top-1 -right-1 min-w-5 h-5 px-1 rounded-full bg-rose-500 text-white text-[10px] font-black flex items-center justify-center border-2 border-navy-950">{unreadAnnouncementCount > 9 ? '9+' : unreadAnnouncementCount}</span>}
+              <Bell className="w-5 h-5 text-amber-400" />
+              {unreadAnnouncementCount > 0 && <span className="absolute -top-1 -right-1 min-w-5 h-5 px-1 rounded-full bg-red-500 text-white text-[10px] font-black flex items-center justify-center border-2 border-navy-950 animate-pulse">{unreadAnnouncementCount > 9 ? '9+' : unreadAnnouncementCount}</span>}
             </button>
             <button
               onClick={() => setActiveTab('timer')}

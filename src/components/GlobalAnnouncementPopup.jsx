@@ -205,12 +205,12 @@ export default function GlobalAnnouncementPopup() {
       
       {/* Main Announcement Popup Card */}
       <div 
-        className="w-full max-w-lg bg-gradient-to-b from-[#1f1024] via-navy-900 to-navy-950 border border-rose-500/40 rounded-3xl overflow-hidden shadow-[0_0_60px_rgba(244,63,94,0.25)] animate-in zoom-in-95 duration-200 flex flex-col max-h-[90vh] relative"
+        className="w-full max-w-lg bg-gradient-to-b from-[#1c1305] via-navy-900 to-navy-950 border border-amber-400/50 rounded-3xl overflow-hidden shadow-[0_0_60px_rgba(245,158,11,0.25)] animate-in zoom-in-95 duration-200 flex flex-col max-h-[90vh] relative"
         onClick={e => e.stopPropagation()}
       >
         {/* Top Header */}
-        <div className="p-5 sm:p-6 bg-gradient-to-r from-rose-500/20 via-rose-500/10 to-transparent border-b border-rose-500/25 relative overflow-hidden shrink-0">
-          <div className="absolute top-0 right-0 w-36 h-36 bg-rose-500/20 rounded-full blur-3xl pointer-events-none" />
+        <div className="p-5 sm:p-6 bg-gradient-to-r from-amber-500/25 via-yellow-500/10 to-transparent border-b border-amber-400/30 relative overflow-hidden shrink-0">
+          <div className="absolute top-0 right-0 w-36 h-36 bg-amber-400/15 rounded-full blur-3xl pointer-events-none" />
 
           {/* Close 'X' Button */}
           <button
@@ -224,13 +224,13 @@ export default function GlobalAnnouncementPopup() {
           </button>
 
           <div className="relative z-10 flex items-start gap-3.5 pr-8">
-            <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-rose-500 to-rose-600 text-white flex items-center justify-center shrink-0 shadow-lg shadow-rose-500/30">
-              <Megaphone className="w-6 h-6 animate-pulse" />
+            <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-amber-400 to-yellow-500 text-slate-950 flex items-center justify-center shrink-0 shadow-lg shadow-amber-500/30">
+              <Megaphone className="w-6 h-6 animate-pulse fill-current" />
             </div>
 
             <div className="min-w-0">
-              <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-rose-500/20 border border-rose-500/30 text-rose-300 text-[10px] font-extrabold uppercase tracking-wider mb-1.5">
-                <span className="w-1.5 h-1.5 rounded-full bg-rose-400 animate-ping"></span>
+              <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-red-500/20 border border-red-500/40 text-red-300 text-[10px] font-extrabold uppercase tracking-wider mb-1.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-red-400 animate-ping"></span>
                 <span>Important Platform Alert</span>
               </div>
               <h2 className="text-base sm:text-lg font-black text-white leading-tight break-words">
@@ -245,7 +245,7 @@ export default function GlobalAnnouncementPopup() {
           
           <div className="flex items-center justify-between text-xs font-semibold text-slate-400">
             <div className="flex items-center gap-1.5">
-              <Clock className="w-3.5 h-3.5 text-rose-400" />
+              <Clock className="w-3.5 h-3.5 text-amber-400" />
               <span>
                 {activeAnnouncement.createdAt?.toDate 
                   ? formatDate(activeAnnouncement.createdAt.toDate().toISOString()) 
@@ -283,7 +283,7 @@ export default function GlobalAnnouncementPopup() {
           <div className="flex items-center gap-2 pt-1 text-[11px] text-slate-400">
             <Bell className="w-3.5 h-3.5 text-amber-400" />
             <span>Target: </span>
-            <span className="font-bold text-slate-300">
+            <span className="font-bold text-amber-300">
               {activeAnnouncement.audienceType === 'specific' 
                 ? `${activeAnnouncement.course || 'All'} ${activeAnnouncement.level || ''} ${activeAnnouncement.attempt ? `• ${activeAnnouncement.attempt}` : ''}`
                 : 'All Students & Batches'}
@@ -293,15 +293,15 @@ export default function GlobalAnnouncementPopup() {
         </div>
 
         {/* Action Buttons */}
-        <div className="p-4 sm:p-5 border-t border-white/10 bg-navy-900/90 flex flex-col sm:flex-row items-center gap-3 shrink-0">
+        <div className="p-4 sm:p-5 border-t border-amber-400/20 bg-navy-900/90 flex flex-col sm:flex-row items-center gap-3 shrink-0">
           {activeAnnouncement.link && (
             <button
               type="button"
               onClick={() => handleDismiss(true)}
-              className="w-full sm:flex-1 py-3 px-4 rounded-2xl bg-white/5 hover:bg-white/10 border border-white/15 text-white font-bold text-xs flex items-center justify-center gap-2 transition-all cursor-pointer hover:border-white/30"
+              className="w-full sm:flex-1 py-3 px-4 rounded-2xl bg-white/5 hover:bg-white/10 border border-white/15 text-white font-bold text-xs flex items-center justify-center gap-2 transition-all cursor-pointer hover:border-amber-400/40"
             >
               <span>Open Link / Details</span>
-              <ExternalLink className="w-3.5 h-3.5 text-rose-400" />
+              <ExternalLink className="w-3.5 h-3.5 text-amber-400" />
             </button>
           )}
 
@@ -309,10 +309,10 @@ export default function GlobalAnnouncementPopup() {
             type="button"
             onClick={() => handleDismiss(false)}
             disabled={markingRead}
-            className={`w-full ${activeAnnouncement.link ? 'sm:flex-1' : 'flex-1'} py-3 px-4 rounded-2xl bg-gradient-to-r from-rose-600 to-rose-500 hover:from-rose-500 hover:to-rose-600 text-white font-black text-xs shadow-lg shadow-rose-500/30 flex items-center justify-center gap-2 transition-all hover:scale-102 cursor-pointer`}
+            className={`w-full ${activeAnnouncement.link ? 'sm:flex-1' : 'flex-1'} py-3 px-4 rounded-2xl bg-gradient-to-r from-amber-500 to-yellow-400 hover:from-yellow-400 hover:to-amber-500 text-slate-950 font-black text-xs shadow-lg shadow-amber-500/30 flex items-center justify-center gap-2 transition-all hover:scale-102 cursor-pointer`}
           >
             <span>Got It</span>
-            <CheckCircle className="w-4 h-4" />
+            <CheckCircle className="w-4 h-4 text-slate-950" />
           </button>
         </div>
 
