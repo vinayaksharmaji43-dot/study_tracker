@@ -4,6 +4,7 @@ import {
 } from 'firebase/firestore';
 import { db } from '../config/firebase';
 import { useAuth } from '../contexts/AuthContext';
+import { useTheme } from '../contexts/ThemeContext';
 import { getDateKey, calculateStreak, formatDate } from '../utils/helpers';
 import EmptyState from '../components/EmptyState';
 import { 
@@ -21,6 +22,7 @@ const MONTH_NAMES = [
 
 export default function Calendar() {
   const { currentUser, userProfile } = useAuth();
+  const { isEyeCare } = useTheme();
 
   // Selected Month State
   const [currentMonthDate, setCurrentMonthDate] = useState(new Date());
@@ -531,10 +533,14 @@ export default function Calendar() {
       </div>
 
       {/* Main Calendar Grid */}
-      <div className="glass-card p-6 rounded-3xl border border-white/10 shadow-2xl space-y-4">
+      <div className={`p-6 rounded-3xl border shadow-2xl space-y-4 ${
+        isEyeCare ? 'glass-card border-white/10' : 'bg-white border-blue-200 shadow-md'
+      }`}>
         
         {/* Days of Week Header */}
-        <div className="grid grid-cols-7 gap-2 text-center text-xs font-black text-slate-400 uppercase tracking-wider pb-2 border-b border-white/10">
+        <div className={`grid grid-cols-7 gap-2 text-center text-xs font-black uppercase tracking-wider pb-2 border-b ${
+          isEyeCare ? 'text-slate-400 border-white/10' : 'text-slate-900 border-slate-200'
+        }`}>
           {DAYS_OF_WEEK.map(d => (
             <div key={d} className="py-1">{d}</div>
           ))}
@@ -571,31 +577,37 @@ export default function Calendar() {
                 onClick={() => handleDateClick(dateObj)}
                 className={`p-2.5 sm:p-3 rounded-2xl border transition-all cursor-pointer min-h-[85px] sm:min-h-[100px] flex flex-col justify-between relative group ${
                   isSelected
-                    ? 'ring-2 ring-emerald-400 bg-emerald-500/15 border-emerald-500/40 shadow-glow-emerald'
+                    ? (isEyeCare ? 'ring-2 ring-emerald-400 bg-emerald-500/15 border-emerald-500/40 shadow-glow-emerald' : 'ring-2 ring-blue-500 bg-blue-50 border-blue-400 shadow-md')
                     : isToday
-                    ? 'bg-navy-900 border-amber-500/50 shadow-md'
-                    : 'bg-navy-900/80 hover:bg-white/5 border-white/10'
+                    ? (isEyeCare ? 'bg-navy-900 border-amber-500/50 shadow-md' : 'bg-amber-50/90 border-2 border-amber-500 shadow-md')
+                    : (isEyeCare ? 'bg-navy-900/80 hover:bg-white/5 border-white/10' : 'bg-white hover:bg-blue-50/60 border-blue-100 shadow-xs')
                 }`}
               >
                 {/* Top Row: Day Number & Status Dot */}
                 <div className="flex items-center justify-between">
-                  <span className={`text-xs sm:text-sm font-black ${isToday ? 'text-amber-400 underline underline-offset-4' : 'text-white'}`}>
+                  <span className={`text-xs sm:text-sm font-black ${
+                    isToday 
+                      ? (isEyeCare ? 'text-amber-400 underline underline-offset-4' : 'text-amber-950 underline underline-offset-4 font-black') 
+                      : (isEyeCare ? 'text-white' : 'text-slate-900 font-extrabold')
+                  }`}>
                     {dateObj.getDate()}
                   </span>
                   
                   {/* Status Indicator Dot */}
                   <div className="flex items-center gap-1">
                     {indicator === 'green' && (
-                      <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.8)]" title="Productive Study (5h+)" />
+                      <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.8)]" title="Productive Study (5h+)" />
                     )}
                     {indicator === 'yellow' && (
-                      <span className="w-2.5 h-2.5 rounded-full bg-amber-400 shadow-[0_0_8px_rgba(251,191,36,0.8)]" title="Moderate Study (1-5h)" />
+                      <span className="w-2.5 h-2.5 rounded-full bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.8)]" title="Moderate Study (1-5h)" />
                     )}
                     {indicator === 'red' && (
                       <span className="w-2.5 h-2.5 rounded-full bg-rose-500 shadow-[0_0_8px_rgba(244,63,94,0.8)]" title="Low Study / Penalty" />
                     )}
                     {indicator === 'dayoff' && (
-                      <span className="text-[10px] px-1 rounded bg-amber-500/20 text-amber-300 font-bold border border-amber-500/30">OFF</span>
+                      <span className={`text-[10px] px-1 rounded font-black border ${
+                        isEyeCare ? 'bg-amber-500/20 text-amber-300 border-amber-500/30' : 'bg-amber-100 text-amber-900 border-amber-300'
+                      }`}>OFF</span>
                     )}
                   </div>
                 </div>
@@ -603,12 +615,14 @@ export default function Calendar() {
                 {/* Middle Content: Study Hours Badge */}
                 <div className="my-1">
                   {data.totalStudySeconds > 0 ? (
-                    <div className="text-[11px] sm:text-xs font-extrabold text-emerald-400 flex items-center gap-1">
-                      <Clock className="w-3 h-3 text-emerald-400" />
+                    <div className={`text-[11px] sm:text-xs font-black flex items-center gap-1 ${
+                      isEyeCare ? 'text-emerald-400' : 'text-emerald-800'
+                    }`}>
+                      <Clock className={`w-3 h-3 ${isEyeCare ? 'text-emerald-400' : 'text-emerald-700'}`} />
                       <span>{formatSecsToHms(data.totalStudySeconds)}</span>
                     </div>
                   ) : (
-                    <div className="text-[10px] text-slate-500 font-medium">No study</div>
+                    <div className={`text-[10px] font-bold ${isEyeCare ? 'text-slate-500' : 'text-slate-500'}`}>No study</div>
                   )}
                 </div>
 
@@ -617,19 +631,23 @@ export default function Calendar() {
                   <div className="flex flex-col gap-1 my-1">
                     {data.daySyllabusCompletions?.length > 0 && (
                       <div 
-                        className="text-[9px] sm:text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 flex items-center gap-1 truncate"
+                        className={`text-[9px] sm:text-[10px] font-black px-1.5 py-0.5 rounded-md border flex items-center gap-1 truncate ${
+                          isEyeCare ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30' : 'bg-emerald-100 text-emerald-950 border-emerald-300'
+                        }`}
                         title={`Syllabus Completed: ${data.daySyllabusCompletions.map(c => c.chapterTitle).join(', ')}`}
                       >
-                        <BookOpen className="w-2.5 h-2.5 shrink-0 text-emerald-400" />
+                        <BookOpen className={`w-2.5 h-2.5 shrink-0 ${isEyeCare ? 'text-emerald-400' : 'text-emerald-700'}`} />
                         <span className="truncate">Syllabus ({data.daySyllabusCompletions.length})</span>
                       </div>
                     )}
                     {data.dayRevisionCompletions?.length > 0 && (
                       <div 
-                        className="text-[9px] sm:text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-royal-500/25 text-royal-300 border border-royal-500/40 flex items-center gap-1 truncate"
+                        className={`text-[9px] sm:text-[10px] font-black px-1.5 py-0.5 rounded-md border flex items-center gap-1 truncate ${
+                          isEyeCare ? 'bg-royal-500/25 text-royal-300 border-royal-500/40' : 'bg-blue-100 text-blue-900 border-blue-300'
+                        }`}
                         title={`Revision Completed: ${data.dayRevisionCompletions.map(c => c.chapterTitle).join(', ')}`}
                       >
-                        <RotateCcw className="w-2.5 h-2.5 shrink-0 text-royal-400" />
+                        <RotateCcw className={`w-2.5 h-2.5 shrink-0 ${isEyeCare ? 'text-royal-400' : 'text-blue-700'}`} />
                         <span className="truncate">Rev ({data.dayRevisionCompletions.length})</span>
                       </div>
                     )}
@@ -637,17 +655,27 @@ export default function Calendar() {
                 )}
 
                 {/* Bottom Row: Net Points or Target Indicator */}
-                <div className="flex items-center justify-between text-[10px] pt-1 border-t border-white/5">
+                <div className={`flex items-center justify-between text-[10px] pt-1 border-t ${
+                  isEyeCare ? 'border-white/5' : 'border-slate-200'
+                }`}>
                   {data.netPoints !== 0 ? (
-                    <span className={`font-black ${data.netPoints > 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                    <span className={`font-black ${
+                      data.netPoints > 0 
+                        ? (isEyeCare ? 'text-emerald-400' : 'text-emerald-800') 
+                        : (isEyeCare ? 'text-rose-400' : 'text-rose-800')
+                    }`}>
                       {data.netPoints > 0 ? `+${data.netPoints}` : data.netPoints} pts
                     </span>
                   ) : (
-                    <span className="text-slate-500 font-mono">0 pts</span>
+                    <span className={`font-mono font-bold ${isEyeCare ? 'text-slate-500' : 'text-slate-600'}`}>0 pts</span>
                   )}
 
                   {data.dayTarget && (
-                    <span className={data.dayTarget.status === 'completed' ? 'text-emerald-400 font-bold' : 'text-rose-400 font-bold'}>
+                    <span className={`font-black ${
+                      data.dayTarget.status === 'completed' 
+                        ? (isEyeCare ? 'text-emerald-400' : 'text-emerald-800') 
+                        : (isEyeCare ? 'text-rose-400' : 'text-rose-800')
+                    }`}>
                       {data.dayTarget.status === 'completed' ? '✓' : '✗'}
                     </span>
                   )}

@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { doc, onSnapshot, updateDoc, deleteField, increment, setDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../config/firebase';
 import { useAuth } from '../contexts/AuthContext';
+import { useTheme } from '../contexts/ThemeContext';
 import EmptyState from '../components/EmptyState';
 import LoadingSpinner from '../components/LoadingSpinner';
 import { calculateStudentLevel, getDefaultStreamLevels, getStreamId, normalizeLevelConfig } from '../utils/levelSystem';
@@ -32,6 +33,7 @@ import {
 
 export default function Syllabus() {
   const { currentUser, userProfile } = useAuth();
+  const { isEyeCare } = useTheme();
   
   const [completedMap, setCompletedMap] = useState({});
   const [unitCompletionsMap, setUnitCompletionsMap] = useState({});
@@ -722,23 +724,35 @@ export default function Syllabus() {
             });
 
             return (
-              <div key={subObj.id} className="glass-card rounded-3xl border border-white/10 overflow-hidden shadow-xl">
+              <div key={subObj.id} className={`rounded-3xl border overflow-hidden shadow-xl ${
+                isEyeCare ? 'glass-card border-white/10' : 'bg-white border-blue-200 shadow-md'
+              }`}>
                 
                 {/* Subject Header */}
-                <div className="p-5 bg-navy-900/90 border-b border-white/10 flex items-center justify-between">
+                <div className={`p-5 border-b flex items-center justify-between ${
+                  isEyeCare ? 'bg-navy-900/90 border-white/10' : 'bg-blue-50/90 border-blue-200'
+                }`}>
                   <div className="flex items-center space-x-3">
-                    <div className="w-8 h-8 rounded-xl bg-emerald-500/20 border border-emerald-500/30 text-emerald-400 flex items-center justify-center font-bold text-xs">
+                    <div className={`w-8 h-8 rounded-xl border flex items-center justify-center font-bold text-xs ${
+                      isEyeCare ? 'bg-emerald-500/20 border-emerald-500/30 text-emerald-400' : 'bg-blue-600 text-white border-blue-600 shadow-sm'
+                    }`}>
                       <BookOpen className="w-4 h-4" />
                     </div>
-                    <span className="font-bold text-base text-white">{subObj.subject}</span>
+                    <span className={`font-black text-base sm:text-lg ${
+                      isEyeCare ? 'text-white' : 'text-slate-950 font-black'
+                    }`}>{subObj.subject}</span>
                   </div>
-                  <span className="px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-300 text-xs font-bold border border-emerald-500/30">
+                  <span className={`px-3 py-1 rounded-full text-xs font-black border ${
+                    isEyeCare 
+                      ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30' 
+                      : 'bg-emerald-100 text-emerald-900 border-emerald-300 shadow-sm'
+                  }`}>
                     {subCompletedItems} / {subTotalItems} Completed
                   </span>
                 </div>
 
                 {/* Chapter & Unit Items */}
-                <div className="divide-y divide-white/5">
+                <div className={`divide-y ${isEyeCare ? 'divide-white/5' : 'divide-slate-200'}`}>
                   {subjectChapters.map((ch) => {
                     const activeUnits = (ch.units || []).filter(u => u.isActive !== false);
                     const hasUnits = activeUnits.length > 0;
@@ -751,29 +765,37 @@ export default function Syllabus() {
                       const isExpanded = expandedChapters[ch.id] !== false; // default expanded
 
                       return (
-                        <div key={ch.id} className="border-b border-white/5 last:border-b-0">
+                        <div key={ch.id} className={`border-b last:border-b-0 ${isEyeCare ? 'border-white/5' : 'border-slate-200'}`}>
                           {/* Chapter Accordion Header */}
                           <div 
                             onClick={() => handleToggleExpandChapter(ch.id)}
                             className={`p-4 sm:px-6 flex items-center justify-between cursor-pointer transition-all duration-200 select-none ${
-                              isChCompleted ? 'bg-emerald-500/10 hover:bg-emerald-500/15' : 'hover:bg-white/5'
+                              isEyeCare 
+                                ? (isChCompleted ? 'bg-emerald-500/10 hover:bg-emerald-500/15' : 'hover:bg-white/5')
+                                : (isChCompleted ? 'bg-emerald-50/70 hover:bg-emerald-100/60' : 'bg-white hover:bg-slate-50')
                             }`}
                           >
                             <div className="flex items-center space-x-3.5 pr-4 min-w-0">
                               <button
                                 type="button"
-                                className="p-1.5 rounded-lg bg-navy-950 border border-white/10 text-slate-400 hover:text-white shrink-0 transition-colors"
+                                className={`p-1.5 rounded-lg border shrink-0 transition-colors ${
+                                  isEyeCare 
+                                    ? 'bg-navy-950 border-white/10 text-slate-400 hover:text-white' 
+                                    : 'bg-slate-100 border-slate-300 text-slate-700 hover:bg-slate-200'
+                                }`}
                               >
                                 {isExpanded ? <ChevronUp className="w-4 h-4 text-royal-400" /> : <ChevronDown className="w-4 h-4 text-slate-400" />}
                               </button>
 
                               <div className="min-w-0">
-                                <div className={`text-sm font-bold transition-all truncate ${
-                                  isChCompleted ? 'text-emerald-200' : 'text-slate-200'
+                                <div className={`text-sm sm:text-base font-extrabold transition-all truncate ${
+                                  isEyeCare 
+                                    ? (isChCompleted ? 'text-emerald-200' : 'text-slate-200')
+                                    : (isChCompleted ? 'text-emerald-900 font-black' : 'text-slate-950 font-black')
                                 }`}>
                                   {ch.chapterNo ? `Ch ${ch.chapterNo}: ${ch.title}` : ch.title}
                                 </div>
-                                <div className="text-[11px] text-slate-400 font-medium">
+                                <div className={`text-xs font-bold ${isEyeCare ? 'text-slate-400' : 'text-slate-700'}`}>
                                   Progress: {completedUnitsInCh}/{activeUnits.length} Units — {chPct}%
                                 </div>
                               </div>
@@ -781,28 +803,40 @@ export default function Syllabus() {
 
                             <div className="flex items-center gap-2.5 shrink-0">
                               {isChCompleted ? (
-                                <span className="px-2.5 py-1 rounded-full bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 text-xs font-bold flex items-center gap-1">
-                                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+                                <span className={`px-2.5 py-1 rounded-full text-xs font-black flex items-center gap-1 border ${
+                                  isEyeCare 
+                                    ? 'bg-emerald-500/20 border-emerald-500/40 text-emerald-300'
+                                    : 'bg-emerald-100 border-emerald-400 text-emerald-950 shadow-sm'
+                                }`}>
+                                  <CheckCircle2 className={`w-3.5 h-3.5 ${isEyeCare ? 'text-emerald-400' : 'text-emerald-700'}`} />
                                   <span className="hidden sm:inline">Chapter Completed ✓</span>
                                   <span className="sm:hidden">Done ✓</span>
                                 </span>
                               ) : (
-                                <span className="px-2.5 py-1 rounded-full bg-navy-900 border border-white/10 text-slate-300 text-xs font-mono font-bold">
+                                <span className={`px-2.5 py-1 rounded-full text-xs font-mono font-black border ${
+                                  isEyeCare 
+                                    ? 'bg-navy-900 border-white/10 text-slate-300'
+                                    : 'bg-slate-100 border-slate-300 text-slate-900'
+                                }`}>
                                   {chPct}%
                                 </span>
                               )}
 
-                              <span className="text-xs font-mono font-bold px-2.5 py-1 rounded-lg bg-navy-900 border border-white/5 text-gold-400">
+                              <span className={`text-xs font-mono font-black px-2.5 py-1 rounded-lg border ${
+                                isEyeCare 
+                                  ? 'bg-navy-900 border-white/5 text-gold-400'
+                                  : 'bg-amber-100 border-amber-300 text-amber-950'
+                              }`}>
                                 {chPtsTotal} PTS
                               </span>
                             </div>
                           </div>
 
                           {/* Progress Line Bar Under Chapter Header */}
-                          <div className="w-full bg-navy-950 h-1 overflow-hidden">
+                          <div className={`w-full h-1 overflow-hidden ${isEyeCare ? 'bg-navy-950' : 'bg-slate-200'}`}>
                             <div 
                               className={`h-full transition-all duration-300 ${
-                                isChCompleted ? 'bg-emerald-400 shadow-glow-emerald' : 'bg-gradient-to-r from-royal-500 to-emerald-400'
+                                isChCompleted ? 'bg-emerald-500 shadow-glow-emerald' : 'bg-gradient-to-r from-blue-600 to-emerald-500'
                               }`}
                               style={{ width: `${chPct}%` }}
                             />
@@ -810,7 +844,9 @@ export default function Syllabus() {
 
                           {/* Expanded Units List */}
                           {isExpanded && (
-                            <div className="bg-navy-950/40 divide-y divide-white/5 pl-4 sm:pl-12 pr-4 sm:pr-6 py-2">
+                            <div className={`pl-4 sm:pl-12 pr-4 sm:pr-6 py-2.5 divide-y ${
+                              isEyeCare ? 'bg-navy-950/40 divide-white/5' : 'bg-slate-50/70 divide-slate-200'
+                            }`}>
                               {activeUnits.map((unit) => {
                                 const isUnitChecked = Boolean(unitCompletionsMap[unit.id]?.completed);
                                 const uPts = Number(unit.points) || 0;
@@ -819,10 +855,10 @@ export default function Syllabus() {
                                   <div
                                     key={unit.id}
                                     onClick={() => handleToggleUnit(unit, ch, subObj)}
-                                    className={`p-3 sm:px-4 rounded-xl flex items-center justify-between cursor-pointer transition-all duration-150 select-none ${
-                                      isUnitChecked 
-                                        ? 'bg-emerald-500/10 hover:bg-emerald-500/15 border border-emerald-500/20' 
-                                        : 'hover:bg-white/5 border border-transparent'
+                                    className={`p-3 sm:px-4 rounded-xl flex items-center justify-between cursor-pointer transition-all duration-150 select-none my-1 ${
+                                      isEyeCare 
+                                        ? (isUnitChecked ? 'bg-emerald-500/10 hover:bg-emerald-500/15 border border-emerald-500/20' : 'hover:bg-white/5 border border-transparent')
+                                        : (isUnitChecked ? 'bg-emerald-100/70 hover:bg-emerald-100 border border-emerald-300 shadow-xs' : 'bg-white hover:bg-blue-50/80 border border-slate-200')
                                     }`}
                                   >
                                     <div className="flex items-center space-x-3 pr-4 min-w-0">
@@ -832,36 +868,42 @@ export default function Syllabus() {
                                         className="focus:outline-none shrink-0"
                                       >
                                         {isUnitChecked ? (
-                                          <CheckCircle2 className="w-5 h-5 text-emerald-400 fill-emerald-500/20" />
+                                          <CheckCircle2 className={`w-5 h-5 ${isEyeCare ? 'text-emerald-400 fill-emerald-500/20' : 'text-emerald-700 fill-emerald-200'}`} />
                                         ) : (
-                                          <Circle className="w-5 h-5 text-slate-500 hover:text-slate-300 transition-colors" />
+                                          <Circle className={`w-5 h-5 ${isEyeCare ? 'text-slate-500 hover:text-slate-300' : 'text-slate-400 hover:text-slate-700'}`} />
                                         )}
                                       </button>
 
-                                      <span className="text-[11px] font-mono font-bold px-2 py-0.5 rounded bg-navy-900 border border-white/10 text-royal-300 shrink-0">
+                                      <span className={`text-[11px] font-mono font-black px-2 py-0.5 rounded border shrink-0 ${
+                                        isEyeCare 
+                                          ? 'bg-navy-900 border-white/10 text-royal-300' 
+                                          : 'bg-blue-100 border-blue-300 text-blue-900'
+                                      }`}>
                                         {unit.unitNo || 'Unit'}
                                       </span>
 
                                       <div className="min-w-0">
-                                        <span className={`text-xs sm:text-sm font-medium transition-all block truncate ${
-                                          isUnitChecked 
-                                            ? 'text-emerald-200 line-through decoration-emerald-500/50' 
-                                            : 'text-slate-200'
+                                        <span className={`text-xs sm:text-sm font-bold transition-all block truncate ${
+                                          isEyeCare 
+                                            ? (isUnitChecked ? 'text-emerald-200 line-through decoration-emerald-500/50' : 'text-slate-200')
+                                            : (isUnitChecked ? 'text-emerald-950 font-black line-through decoration-emerald-700' : 'text-slate-900 font-bold')
                                         }`}>
                                           {unit.title}
                                         </span>
                                         {unit.description && (
-                                          <p className="text-[10px] text-slate-400 truncate max-w-sm sm:max-w-lg">
+                                          <p className={`text-[11px] font-medium truncate max-w-sm sm:max-w-lg ${
+                                            isEyeCare ? 'text-slate-400' : 'text-slate-600'
+                                          }`}>
                                             {unit.description}
                                           </p>
                                         )}
                                       </div>
                                     </div>
 
-                                    <span className={`text-xs font-mono font-bold shrink-0 px-2.5 py-1 rounded-lg border transition-all ${
-                                      isUnitChecked 
-                                        ? 'bg-emerald-500/20 border-emerald-500/40 text-emerald-300' 
-                                        : 'bg-navy-900 border-white/5 text-gold-400'
+                                    <span className={`text-xs font-mono font-black shrink-0 px-2.5 py-1 rounded-lg border transition-all ${
+                                      isEyeCare 
+                                        ? (isUnitChecked ? 'bg-emerald-500/20 border-emerald-500/40 text-emerald-300' : 'bg-navy-900 border-white/5 text-gold-400')
+                                        : (isUnitChecked ? 'bg-emerald-200 text-emerald-950 border-emerald-400' : 'bg-amber-100 text-amber-950 border-amber-300')
                                     }`}>
                                       {isUnitChecked ? `+${uPts} PTS ✓` : `+${uPts} PTS`}
                                     </span>
@@ -883,9 +925,9 @@ export default function Syllabus() {
                         key={ch.id}
                         onClick={() => handleToggleChapter(ch.id, pts, ch, subObj)}
                         className={`p-4 sm:px-6 flex items-center justify-between cursor-pointer transition-all duration-200 select-none ${
-                          isChecked 
-                            ? 'bg-emerald-500/10 hover:bg-emerald-500/15' 
-                            : 'hover:bg-white/5'
+                          isEyeCare 
+                            ? (isChecked ? 'bg-emerald-500/10 hover:bg-emerald-500/15' : 'hover:bg-white/5')
+                            : (isChecked ? 'bg-emerald-50 hover:bg-emerald-100/70' : 'bg-white hover:bg-slate-50')
                         }`}
                       >
                         <div className="flex items-center space-x-3.5 pr-4">
@@ -895,25 +937,25 @@ export default function Syllabus() {
                             className="focus:outline-none shrink-0"
                           >
                             {isChecked ? (
-                              <CheckCircle2 className="w-5 h-5 text-emerald-400 fill-emerald-500/20" />
+                              <CheckCircle2 className={`w-5 h-5 ${isEyeCare ? 'text-emerald-400 fill-emerald-500/20' : 'text-emerald-700 fill-emerald-200'}`} />
                             ) : (
-                              <Circle className="w-5 h-5 text-slate-500 hover:text-slate-300 transition-colors" />
+                              <Circle className={`w-5 h-5 ${isEyeCare ? 'text-slate-500 hover:text-slate-300' : 'text-slate-400 hover:text-slate-700'}`} />
                             )}
                           </button>
 
-                          <span className={`text-sm font-medium transition-all ${
-                            isChecked 
-                              ? 'text-emerald-200 line-through decoration-emerald-500/50' 
-                              : 'text-slate-200'
+                          <span className={`text-sm font-bold transition-all ${
+                            isEyeCare 
+                              ? (isChecked ? 'text-emerald-200 line-through decoration-emerald-500/50' : 'text-slate-200')
+                              : (isChecked ? 'text-emerald-950 font-black line-through decoration-emerald-700' : 'text-slate-900 font-extrabold')
                           }`}>
                             {ch.chapterNo ? `Ch ${ch.chapterNo}: ${ch.title}` : ch.title}
                           </span>
                         </div>
 
-                        <span className={`text-xs font-mono font-bold shrink-0 px-2.5 py-1 rounded-lg border transition-all ${
-                          isChecked 
-                            ? 'bg-emerald-500/20 border-emerald-500/40 text-emerald-300' 
-                            : 'bg-navy-900 border-white/5 text-slate-400'
+                        <span className={`text-xs font-mono font-black shrink-0 px-2.5 py-1 rounded-lg border transition-all ${
+                          isEyeCare 
+                            ? (isChecked ? 'bg-emerald-500/20 border-emerald-500/40 text-emerald-300' : 'bg-navy-900 border-white/5 text-slate-400')
+                            : (isChecked ? 'bg-emerald-200 text-emerald-950 border-emerald-400' : 'bg-slate-100 border-slate-300 text-slate-900')
                         }`}>
                           {isChecked ? `+${pts} PTS ✓` : `+${pts} PTS`}
                         </span>
