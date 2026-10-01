@@ -10,10 +10,12 @@ import LoadingSpinner from '../components/LoadingSpinner';
 import LiveStudyNow from '../components/LiveStudyNow';
 import StudentProfileModal from '../components/StudentProfileModal';
 import { useActiveSessionsTracker } from '../hooks/useActiveSessionsTracker';
+import { useTheme } from '../contexts/ThemeContext';
 import { Trophy, Award, Flame, UserCheck, ShieldCheck, Sparkles, Calendar, BookOpenCheck, Filter, Star } from 'lucide-react';
 
 export default function Leaderboard() {
   const { currentUser, userProfile } = useAuth();
+  const { isEyeCare } = useTheme();
   const { isStudentOnline, getStudentLiveDuration } = useActiveSessionsTracker(currentUser, userProfile);
   const [leaderboardData, setLeaderboardData] = useState([]);
   const [selectedStudent, setSelectedStudent] = useState(null);
@@ -145,38 +147,50 @@ export default function Leaderboard() {
     <div className="space-y-6">
       
       {/* Stream-Specific Header Banner */}
-      <div className="p-6 sm:p-8 rounded-3xl glass-card border border-gold-500/30 relative overflow-hidden">
+      <div className={`p-6 sm:p-8 rounded-3xl border relative overflow-hidden ${
+        isEyeCare ? 'glass-card border-gold-500/30' : 'bg-white border-2 border-blue-200 shadow-md'
+      }`}>
         <div className="absolute top-0 right-0 w-80 h-80 bg-gold-500/10 rounded-full blur-3xl pointer-events-none" />
         <div className="relative z-10 space-y-2">
           <div className="flex flex-wrap items-center gap-2">
-            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-gold-500/20 text-gold-400 text-xs font-bold border border-gold-500/40">
+            <div className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold border ${
+              isEyeCare ? 'bg-gold-500/20 text-gold-400 border-gold-500/40' : 'bg-amber-100 text-amber-900 border-amber-300 font-extrabold'
+            }`}>
               <Sparkles className="w-3.5 h-3.5" />
               <span>Stream-Isolated Leaderboard</span>
             </div>
-            <span className="px-3 py-1 rounded-full bg-royal-500/20 text-royal-300 text-xs font-bold border border-royal-500/30">
+            <span className={`px-3 py-1 rounded-full text-xs font-bold border ${
+              isEyeCare ? 'bg-royal-500/20 text-royal-300 border-royal-500/30' : 'bg-blue-100 text-blue-900 border-blue-300 font-extrabold'
+            }`}>
               {userCourseKey} {userLevelKey} Stream
             </span>
             {isSunday && (
-              <span className="px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-300 text-xs font-black border border-emerald-500/40 flex items-center gap-1 animate-pulse">
-                <Star className="w-3.5 h-3.5 text-emerald-400 fill-emerald-400" />
+              <span className={`px-3 py-1 rounded-full text-xs font-black border flex items-center gap-1 animate-pulse ${
+                isEyeCare ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40' : 'bg-emerald-100 text-emerald-900 border-emerald-300'
+              }`}>
+                <Star className="w-3.5 h-3.5 text-emerald-500 fill-emerald-500" />
                 <span>Sunday Live Ranking</span>
               </span>
             )}
           </div>
 
-          <h1 className="text-2xl sm:text-3xl font-extrabold text-white">
-            🏆 {userCourseKey} {userLevelKey} — <span className="gold-gradient-text">{activeAttempt} Live Leaderboard</span>
+          <h1 className={`text-2xl sm:text-3xl font-extrabold ${isEyeCare ? 'text-white' : 'text-slate-950 font-black'}`}>
+            🏆 {userCourseKey} {userLevelKey} — <span className={isEyeCare ? 'gold-gradient-text' : 'text-blue-700'}>{activeAttempt} Live Leaderboard</span>
           </h1>
-          <p className="text-slate-300 text-sm max-w-2xl">
+          <p className={`text-sm max-w-2xl ${isEyeCare ? 'text-slate-300' : 'text-slate-700 font-medium'}`}>
             You are competing exclusively with registered students in the <strong>{userCourseKey} {userLevelKey} ({activeAttempt})</strong> stream. No cross-stream mixing.
           </p>
         </div>
       </div>
 
       {/* Attempt Filter Tabs */}
-      <div className="flex items-center space-x-2 p-1.5 glass-card rounded-2xl border border-white/10 overflow-x-auto scrollbar-none">
-        <span className="text-xs font-bold text-slate-400 px-3 uppercase tracking-wider flex items-center gap-1 shrink-0">
-          <Calendar className="w-3.5 h-3.5 text-gold-400" />
+      <div className={`flex items-center space-x-2 p-1.5 rounded-2xl border overflow-x-auto scrollbar-none ${
+        isEyeCare ? 'glass-card border-white/10' : 'bg-white border-2 border-blue-200 shadow-sm'
+      }`}>
+        <span className={`text-xs font-bold px-3 uppercase tracking-wider flex items-center gap-1 shrink-0 ${
+          isEyeCare ? 'text-slate-400' : 'text-slate-700 font-black'
+        }`}>
+          <Calendar className="w-3.5 h-3.5 text-amber-500" />
           <span>Attempt:</span>
         </span>
         {availableAttempts.map((att) => (
@@ -185,8 +199,8 @@ export default function Leaderboard() {
             onClick={() => setActiveAttempt(att)}
             className={`px-4 py-2 rounded-xl text-xs font-bold transition-all shrink-0 ${
               activeAttempt === att
-                ? 'bg-gold-500 text-navy-950 shadow-glow-gold'
-                : 'text-slate-400 hover:text-white hover:bg-white/5'
+                ? (isEyeCare ? 'bg-gold-500 text-navy-950 shadow-glow-gold' : 'bg-blue-600 text-white font-black shadow-md')
+                : (isEyeCare ? 'text-slate-400 hover:text-white hover:bg-white/5' : 'text-slate-700 hover:text-blue-700 hover:bg-blue-50 font-bold')
             }`}
           >
             {att} {att === defaultAttempt ? '(Your Attempt)' : ''}
@@ -196,42 +210,54 @@ export default function Leaderboard() {
 
       {/* Logged-In User Live Rank Summary Card */}
       {userRankEntry && (
-        <div className="p-5 sm:p-6 rounded-3xl glass-card border border-royal-500/40 flex flex-col sm:flex-row items-center justify-between gap-4 shadow-xl bg-gradient-to-r from-royal-950/60 via-navy-900/80 to-navy-950">
+        <div className={`p-5 sm:p-6 rounded-3xl border flex flex-col sm:flex-row items-center justify-between gap-4 shadow-xl ${
+          isEyeCare 
+            ? 'glass-card border-royal-500/40 bg-gradient-to-r from-royal-950/60 via-navy-900/80 to-navy-950' 
+            : 'bg-white border-2 border-blue-300 shadow-md'
+        }`}>
           <div className="flex items-center space-x-4">
-            <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-gold-500 to-amber-600 p-0.5 shadow-glow-gold flex items-center justify-center font-black text-2xl text-navy-950">
+            <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-amber-500 to-amber-600 p-0.5 shadow-md flex items-center justify-center font-black text-2xl text-white">
               #{userRankEntry.rank}
             </div>
             <div>
-              <div className="text-xs font-bold text-slate-400 uppercase tracking-wider">Your Live Rank ({userCourseKey} {userLevelKey})</div>
-              <div className="text-lg font-black text-white flex items-center gap-2 flex-wrap">
+              <div className={`text-xs font-bold uppercase tracking-wider ${isEyeCare ? 'text-slate-400' : 'text-slate-600 font-black'}`}>
+                Your Live Rank ({userCourseKey} {userLevelKey})
+              </div>
+              <div className={`text-lg font-black flex items-center gap-2 flex-wrap ${isEyeCare ? 'text-white' : 'text-slate-950 font-black'}`}>
                 <span>{userRankEntry.name}</span>
-                <span className="px-2.5 py-0.5 rounded-full bg-royal-500/30 border border-royal-400/40 text-royal-300 text-xs font-bold">
+                <span className={`px-2.5 py-0.5 rounded-full text-xs font-bold border ${
+                  isEyeCare ? 'bg-royal-500/30 border-royal-400/40 text-royal-300' : 'bg-blue-100 border-blue-300 text-blue-900 font-black'
+                }`}>
                   Rank #{userRankEntry.rank} of {activeStreamStudents.length}
                 </span>
                 {isStudentOnline(userRankEntry.uid) && (
-                  <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-500/20 border border-emerald-500/50 text-emerald-300 text-xs font-bold shadow-[0_0_12px_rgba(16,185,129,0.35)]">
-                    <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                  <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold border ${
+                    isEyeCare ? 'bg-emerald-500/20 border-emerald-500/50 text-emerald-300 shadow-[0_0_12px_rgba(16,185,129,0.35)]' : 'bg-emerald-100 border-emerald-300 text-emerald-900 font-extrabold'
+                  }`}>
+                    <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
                     <span>Online</span>
-                    <span className="font-mono font-black text-white pl-1.5 border-l border-emerald-500/40">
+                    <span className={`font-mono font-black pl-1.5 border-l ${isEyeCare ? 'text-white border-emerald-500/40' : 'text-emerald-950 border-emerald-300'}`}>
                       ⏱ {getStudentLiveDuration(userRankEntry.uid)}
                     </span>
                   </span>
                 )}
               </div>
-              <div className="text-xs text-gold-400 font-semibold mt-0.5">
+              <div className={`text-xs font-bold mt-0.5 ${isEyeCare ? 'text-gold-400' : 'text-blue-700'}`}>
                 Syllabus Progress: {userRankEntry.progressPct}% ({userRankEntry.completedCount} chapters)
               </div>
             </div>
           </div>
 
-          <div className="flex items-center gap-6 border-t sm:border-t-0 sm:border-l border-white/10 pt-3 sm:pt-0 sm:pl-6 text-right">
+          <div className={`flex items-center gap-6 border-t sm:border-t-0 sm:border-l pt-3 sm:pt-0 sm:pl-6 text-right ${
+            isEyeCare ? 'border-white/10' : 'border-slate-200'
+          }`}>
             <div>
-              <div className="text-xs text-slate-400">Total Points</div>
-              <div className="text-lg font-mono font-black text-gold-400">{userRankEntry.points || 0} PTS</div>
+              <div className={`text-xs font-bold ${isEyeCare ? 'text-slate-400' : 'text-slate-600'}`}>Total Points</div>
+              <div className={`text-lg font-mono font-black ${isEyeCare ? 'text-gold-400' : 'text-blue-700'}`}>{userRankEntry.points || 0} PTS</div>
             </div>
             <div>
-              <div className="text-xs text-slate-400">Logged Study</div>
-              <div className="text-lg font-bold text-emerald-400">{formatHours(userRankEntry.studyHours || 0)}</div>
+              <div className={`text-xs font-bold ${isEyeCare ? 'text-slate-400' : 'text-slate-600'}`}>Logged Study</div>
+              <div className={`text-lg font-black ${isEyeCare ? 'text-emerald-400' : 'text-emerald-800'}`}>{formatHours(userRankEntry.studyHours || 0)}</div>
             </div>
           </div>
         </div>
@@ -245,10 +271,14 @@ export default function Leaderboard() {
           description="Complete syllabus chapters to claim top ranking on your stream leaderboard."
         />
       ) : (
-        <div className="glass-card rounded-3xl border border-white/10 overflow-hidden shadow-xl">
+        <div className={`rounded-3xl border overflow-hidden shadow-xl ${
+          isEyeCare ? 'glass-card border-white/10' : 'bg-white border-2 border-blue-200 shadow-md'
+        }`}>
           
           {/* Table Header */}
-          <div className="grid grid-cols-12 px-6 py-4 bg-navy-900/80 border-b border-white/10 text-xs font-bold text-slate-400 uppercase tracking-wider">
+          <div className={`grid grid-cols-12 px-6 py-4 border-b text-xs font-bold uppercase tracking-wider ${
+            isEyeCare ? 'bg-navy-900/80 border-white/10 text-slate-400' : 'bg-slate-100 border-slate-200 text-slate-800 font-black'
+          }`}>
             <div className="col-span-2 sm:col-span-1 text-center">Rank</div>
             <div className="col-span-6 sm:col-span-4">Student</div>
             <div className="hidden sm:block col-span-3">Completed Chapters</div>
@@ -257,7 +287,7 @@ export default function Leaderboard() {
           </div>
 
           {/* Leaderboard List */}
-          <div className="divide-y divide-white/5">
+          <div className={isEyeCare ? 'divide-y divide-white/5' : 'divide-y divide-slate-100'}>
             {activeStreamStudents.map((student) => {
               const isCurrentUser = student.uid === currentUser?.uid;
 
@@ -265,86 +295,104 @@ export default function Leaderboard() {
                 <div
                   key={student.uid}
                   onClick={() => setSelectedStudent(student)}
-                  className={`grid grid-cols-12 px-6 py-4 items-center transition-all cursor-pointer group hover:bg-white/10 ${
+                  className={`grid grid-cols-12 px-6 py-4 items-center transition-all cursor-pointer group ${
                     isCurrentUser 
-                      ? 'bg-royal-600/20 border-l-4 border-royal-500' 
-                      : 'hover:bg-white/5'
+                      ? (isEyeCare ? 'bg-royal-600/20 border-l-4 border-royal-500' : 'bg-blue-50/80 border-l-4 border-blue-600')
+                      : (isEyeCare ? 'hover:bg-white/5' : 'hover:bg-slate-50')
                   }`}
                   title="Click to view student profile & study statistics"
                 >
                   {/* Rank Column */}
                   <div className="col-span-2 sm:col-span-1 flex items-center justify-center font-black">
                     {student.rank === 1 ? (
-                      <div className="w-8 h-8 rounded-full bg-gold-500/20 border border-gold-500 text-gold-400 flex items-center justify-center text-sm shadow-glow-gold">
+                      <div className={`w-8 h-8 rounded-full border flex items-center justify-center text-sm font-black ${
+                        isEyeCare ? 'bg-gold-500/20 border-gold-500 text-gold-400 shadow-glow-gold' : 'bg-amber-100 border-amber-400 text-amber-900 shadow-sm'
+                      }`}>
                         🥇 1
                       </div>
                     ) : student.rank === 2 ? (
-                      <div className="w-8 h-8 rounded-full bg-slate-300/20 border border-slate-300 text-slate-300 flex items-center justify-center text-sm">
+                      <div className={`w-8 h-8 rounded-full border flex items-center justify-center text-sm font-black ${
+                        isEyeCare ? 'bg-slate-300/20 border-slate-300 text-slate-300' : 'bg-slate-200 border-slate-400 text-slate-800 shadow-sm'
+                      }`}>
                         🥈 2
                       </div>
                     ) : student.rank === 3 ? (
-                      <div className="w-8 h-8 rounded-full bg-amber-600/20 border border-amber-600 text-amber-500 flex items-center justify-center text-sm">
+                      <div className={`w-8 h-8 rounded-full border flex items-center justify-center text-sm font-black ${
+                        isEyeCare ? 'bg-amber-600/20 border-amber-600 text-amber-500' : 'bg-amber-50 border-amber-300 text-amber-900 shadow-sm'
+                      }`}>
                         🥉 3
                       </div>
                     ) : (
-                      <span className="text-slate-400 text-sm font-mono">#{student.rank}</span>
+                      <span className={`text-sm font-mono font-bold ${isEyeCare ? 'text-slate-400' : 'text-slate-700'}`}>#{student.rank}</span>
                     )}
                   </div>
 
                   {/* Student Name */}
                   <div className="col-span-6 sm:col-span-4 flex items-center space-x-3">
-                    <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-royal-600 to-gold-500 p-0.5 shrink-0 group-hover:scale-105 transition-transform">
-                      <div className="w-full h-full bg-navy-950 rounded-full flex items-center justify-center text-white font-bold text-sm">
+                    <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-blue-600 to-amber-500 p-0.5 shrink-0 group-hover:scale-105 transition-transform">
+                      <div className={`w-full h-full rounded-full flex items-center justify-center font-bold text-sm ${
+                        isEyeCare ? 'bg-navy-950 text-white' : 'bg-white text-blue-900 shadow-inner'
+                      }`}>
                         {student.name.charAt(0).toUpperCase()}
                       </div>
                     </div>
                     <div>
                       <div className="flex items-center gap-2 flex-wrap">
-                        <span className="text-sm font-bold text-white group-hover:text-gold-400 transition-colors">{student.name}</span>
+                        <span className={`text-sm font-black transition-colors ${
+                          isEyeCare ? 'text-white group-hover:text-gold-400' : 'text-slate-950 group-hover:text-blue-700'
+                        }`}>{student.name}</span>
                         {isCurrentUser && (
-                          <span className="px-2 py-0.5 rounded-full bg-royal-500/30 border border-royal-500/50 text-[10px] font-extrabold text-royal-300">
+                          <span className={`px-2 py-0.5 rounded-full text-[10px] font-black ${
+                            isEyeCare ? 'bg-royal-500/30 border border-royal-500/50 text-royal-300' : 'bg-blue-600 text-white'
+                          }`}>
                             YOU
                           </span>
                         )}
                         {isStudentOnline(student.uid) && (
-                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-500/15 border border-emerald-500/40 text-emerald-300 text-[10px] font-bold shadow-[0_0_10px_rgba(16,185,129,0.25)]">
-                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                          <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold border ${
+                            isEyeCare ? 'bg-emerald-500/15 border-emerald-500/40 text-emerald-300 shadow-[0_0_10px_rgba(16,185,129,0.25)]' : 'bg-emerald-100 border-emerald-300 text-emerald-900'
+                          }`}>
+                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
                             <span>Online</span>
-                            <span className="font-mono font-black text-white pl-1 border-l border-emerald-500/30">
+                            <span className={`font-mono font-black pl-1 border-l ${isEyeCare ? 'text-white border-emerald-500/30' : 'text-emerald-950 border-emerald-300'}`}>
                               ⏱ {getStudentLiveDuration(student.uid)}
                             </span>
                           </span>
                         )}
                       </div>
-                      <div className="text-[11px] text-gold-400 font-bold flex items-center gap-1 mt-0.5">
+                      <div className={`text-[11px] font-bold flex items-center gap-1 mt-0.5 ${
+                        isEyeCare ? 'text-gold-400' : 'text-amber-800'
+                      }`}>
                         <span>{calculateStudentLevel(student.points, levelConfigs[getStreamId(student.courseKey, student.levelKey)] || getDefaultStreamLevels(getStreamId(student.courseKey, student.levelKey))).badge}</span>
                         <span>Level {calculateStudentLevel(student.points, levelConfigs[getStreamId(student.courseKey, student.levelKey)] || getDefaultStreamLevels(getStreamId(student.courseKey, student.levelKey))).currentLevelNumber} — {calculateStudentLevel(student.points, levelConfigs[getStreamId(student.courseKey, student.levelKey)] || getDefaultStreamLevels(getStreamId(student.courseKey, student.levelKey))).currentLevelName}</span>
                       </div>
-                      <div className="text-xs text-slate-400 sm:hidden">
+                      <div className={`text-xs font-semibold sm:hidden ${isEyeCare ? 'text-slate-400' : 'text-slate-600'}`}>
                         {student.progressPct}% ({student.completedCount} chs)
                       </div>
                     </div>
                   </div>
 
                   {/* Completed Chapters (Desktop) */}
-                  <div className="hidden sm:block col-span-3 text-xs text-slate-300">
-                    <span className="px-2.5 py-1 rounded-lg bg-navy-900 border border-white/10 font-semibold text-emerald-400">
+                  <div className="hidden sm:block col-span-3 text-xs">
+                    <span className={`px-2.5 py-1 rounded-lg border font-bold ${
+                      isEyeCare ? 'bg-navy-900 border-white/10 text-emerald-400' : 'bg-emerald-50 border-emerald-200 text-emerald-900 font-extrabold'
+                    }`}>
                       {student.completedCount} / {student.totalChapters} Chapters
                     </span>
                   </div>
 
                   {/* Syllabus Progress % (Desktop) */}
                   <div className="hidden sm:block col-span-2 text-center">
-                    <div className="text-sm font-bold text-emerald-400 font-mono">{student.progressPct}%</div>
-                    <div className="text-[11px] text-slate-400">Completion</div>
+                    <div className={`text-sm font-black font-mono ${isEyeCare ? 'text-emerald-400' : 'text-emerald-900'}`}>{student.progressPct}%</div>
+                    <div className={`text-[11px] font-bold ${isEyeCare ? 'text-slate-400' : 'text-slate-600'}`}>Completion</div>
                   </div>
 
                   {/* Points */}
                   <div className="col-span-4 sm:col-span-2 text-right">
-                    <div className="text-sm font-black text-gold-400 font-mono">
-                      {student.points || 0} <span className="text-xs font-normal text-slate-400">PTS</span>
+                    <div className={`text-sm font-black font-mono ${isEyeCare ? 'text-gold-400' : 'text-blue-700'}`}>
+                      {student.points || 0} <span className={`text-xs font-bold ${isEyeCare ? 'text-slate-400' : 'text-slate-600'}`}>PTS</span>
                     </div>
-                    <div className="text-xs text-slate-400">
+                    <div className={`text-xs font-bold ${isEyeCare ? 'text-slate-400' : 'text-slate-600'}`}>
                       {formatHours(student.studyHours || 0)} study
                     </div>
                   </div>

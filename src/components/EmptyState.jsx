@@ -1,5 +1,6 @@
 import React from 'react';
 import { Inbox } from 'lucide-react';
+import { useTheme } from '../contexts/ThemeContext';
 
 export default function EmptyState({ 
   icon: Icon = Inbox, 
@@ -8,17 +9,27 @@ export default function EmptyState({
   actionText,
   onAction
 }) {
+  const { isEyeCare } = useTheme();
+
   return (
-    <div className="flex flex-col items-center justify-center text-center p-8 rounded-2xl glass-card border border-white/5 my-4">
-      <div className="w-14 h-14 rounded-2xl bg-royal-500/10 border border-royal-500/20 flex items-center justify-center text-royal-500 mb-4 shadow-glow-blue">
+    <div className={`flex flex-col items-center justify-center text-center p-8 rounded-2xl border my-4 ${
+      isEyeCare ? 'glass-card border-white/5' : 'bg-white border-blue-200 shadow-sm'
+    }`}>
+      <div className={`w-14 h-14 rounded-2xl border flex items-center justify-center mb-4 ${
+        isEyeCare ? 'bg-royal-500/10 border-royal-500/20 text-royal-400 shadow-glow-blue' : 'bg-blue-50 border-blue-200 text-blue-700'
+      }`}>
         <Icon className="w-7 h-7" />
       </div>
-      <h3 className="text-lg font-semibold text-slate-100 mb-1">{title}</h3>
-      <p className="text-sm text-slate-400 max-w-sm mb-6">{description}</p>
+      <h3 className={`text-lg font-black mb-1 ${
+        isEyeCare ? 'text-slate-100' : 'text-slate-950 font-black'
+      }`}>{title}</h3>
+      <p className={`text-sm max-w-sm mb-6 font-semibold ${
+        isEyeCare ? 'text-slate-400' : 'text-slate-600'
+      }`}>{description}</p>
       {actionText && onAction && (
         <button
           onClick={onAction}
-          className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-royal-600 to-royal-500 hover:from-royal-500 hover:to-royal-600 text-white font-medium text-sm transition-all duration-200 shadow-glow-blue"
+          className="px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm transition-all duration-200 shadow-md"
         >
           {actionText}
         </button>

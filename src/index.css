@@ -87,16 +87,34 @@
 .dashboard-theme-light {
   background-color: #f0f7ff !important;
   color: #0f172a !important;
+  font-weight: 500;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
-/* 1. Dashboard Surfaces & Cards: Clean White with Crisp Light Blue Border */
+/* 1. Dashboard Surfaces & Cards: Clean Crisp White, Clear Blue Borders, No Dark Gradient Bleed */
 .dashboard-theme-light .glass-card,
 .dashboard-theme-light [class*="bg-navy-900"],
 .dashboard-theme-light [class*="bg-navy-850"] {
   background-color: #ffffff !important;
+  background-image: none !important;
   border-color: #bfdbfe !important;
-  box-shadow: 0 4px 16px -2px rgba(37, 99, 235, 0.07), 0 2px 6px rgba(0, 0, 0, 0.02) !important;
+  box-shadow: 0 4px 16px -2px rgba(37, 99, 235, 0.08), 0 2px 6px rgba(0, 0, 0, 0.02) !important;
   color: #0f172a !important;
+}
+
+/* Strip dark gradients on cards in light mode (e.g. from-navy-*, from-slate-900, etc.) */
+.dashboard-theme-light .glass-card[class*="from-"],
+.dashboard-theme-light [class*="from-navy-"],
+.dashboard-theme-light [class*="from-royal-950"],
+.dashboard-theme-light [class*="from-slate-900"],
+.dashboard-theme-light [class*="from-slate-950"],
+.dashboard-theme-light [class*="from-indigo-950"],
+.dashboard-theme-light [class*="from-amber-950"],
+.dashboard-theme-light [class*="from-purple-950"] {
+  background-image: none !important;
+  background-color: #ffffff !important;
+  border-color: #bfdbfe !important;
 }
 
 .dashboard-theme-light .glass-card-hover:hover {
@@ -132,7 +150,55 @@
   border-color: #e2e8f0 !important;
 }
 
-/* 2. All Headings & Titles: Dark Navy Bold / Extrabold */
+/* 2. Global Font-Weight Enforcement: No Thin, Faded, or Washed-out Text Anywhere */
+.dashboard-theme-light .font-thin,
+.dashboard-theme-light .font-extralight,
+.dashboard-theme-light .font-light {
+  font-weight: 500 !important;
+}
+
+.dashboard-theme-light .font-normal {
+  font-weight: 600 !important;
+}
+
+.dashboard-theme-light .font-medium {
+  font-weight: 600 !important;
+}
+
+.dashboard-theme-light .font-semibold {
+  font-weight: 700 !important;
+}
+
+.dashboard-theme-light .font-bold {
+  font-weight: 800 !important;
+}
+
+.dashboard-theme-light .font-extrabold,
+.dashboard-theme-light .font-black {
+  font-weight: 900 !important;
+}
+
+/* Small text & labels: Guaranteed crispness and legibility */
+.dashboard-theme-light .text-\[9px\],
+.dashboard-theme-light .text-\[10px\],
+.dashboard-theme-light .text-\[11px\],
+.dashboard-theme-light .text-\[12px\],
+.dashboard-theme-light .text-xs {
+  font-weight: 700 !important;
+}
+
+.dashboard-theme-light .text-sm {
+  font-weight: 600 !important;
+}
+
+/* Reset opacity on text so nothing looks washed out */
+.dashboard-theme-light [class*="text-slate-"][class*="opacity-"],
+.dashboard-theme-light [class*="text-gray-"][class*="opacity-"],
+.dashboard-theme-light [class*="text-white"][class*="opacity-"] {
+  opacity: 1 !important;
+}
+
+/* 3. All Headings & Titles: Dark Navy Bold / Extrabold (#0f172a) */
 .dashboard-theme-light h1:not([class*="gradient"]):not([class*="bg-"]):not(button *):not(a[class*="bg-"] *),
 .dashboard-theme-light h2:not([class*="gradient"]):not([class*="bg-"]):not(button *):not(a[class*="bg-"] *),
 .dashboard-theme-light h3:not([class*="gradient"]):not([class*="bg-"]):not(button *):not(a[class*="bg-"] *),
@@ -144,19 +210,8 @@
   letter-spacing: -0.015em;
 }
 
-/* 3. Text Contrast & Typography Hierarchy (No Faded Gray or Pale Mint) */
-/* Emerald/Teal Completed Items & Accents */
-.dashboard-theme-light .text-emerald-200,
-.dashboard-theme-light .text-emerald-300,
-.dashboard-theme-light .text-emerald-400,
-.dashboard-theme-light .text-teal-200,
-.dashboard-theme-light .text-teal-300,
-.dashboard-theme-light .text-teal-400 {
-  color: #047857 !important;
-  font-weight: 800 !important;
-}
-
-/* Slate/Gray/Zinc Hierarchy */
+/* 4. Text Contrast & Typography Hierarchy (Professional Dark Navy & Slate) */
+/* Slate/Gray/Zinc Hierarchy - Strong High Contrast */
 .dashboard-theme-light .text-slate-100,
 .dashboard-theme-light .text-slate-200,
 .dashboard-theme-light .text-zinc-100,
@@ -175,10 +230,14 @@
 }
 
 .dashboard-theme-light .text-slate-400,
-.dashboard-theme-light .text-slate-500,
 .dashboard-theme-light .text-zinc-400,
+.dashboard-theme-light .text-gray-400 {
+  color: #1e293b !important;
+  font-weight: 600 !important;
+}
+
+.dashboard-theme-light .text-slate-500,
 .dashboard-theme-light .text-zinc-500,
-.dashboard-theme-light .text-gray-400,
 .dashboard-theme-light .text-gray-500 {
   color: #334155 !important;
   font-weight: 600 !important;
@@ -189,10 +248,16 @@
   font-weight: 600 !important;
 }
 
+.dashboard-theme-light .text-slate-700 {
+  color: #0f172a !important;
+  font-weight: 700 !important;
+}
+
 /* Paragraphs & helper text */
 .dashboard-theme-light p:not(button *):not(a[class*="bg-"] *):not([class*="bg-blue-600"] *):not([class*="bg-red-600"] *) {
-  color: #334155 !important;
+  color: #1e293b !important;
   font-weight: 500 !important;
+  line-height: 1.5;
 }
 
 /* White Text In Light Mode -> Solid Dark Navy (Outside of Solid Colored Buttons/Badges) */
@@ -201,13 +266,13 @@
   font-weight: 800 !important;
 }
 
-/* 4. Section Subheadings & Uppercase Tracking Labels */
+/* 5. Section Subheadings & Uppercase Tracking Labels */
 .dashboard-theme-light [class*="uppercase"][class*="tracking-"]:not(button *):not(a[class*="bg-"] *):not([class*="text-red-"]):not([class*="text-emerald-"]):not([class*="text-amber-"]):not([class*="bg-"]) {
   color: #1e3a8a !important;
   font-weight: 800 !important;
 }
 
-/* 5. Calendar Section Text Visibility */
+/* 6. Calendar Section Text Visibility */
 .dashboard-theme-light .grid-cols-7 > div {
   font-weight: 700;
 }
@@ -220,7 +285,7 @@
   font-weight: 900 !important;
 }
 
-/* 6. Tables & Data Lists (Leaderboard, Syllabus, Revision, Students, Quizzes, Logs) */
+/* 7. Tables & Data Lists (Leaderboard, Syllabus, Revision, Students, Quizzes, Logs) */
 .dashboard-theme-light th,
 .dashboard-theme-light [class*="grid-cols-"][class*="uppercase"] {
   color: #0f172a !important;
@@ -232,10 +297,10 @@
   font-weight: 600 !important;
 }
 
-/* 7. Navigation & Menu Text (Sidebar & Header) */
+/* 8. Navigation & Menu Text (Sidebar & Header) */
 .dashboard-theme-light aside nav button:not([class*="bg-emerald-600"]):not([class*="bg-blue-600"]) span,
 .dashboard-theme-light aside nav a:not([class*="bg-blue-600"]) span {
-  color: #334155 !important;
+  color: #1e293b !important;
   font-weight: 700 !important;
 }
 .dashboard-theme-light aside nav button:hover span,
@@ -244,7 +309,7 @@
   font-weight: 800 !important;
 }
 
-/* 8. Forms, Inputs, Selects, Dropdowns, and Modals */
+/* 9. Forms, Inputs, Selects, Dropdowns, and Modals */
 .dashboard-theme-light input,
 .dashboard-theme-light select,
 .dashboard-theme-light textarea {
@@ -264,7 +329,19 @@
   font-weight: 700 !important;
 }
 
-/* 9. Accent & Color Accents on Light Surfaces (Bold and High Contrast) */
+/* 10. Accent Colors on Light Surfaces (Deep, High Contrast) */
+.dashboard-theme-light .text-emerald-200,
+.dashboard-theme-light .text-emerald-300,
+.dashboard-theme-light .text-emerald-400,
+.dashboard-theme-light .text-teal-200,
+.dashboard-theme-light .text-teal-300,
+.dashboard-theme-light .text-teal-400,
+.dashboard-theme-light .text-green-300,
+.dashboard-theme-light .text-green-400 {
+  color: #047857 !important;
+  font-weight: 800 !important;
+}
+
 .dashboard-theme-light .text-gold-200,
 .dashboard-theme-light .text-gold-300,
 .dashboard-theme-light .text-gold-400,
@@ -283,12 +360,23 @@
 .dashboard-theme-light .text-purple-200,
 .dashboard-theme-light .text-purple-300,
 .dashboard-theme-light .text-sky-200,
-.dashboard-theme-light .text-sky-300 {
+.dashboard-theme-light .text-sky-300,
+.dashboard-theme-light .text-blue-300,
+.dashboard-theme-light .text-blue-400 {
   color: #1d4ed8 !important;
   font-weight: 700 !important;
 }
 
-/* 10. Checklist Rows & Badges in Light Mode */
+.dashboard-theme-light .text-rose-200,
+.dashboard-theme-light .text-rose-300,
+.dashboard-theme-light .text-rose-400,
+.dashboard-theme-light .text-red-300,
+.dashboard-theme-light .text-red-400 {
+  color: #be123c !important;
+  font-weight: 800 !important;
+}
+
+/* 11. Checklist Rows & Badges in Light Mode */
 .dashboard-theme-light div[class*="bg-emerald-500\/10"] {
   background-color: #ecfdf5 !important;
   border-color: #a7f3d0 !important;
@@ -317,16 +405,16 @@
   font-weight: 800 !important;
 }
 
-/* 11. Admin Panel Specific Readability */
+/* 12. Admin Panel Specific Readability */
 .dashboard-theme-light.bg-navy-950 .glass-card {
   border-color: #bfdbfe !important;
 }
 .dashboard-theme-light aside .text-white {
   color: #0f172a !important;
-  font-weight: 700 !important;
+  font-weight: 800 !important;
 }
 .dashboard-theme-light aside .text-slate-400 {
-  color: #475569 !important;
+  color: #1e293b !important;
   font-weight: 600 !important;
 }
 

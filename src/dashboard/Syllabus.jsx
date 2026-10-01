@@ -485,33 +485,35 @@ export default function Syllabus() {
     <div className="space-y-8">
       {/* Top Hub Navigation (Tab Switcher) */}
       <div className="flex justify-center mb-6 pt-2">
-        <div className="bg-navy-900/50 p-1.5 rounded-2xl border border-white/5 flex gap-2 w-full max-w-sm relative">
+        <div className={`p-1.5 rounded-2xl border flex gap-2 w-full max-w-sm relative ${
+          isEyeCare ? 'bg-navy-900/50 border-white/5' : 'bg-white border-blue-200 shadow-sm'
+        }`}>
           <button
             onClick={() => setActiveTab('syllabus')}
             className={`flex-1 py-3 px-4 rounded-xl font-bold text-sm transition-all duration-300 flex items-center justify-center gap-2 relative ${
               activeTab === 'syllabus' 
-                ? 'text-white bg-royal-500/20 shadow-glow-royal' 
-                : 'text-slate-400 hover:text-white hover:bg-white/5'
+                ? (isEyeCare ? 'text-white bg-royal-500/20 shadow-glow-royal' : 'text-blue-950 bg-blue-100 border border-blue-300 font-black shadow-sm')
+                : (isEyeCare ? 'text-slate-400 hover:text-white hover:bg-white/5' : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100')
             }`}
           >
-            <BookOpen className={`w-4 h-4 ${activeTab === 'syllabus' ? 'text-royal-400' : ''}`} />
+            <BookOpen className={`w-4 h-4 ${activeTab === 'syllabus' ? (isEyeCare ? 'text-royal-400' : 'text-blue-700') : ''}`} />
             <span>Syllabus</span>
             {activeTab === 'syllabus' && (
-              <div className="absolute inset-0 rounded-xl border border-royal-500/30"></div>
+              <div className={`absolute inset-0 rounded-xl border ${isEyeCare ? 'border-royal-500/30' : 'border-blue-300'}`}></div>
             )}
           </button>
           <button
             onClick={() => setActiveTab('levels')}
             className={`flex-1 py-3 px-4 rounded-xl font-bold text-sm transition-all duration-300 flex items-center justify-center gap-2 relative ${
               activeTab === 'levels' 
-                ? 'text-white bg-gold-500/20 shadow-glow-gold' 
-                : 'text-slate-400 hover:text-white hover:bg-white/5'
+                ? (isEyeCare ? 'text-white bg-gold-500/20 shadow-glow-gold' : 'text-amber-950 bg-amber-100 border border-amber-300 font-black shadow-sm')
+                : (isEyeCare ? 'text-slate-400 hover:text-white hover:bg-white/5' : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100')
             }`}
           >
-            <Trophy className={`w-4 h-4 ${activeTab === 'levels' ? 'text-gold-400' : ''}`} />
+            <Trophy className={`w-4 h-4 ${activeTab === 'levels' ? (isEyeCare ? 'text-gold-400' : 'text-amber-700') : ''}`} />
             <span>Levels</span>
             {activeTab === 'levels' && (
-              <div className="absolute inset-0 rounded-xl border border-gold-500/30"></div>
+              <div className={`absolute inset-0 rounded-xl border ${isEyeCare ? 'border-gold-500/30' : 'border-amber-300'}`}></div>
             )}
           </button>
         </div>
@@ -519,29 +521,37 @@ export default function Syllabus() {
 
       {activeTab === 'syllabus' ? (
         <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-{/* Top Banner Header */}
-      <div className="p-6 sm:p-8 rounded-3xl glass-card border border-emerald-500/30 relative overflow-hidden shadow-2xl">
+      {/* Top Banner Header */}
+      <div className={`p-6 sm:p-8 rounded-3xl border relative overflow-hidden shadow-2xl ${
+        isEyeCare ? 'glass-card border-emerald-500/30' : 'bg-white border-blue-200 shadow-md'
+      }`}>
         <div className="absolute top-0 right-0 w-80 h-80 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
         <div className="relative z-10 space-y-3">
           <div className="flex flex-wrap items-center gap-2">
-            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-400 text-xs font-bold border border-emerald-500/40">
+            <div className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-black border ${
+              isEyeCare ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/40' : 'bg-emerald-100 text-emerald-900 border-emerald-300'
+            }`}>
               <BookOpenCheck className="w-3.5 h-3.5" />
               <span>Official Dynamic Syllabus</span>
             </div>
-            <span className="px-3 py-1 rounded-full bg-royal-500/20 text-royal-300 text-xs font-bold border border-royal-500/30">
+            <span className={`px-3 py-1 rounded-full text-xs font-black border ${
+              isEyeCare ? 'bg-royal-500/20 text-royal-300 border-royal-500/30' : 'bg-blue-100 text-blue-900 border-blue-300'
+            }`}>
               {courseKey} • {levelKey}
             </span>
-            <span className="px-3 py-1 rounded-full bg-gold-500/20 text-gold-400 text-xs font-bold border border-gold-500/30 flex items-center gap-1">
-              <Calendar className="w-3 h-3 text-gold-400" />
+            <span className={`px-3 py-1 rounded-full text-xs font-black border flex items-center gap-1 ${
+              isEyeCare ? 'bg-gold-500/20 text-gold-400 border-gold-500/30' : 'bg-amber-100 text-amber-900 border-amber-300'
+            }`}>
+              <Calendar className="w-3 h-3 text-amber-600" />
               <span>{attempt} Attempt</span>
             </span>
           </div>
 
-          <h1 className="text-2xl sm:text-3xl font-extrabold text-white">
+          <h1 className={`text-2xl sm:text-3xl font-black ${isEyeCare ? 'text-white' : 'text-slate-950 font-black'}`}>
             {courseKey} {levelKey} <span className="gold-gradient-text">Academic Syllabus</span>
           </h1>
-          <p className="text-slate-300 text-sm max-w-2xl">
-            Track your chapter-by-chapter preparation. Tick completed chapters to gain <strong>Reward Points</strong> and boost your live rank on the leaderboard!
+          <p className={`text-sm max-w-2xl font-semibold ${isEyeCare ? 'text-slate-300' : 'text-slate-700'}`}>
+            Track your chapter-by-chapter preparation. Tick completed chapters to gain <strong className={isEyeCare ? 'text-white' : 'text-slate-950'}>Reward Points</strong> and boost your live rank on the leaderboard!
           </p>
         </div>
       </div>
@@ -550,33 +560,45 @@ export default function Syllabus() {
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         
         {/* Main Progress Chart & Overview */}
-        <div className="lg:col-span-7 p-6 sm:p-8 rounded-3xl glass-card border border-white/10 space-y-6 shadow-xl">
-          <div className="flex items-center justify-between border-b border-white/10 pb-4">
-            <h3 className="text-lg font-bold text-white flex items-center gap-2">
-              <BarChart3 className="w-5 h-5 text-emerald-400" />
+        <div className={`lg:col-span-7 p-6 sm:p-8 rounded-3xl border space-y-6 shadow-xl ${
+          isEyeCare ? 'glass-card border-white/10' : 'bg-white border-blue-200 shadow-md'
+        }`}>
+          <div className={`flex items-center justify-between border-b pb-4 ${
+            isEyeCare ? 'border-white/10' : 'border-slate-200'
+          }`}>
+            <h3 className={`text-lg font-black flex items-center gap-2 ${
+              isEyeCare ? 'text-white' : 'text-slate-950 font-black'
+            }`}>
+              <BarChart3 className="w-5 h-5 text-emerald-500" />
               <span>Syllabus Progress Analytics</span>
             </h3>
-            <span className="text-2xl font-black text-emerald-400 font-mono">
+            <span className={`text-2xl font-black font-mono ${
+              isEyeCare ? 'text-emerald-400' : 'text-emerald-700'
+            }`}>
               {completionPercentage}%
             </span>
           </div>
 
           {/* Progress Bar & Percentage */}
           <div className="space-y-3">
-            <div className="flex items-center justify-between text-xs font-bold">
-              <span className="text-slate-300 uppercase tracking-wider">Overall Completion</span>
-              <span className="text-emerald-400">{completedChaptersCount} / {totalChaptersCount} Chapters</span>
+            <div className="flex items-center justify-between text-xs font-black">
+              <span className={`uppercase tracking-wider ${isEyeCare ? 'text-slate-300' : 'text-slate-700 font-extrabold'}`}>Overall Completion</span>
+              <span className={isEyeCare ? 'text-emerald-400' : 'text-emerald-700 font-black'}>{completedChaptersCount} / {totalChaptersCount} Chapters</span>
             </div>
             
             {/* Visual Bar */}
-            <div className="w-full bg-navy-950 rounded-full h-4 overflow-hidden p-0.5 border border-white/10">
+            <div className={`w-full rounded-full h-4 overflow-hidden p-0.5 border ${
+              isEyeCare ? 'bg-navy-950 border-white/10' : 'bg-slate-200 border-slate-300'
+            }`}>
               <div 
                 className="bg-gradient-to-r from-emerald-500 via-teal-400 to-gold-400 h-full rounded-full transition-all duration-500 shadow-glow-emerald"
                 style={{ width: `${completionPercentage}%` }}
               />
             </div>
 
-            <div className="text-xs text-slate-400 flex items-center justify-between pt-1 font-mono">
+            <div className={`text-xs flex items-center justify-between pt-1 font-mono font-bold ${
+              isEyeCare ? 'text-slate-400' : 'text-slate-600'
+            }`}>
               <span>0%</span>
               <span>50%</span>
               <span>100%</span>
@@ -585,41 +607,71 @@ export default function Syllabus() {
 
           {/* 4 Analytics Metric Cards */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-2">
-            <div className="p-3.5 rounded-2xl bg-navy-900/60 border border-white/5 space-y-1">
-              <div className="text-[11px] font-bold text-slate-400 uppercase">Chapters & Units</div>
-              <div className="text-base sm:text-xl font-black text-white">
-                {totalChaptersCount} <span className="text-xs text-slate-400 font-normal">Ch</span>
-                {totalUnitsCount > 0 && <span className="text-xs text-royal-400 ml-1 font-mono font-bold">• {totalUnitsCount} Units</span>}
+            <div className={`p-3.5 rounded-2xl border space-y-1 ${
+              isEyeCare ? 'bg-navy-900/60 border-white/5' : 'bg-blue-50/70 border-blue-200'
+            }`}>
+              <div className={`text-[11px] font-bold uppercase ${
+                isEyeCare ? 'text-slate-400' : 'text-blue-900 font-bold'
+              }`}>Chapters & Units</div>
+              <div className={`text-base sm:text-xl font-black ${
+                isEyeCare ? 'text-white' : 'text-slate-950 font-black'
+              }`}>
+                {totalChaptersCount} <span className={`text-xs font-semibold ${isEyeCare ? 'text-slate-400' : 'text-slate-600'}`}>Ch</span>
+                {totalUnitsCount > 0 && <span className={`text-xs ml-1 font-mono font-bold ${isEyeCare ? 'text-royal-400' : 'text-blue-700'}`}>• {totalUnitsCount} Units</span>}
               </div>
             </div>
 
-            <div className="p-3.5 rounded-2xl bg-navy-900/60 border border-white/5 space-y-1">
-              <div className="text-[11px] font-bold text-slate-400 uppercase">Completed</div>
-              <div className="text-base sm:text-xl font-black text-emerald-400">
-                {completedChaptersCount} <span className="text-xs text-slate-400 font-normal">Ch</span>
-                {completedUnitsCount > 0 && <span className="text-xs text-emerald-300 ml-1 font-mono font-bold">• {completedUnitsCount} Units</span>}
+            <div className={`p-3.5 rounded-2xl border space-y-1 ${
+              isEyeCare ? 'bg-navy-900/60 border-white/5' : 'bg-emerald-50/70 border-emerald-200'
+            }`}>
+              <div className={`text-[11px] font-bold uppercase ${
+                isEyeCare ? 'text-slate-400' : 'text-emerald-900 font-bold'
+              }`}>Completed</div>
+              <div className={`text-base sm:text-xl font-black ${
+                isEyeCare ? 'text-emerald-400' : 'text-emerald-800 font-black'
+              }`}>
+                {completedChaptersCount} <span className={`text-xs font-semibold ${isEyeCare ? 'text-slate-400' : 'text-slate-600'}`}>Ch</span>
+                {completedUnitsCount > 0 && <span className={`text-xs ml-1 font-mono font-bold ${isEyeCare ? 'text-emerald-300' : 'text-emerald-700'}`}>• {completedUnitsCount} Units</span>}
               </div>
             </div>
 
-            <div className="p-3.5 rounded-2xl bg-navy-900/60 border border-white/5 space-y-1">
-              <div className="text-[11px] font-bold text-slate-400 uppercase">Remaining</div>
-              <div className="text-base sm:text-xl font-black text-amber-400">{remainingChaptersCount} Ch</div>
+            <div className={`p-3.5 rounded-2xl border space-y-1 ${
+              isEyeCare ? 'bg-navy-900/60 border-white/5' : 'bg-amber-50/70 border-amber-200'
+            }`}>
+              <div className={`text-[11px] font-bold uppercase ${
+                isEyeCare ? 'text-slate-400' : 'text-amber-900 font-bold'
+              }`}>Remaining</div>
+              <div className={`text-base sm:text-xl font-black ${
+                isEyeCare ? 'text-amber-400' : 'text-amber-900 font-black'
+              }`}>{remainingChaptersCount} Ch</div>
             </div>
 
-            <div className="p-3.5 rounded-2xl bg-navy-900/60 border border-white/5 space-y-1">
-              <div className="text-[11px] font-bold text-slate-400 uppercase">Points Earned</div>
-              <div className="text-base sm:text-xl font-black text-gold-400 font-mono">+{pointsEarned} PTS</div>
+            <div className={`p-3.5 rounded-2xl border space-y-1 ${
+              isEyeCare ? 'bg-navy-900/60 border-white/5' : 'bg-blue-50/70 border-blue-200'
+            }`}>
+              <div className={`text-[11px] font-bold uppercase ${
+                isEyeCare ? 'text-slate-400' : 'text-blue-900 font-bold'
+              }`}>Points Earned</div>
+              <div className={`text-base sm:text-xl font-black font-mono ${
+                isEyeCare ? 'text-gold-400' : 'text-blue-800 font-black'
+              }`}>+{pointsEarned} PTS</div>
             </div>
           </div>
         </div>
 
         {/* Circular Progress */}
-        <div className="lg:col-span-5 p-6 sm:p-8 rounded-3xl glass-card border border-white/10 flex flex-col justify-between space-y-6 shadow-xl relative overflow-hidden">
+        <div className={`lg:col-span-5 p-6 sm:p-8 rounded-3xl border flex flex-col justify-between space-y-6 shadow-xl relative overflow-hidden ${
+          isEyeCare ? 'glass-card border-white/10' : 'bg-white border-blue-200 shadow-md'
+        }`}>
           <div className="absolute top-0 right-0 w-48 h-48 bg-gold-500/10 rounded-full blur-2xl pointer-events-none" />
           
           <div className="flex items-center justify-between">
-            <div className="text-xs font-bold uppercase tracking-wider text-slate-400">Completion Gauge</div>
-            <div className="px-2.5 py-1 rounded-full bg-gold-500/20 border border-gold-500/30 text-gold-400 text-xs font-black">
+            <div className={`text-xs font-black uppercase tracking-wider ${
+              isEyeCare ? 'text-slate-400' : 'text-slate-700'
+            }`}>Completion Gauge</div>
+            <div className={`px-2.5 py-1 rounded-full text-xs font-black border ${
+              isEyeCare ? 'bg-gold-500/20 border-gold-500/30 text-gold-400' : 'bg-amber-100 border-amber-300 text-amber-900'
+            }`}>
               {totalSyllabusPoints} TOTAL PTS MAX
             </div>
           </div>
@@ -628,7 +680,7 @@ export default function Syllabus() {
             <div className="relative w-36 h-36 flex items-center justify-center">
               {/* Circular Gauge SVG */}
               <svg className="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
-                <circle cx="50" cy="50" r="42" stroke="currentColor" strokeWidth="8" className="text-navy-900" fill="transparent" />
+                <circle cx="50" cy="50" r="42" stroke="currentColor" strokeWidth="8" className={isEyeCare ? 'text-navy-900' : 'text-slate-200'} fill="transparent" />
                 <circle cx="50" cy="50" r="42" stroke="url(#progressGradient)" strokeWidth="8" strokeDasharray={264} strokeDashoffset={264 - (264 * completionPercentage) / 100} strokeLinecap="round" className="transition-all duration-700 ease-out" fill="transparent" />
                 <defs>
                   <linearGradient id="progressGradient" x1="0%" y1="0%" x2="100%" y2="100%">
@@ -639,8 +691,12 @@ export default function Syllabus() {
               </svg>
 
               <div className="absolute flex flex-col items-center justify-center text-center">
-                <span className="text-2xl font-black text-white font-mono">{completionPercentage}%</span>
-                <span className="text-[10px] text-slate-400 font-bold uppercase">Syllabus</span>
+                <span className={`text-2xl font-black font-mono ${
+                  isEyeCare ? 'text-white' : 'text-slate-950 font-black'
+                }`}>{completionPercentage}%</span>
+                <span className={`text-[10px] font-bold uppercase ${
+                  isEyeCare ? 'text-slate-400' : 'text-slate-600'
+                }`}>Syllabus</span>
               </div>
             </div>
           </div>
@@ -650,8 +706,10 @@ export default function Syllabus() {
 
       {/* SUBJECT-WISE PROGRESS CARDS GRID */}
       <div className="space-y-4">
-        <h3 className="text-lg font-bold text-white flex items-center gap-2">
-          <Layers className="w-5 h-5 text-gold-400" />
+        <h3 className={`text-lg font-black flex items-center gap-2 ${
+          isEyeCare ? 'text-white' : 'text-slate-950 font-black'
+        }`}>
+          <Layers className="w-5 h-5 text-amber-500" />
           <span>Subject-Wise Progress Breakdown</span>
         </h3>
 
@@ -677,17 +735,25 @@ export default function Syllabus() {
             const subPct = subTotalItems > 0 ? Math.round((subCompletedItems / subTotalItems) * 100) : 0;
 
             return (
-              <div key={subObj.id} className="p-5 rounded-2xl glass-card border border-white/10 space-y-3 shadow-md">
+              <div key={subObj.id} className={`p-5 rounded-2xl border space-y-3 shadow-md ${
+                isEyeCare ? 'glass-card border-white/10' : 'bg-white border-blue-200 shadow-sm'
+              }`}>
                 <div className="flex items-center justify-between gap-3">
-                  <div className="font-bold text-white text-sm truncate">{subObj.subject}</div>
-                  <div className="text-xs font-black text-emerald-400 font-mono shrink-0">
+                  <div className={`font-black text-sm sm:text-base truncate ${
+                    isEyeCare ? 'text-white' : 'text-slate-950 font-black'
+                  }`}>{subObj.subject}</div>
+                  <div className={`text-xs font-black font-mono shrink-0 ${
+                    isEyeCare ? 'text-emerald-400' : 'text-emerald-800 font-black'
+                  }`}>
                     {subCompletedItems} / {subTotalItems} ({subPct}%)
                   </div>
                 </div>
 
-                <div className="w-full bg-navy-950 rounded-full h-2 overflow-hidden border border-white/5">
+                <div className={`w-full rounded-full h-2.5 overflow-hidden border ${
+                  isEyeCare ? 'bg-navy-950 border-white/5' : 'bg-slate-200 border-slate-300'
+                }`}>
                   <div 
-                    className="bg-gradient-to-r from-emerald-500 to-gold-400 h-full rounded-full transition-all duration-300"
+                    className="bg-gradient-to-r from-emerald-500 to-amber-500 h-full rounded-full transition-all duration-300"
                     style={{ width: `${subPct}%` }}
                   />
                 </div>
@@ -699,8 +765,10 @@ export default function Syllabus() {
 
       {/* CHAPTER-BY-CHAPTER TICK SYSTEM */}
       <div className="space-y-6">
-        <h3 className="text-lg font-bold text-white flex items-center gap-2">
-          <CheckCircle2 className="w-5 h-5 text-emerald-400" />
+        <h3 className={`text-lg font-black flex items-center gap-2 ${
+          isEyeCare ? 'text-white' : 'text-slate-950 font-black'
+        }`}>
+          <CheckCircle2 className="w-5 h-5 text-emerald-500" />
           <span>Detailed Chapter & Unit Completion Checklist</span>
         </h3>
 

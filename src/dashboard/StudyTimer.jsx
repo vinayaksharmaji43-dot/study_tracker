@@ -26,6 +26,7 @@ import {
 } from 'lucide-react';
 import CoachingStudyModal from '../components/CoachingStudyModal';
 import { isSubjectMatch, calculateTargetProgress } from '../utils/subjectMatcher';
+import { useTheme } from '../contexts/ThemeContext';
 
 function normalizeAttempt(att) {
   return (att || '').toLowerCase().replace(/\s+/g, '').replace('2027', '27');
@@ -50,6 +51,7 @@ function parseStream(userProfile) {
 
 export default function StudyTimer() {
   const { currentUser, userProfile } = useAuth();
+  const { isEyeCare } = useTheme();
   
   const [subjects, setSubjects] = useState([]);
   const [selectedSubject, setSelectedSubject] = useState('');
@@ -798,87 +800,131 @@ export default function StudyTimer() {
 
       {/* Compact Daily Progress Area */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <div className="p-4 rounded-3xl bg-navy-900 border border-white/5 flex flex-col gap-1">
-          <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Today's Study Time</span>
-          <span className="text-lg font-black text-white">{todayStats ? formatTimerTime(todayStats.totalStudySeconds) : '0h 00m 00s'}</span>
+        <div className={`p-4 rounded-3xl border flex flex-col gap-1 shadow-sm ${
+          isEyeCare ? 'bg-navy-900 border-white/5' : 'bg-white border-2 border-blue-200'
+        }`}>
+          <span className={`text-[10px] uppercase font-bold tracking-wider ${
+            isEyeCare ? 'text-slate-400' : 'text-slate-600 font-black'
+          }`}>Today's Study Time</span>
+          <span className={`text-lg font-black ${
+            isEyeCare ? 'text-white' : 'text-slate-950 font-black'
+          }`}>{todayStats ? formatTimerTime(todayStats.totalStudySeconds) : '0h 00m 00s'}</span>
         </div>
-        <div className="p-4 rounded-3xl bg-navy-900 border border-white/5 flex flex-col gap-1">
-          <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Today's Points</span>
-          <span className="text-lg font-black text-emerald-400">+{todayStats?.dailyStudyPoints || 0}</span>
-          <span className="text-[10px] font-semibold text-slate-500">
+        <div className={`p-4 rounded-3xl border flex flex-col gap-1 shadow-sm ${
+          isEyeCare ? 'bg-navy-900 border-white/5' : 'bg-white border-2 border-blue-200'
+        }`}>
+          <span className={`text-[10px] uppercase font-bold tracking-wider ${
+            isEyeCare ? 'text-slate-400' : 'text-slate-600 font-black'
+          }`}>Today's Points</span>
+          <span className={`text-lg font-black ${
+            isEyeCare ? 'text-emerald-400' : 'text-emerald-800 font-black'
+          }`}>+{todayStats?.dailyStudyPoints || 0}</span>
+          <span className={`text-[10px] font-bold ${
+            isEyeCare ? 'text-slate-500' : 'text-blue-800'
+          }`}>
             Next: {((todayStats?.completedFullHours || 0) + 1) === 6 ? '6 Hrs → +5' : ((todayStats?.completedFullHours || 0) + 1) > 6 ? `${(todayStats?.completedFullHours || 0) + 1} Hrs → +2` : '6 Hrs → +5'}
           </span>
         </div>
-        <div className="p-4 rounded-3xl bg-navy-900 border border-white/5 flex flex-col justify-between">
+        <div className={`p-4 rounded-3xl border flex flex-col justify-between shadow-sm ${
+          isEyeCare ? 'bg-navy-900 border-white/5' : 'bg-white border-2 border-blue-200'
+        }`}>
           <div className="flex items-center justify-between mb-0.5">
-            <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Subject Target</span>
+            <span className={`text-[10px] uppercase font-bold tracking-wider ${
+              isEyeCare ? 'text-slate-400' : 'text-slate-600 font-black'
+            }`}>Subject Target</span>
             {activeSubjectProgress && (
-              <span className={`text-[10px] font-black ${activeSubjectProgress.isEligible ? 'text-emerald-400' : 'text-gold-400'}`}>
+              <span className={`text-[10px] font-black ${activeSubjectProgress.isEligible ? (isEyeCare ? 'text-emerald-400' : 'text-emerald-800') : (isEyeCare ? 'text-gold-400' : 'text-blue-800')}`}>
                 {activeSubjectProgress.progressPct}%
               </span>
             )}
           </div>
           {activeSubjectTarget ? (
             <div className="space-y-1">
-              <span className="text-sm font-bold text-white truncate block" title={activeSubjectTarget.subject}>
+              <span className={`text-sm font-bold truncate block ${
+                isEyeCare ? 'text-white' : 'text-slate-950 font-black'
+              }`} title={activeSubjectTarget.subject}>
                 {activeSubjectTarget.targetValue || activeSubjectTarget.targetHours}h {activeSubjectTarget.subject}
               </span>
-              <div className="w-full bg-navy-950 h-1.5 rounded-full overflow-hidden border border-white/5">
+              <div className={`w-full h-1.5 rounded-full overflow-hidden border ${
+                isEyeCare ? 'bg-navy-950 border-white/5' : 'bg-slate-200 border-slate-300'
+              }`}>
                 <div 
-                  className={`h-full transition-all duration-300 ${activeSubjectProgress?.isEligible ? 'bg-emerald-400 shadow-glow-emerald' : 'bg-gold-500'}`}
+                  className={`h-full transition-all duration-300 ${activeSubjectProgress?.isEligible ? (isEyeCare ? 'bg-emerald-400 shadow-glow-emerald' : 'bg-emerald-600') : (isEyeCare ? 'bg-gold-500' : 'bg-blue-600')}`}
                   style={{ width: `${activeSubjectProgress?.progressPct || 0}%` }}
                 />
               </div>
-              <span className="text-[10px] font-medium text-slate-400 block truncate">
+              <span className={`text-[10px] font-bold block truncate ${
+                isEyeCare ? 'text-slate-400' : 'text-slate-600'
+              }`}>
                 {activeSubjectProgress?.studiedHuman} / {activeSubjectProgress?.targetHuman} • {activeSubjectProgress?.isEligible ? '🎯 Target Met!' : `${activeSubjectProgress?.remainingHuman} left`}
               </span>
             </div>
           ) : (
             <div className="space-y-0.5">
-              <span className="text-sm font-bold text-slate-400 truncate block">No Target for {selectedSubject || 'Subject'}</span>
-              <span className="text-[10px] font-semibold text-slate-500 block">Set in Daily Target and Test</span>
+              <span className={`text-sm font-bold truncate block ${
+                isEyeCare ? 'text-slate-400' : 'text-slate-700'
+              }`}>No Target for {selectedSubject || 'Subject'}</span>
+              <span className={`text-[10px] font-semibold block ${
+                isEyeCare ? 'text-slate-500' : 'text-slate-500'
+              }`}>Set in Daily Target and Test</span>
             </div>
           )}
         </div>
-        <div className="p-4 rounded-3xl bg-navy-900 border border-white/5 flex flex-col justify-between">
-          <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider mb-0.5">Target Status</span>
+        <div className={`p-4 rounded-3xl border flex flex-col justify-between shadow-sm ${
+          isEyeCare ? 'bg-navy-900 border-white/5' : 'bg-white border-2 border-blue-200'
+        }`}>
+          <span className={`text-[10px] uppercase font-bold tracking-wider mb-0.5 ${
+            isEyeCare ? 'text-slate-400' : 'text-slate-600 font-black'
+          }`}>Target Status</span>
           {activeSubjectTarget ? (
             <div className="space-y-0.5">
-              <span className={`text-sm font-bold flex items-center gap-1.5 ${activeSubjectProgress?.isEligible ? 'text-emerald-400' : 'text-amber-400'}`}>
+              <span className={`text-sm font-bold flex items-center gap-1.5 ${activeSubjectProgress?.isEligible ? (isEyeCare ? 'text-emerald-400' : 'text-emerald-800 font-black') : (isEyeCare ? 'text-amber-400' : 'text-amber-800 font-black')}`}>
                 {activeSubjectProgress?.isEligible ? '🎯 Ready to Complete' : '⏳ In Progress'}
               </span>
-              <span className="text-[10px] font-semibold text-slate-400">
-                Reward: <strong className="text-emerald-400">+3 Points</strong>
+              <span className={`text-[10px] font-semibold ${
+                isEyeCare ? 'text-slate-400' : 'text-slate-600 font-bold'
+              }`}>
+                Reward: <strong className={isEyeCare ? 'text-emerald-400' : 'text-emerald-800 font-black'}>+3 Points</strong>
               </span>
             </div>
           ) : todayTarget ? (
             <div className="space-y-0.5">
-              <span className={`text-sm font-bold ${todayTarget.status === 'completed' ? 'text-emerald-400' : 'text-amber-400'}`}>
+              <span className={`text-sm font-bold ${todayTarget.status === 'completed' ? (isEyeCare ? 'text-emerald-400' : 'text-emerald-800 font-black') : (isEyeCare ? 'text-amber-400' : 'text-amber-800 font-black')}`}>
                 {todayTarget.status === 'completed' ? '✅ Completed' : '⚠️ Pending'}
               </span>
-              <span className="text-[10px] font-semibold text-slate-500">Reward: +3 Points</span>
+              <span className={`text-[10px] font-semibold ${
+                isEyeCare ? 'text-slate-500' : 'text-slate-600 font-bold'
+              }`}>Reward: +3 Points</span>
             </div>
           ) : (
             <div className="space-y-0.5">
-              <span className="text-sm font-bold text-slate-500">-</span>
-              <span className="text-[10px] font-semibold text-slate-500">Reward: +3 Points</span>
+              <span className={`text-sm font-bold ${isEyeCare ? 'text-slate-500' : 'text-slate-500'}`}>-</span>
+              <span className={`text-[10px] font-semibold ${isEyeCare ? 'text-slate-500' : 'text-slate-500'}`}>Reward: +3 Points</span>
             </div>
           )}
         </div>
       </div>
 
       {/* Top Banner */}
-      <div className="p-6 sm:p-8 rounded-3xl glass-card border border-royal-500/30 relative overflow-hidden flex flex-col sm:flex-row sm:items-center justify-between gap-6">
+      <div className={`p-6 sm:p-8 rounded-3xl border relative overflow-hidden flex flex-col sm:flex-row sm:items-center justify-between gap-6 ${
+        isEyeCare ? 'glass-card border-royal-500/30' : 'bg-white border-2 border-blue-200 shadow-md'
+      }`}>
         <div className="absolute top-0 right-0 w-80 h-80 bg-royal-600/10 rounded-full blur-3xl pointer-events-none" />
         <div className="relative z-10 space-y-2">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-royal-500/20 text-royal-400 text-xs font-bold border border-royal-500/30">
+          <div className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold border ${
+            isEyeCare ? 'bg-royal-500/20 text-royal-400 border-royal-500/30' : 'bg-blue-100 text-blue-900 border-blue-300 font-extrabold'
+          }`}>
             <Clock className="w-3.5 h-3.5" />
             <span>Precision Session Tracker</span>
           </div>
-          <h1 className="text-2xl sm:text-3xl font-extrabold text-white">
-            Academic <span className="gold-gradient-text">Study Timer</span>
+          <h1 className={`text-2xl sm:text-3xl font-extrabold ${
+            isEyeCare ? 'text-white' : 'text-slate-950 font-black'
+          }`}>
+            Academic <span className={isEyeCare ? 'gold-gradient-text' : 'text-blue-700'}>Study Timer</span>
           </h1>
-          <p className="text-slate-300 text-sm max-w-2xl">
+          <p className={`text-sm max-w-2xl ${
+            isEyeCare ? 'text-slate-300' : 'text-slate-700 font-medium'
+          }`}>
             Select your subject, start the stopwatch, and log real study hours to gain verified points.
           </p>
         </div>
@@ -902,7 +948,11 @@ export default function StudyTimer() {
       {/* 🎓 COACHING STUDY TIME TRACKER CARD */}
       <div 
         onClick={() => setShowCoachingModal(true)}
-        className="p-4 sm:p-5 rounded-3xl bg-gradient-to-r from-indigo-950/70 via-navy-900 to-purple-950/70 border border-indigo-500/30 hover:border-indigo-500/60 shadow-xl hover:shadow-[0_0_30px_rgba(99,102,241,0.15)] transition-all cursor-pointer group relative overflow-hidden"
+        className={`p-4 sm:p-5 rounded-3xl border shadow-xl transition-all cursor-pointer group relative overflow-hidden ${
+          isEyeCare 
+            ? 'bg-gradient-to-r from-indigo-950/70 via-navy-900 to-purple-950/70 border-indigo-500/30 hover:border-indigo-500/60' 
+            : 'bg-white border-2 border-indigo-200 shadow-md hover:border-indigo-400'
+        }`}
       >
         <div className="absolute top-0 right-0 w-72 h-72 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none -mr-16 -mt-16"></div>
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 relative z-10">
@@ -912,20 +962,28 @@ export default function StudyTimer() {
             </div>
             <div>
               <div className="flex items-center gap-2 flex-wrap">
-                <h3 className="text-base font-black text-white group-hover:text-indigo-200 transition-colors">
+                <h3 className={`text-base font-black transition-colors ${
+                  isEyeCare ? 'text-white group-hover:text-indigo-200' : 'text-slate-950 group-hover:text-indigo-700'
+                }`}>
                   Coaching Study Time Tracker
                 </h3>
                 {userProfile?.coachingStudyAccess ? (
-                  <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center gap-1">
+                  <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider border flex items-center gap-1 ${
+                    isEyeCare ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30' : 'bg-emerald-100 text-emerald-900 border-emerald-300'
+                  }`}>
                     <CheckCircle2 className="w-2.5 h-2.5" /> Approved
                   </span>
                 ) : (
-                  <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-amber-500/20 text-amber-400 border border-amber-500/30 flex items-center gap-1">
+                  <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider border flex items-center gap-1 ${
+                    isEyeCare ? 'bg-amber-500/20 text-amber-400 border-amber-500/30' : 'bg-amber-100 text-amber-900 border-amber-300'
+                  }`}>
                     <Lock className="w-2.5 h-2.5" /> Approval Required
                   </span>
                 )}
               </div>
-              <p className="text-xs text-slate-300 mt-1 max-w-xl">
+              <p className={`text-xs mt-1 max-w-xl ${
+                isEyeCare ? 'text-slate-300' : 'text-slate-700 font-medium'
+              }`}>
                 Log your offline coaching lectures directly into daily study hours & earn milestone points.
               </p>
             </div>
@@ -945,15 +1003,21 @@ export default function StudyTimer() {
         
         {/* Left Column: Timer Controls */}
         <div className="lg:col-span-7 space-y-6">
-          <div className="p-8 rounded-3xl glass-card border border-white/10 text-center space-y-8 relative overflow-hidden shadow-2xl">
+          <div className={`p-8 rounded-3xl border text-center space-y-8 relative overflow-hidden shadow-2xl ${
+            isEyeCare ? 'glass-card border-white/10' : 'bg-white border-2 border-blue-200 shadow-md'
+          }`}>
             
             {/* Subject Selector */}
             <div className="space-y-2 max-w-md mx-auto">
-              <label className="block text-xs font-bold uppercase tracking-wider text-slate-400">
+              <label className={`block text-xs font-bold uppercase tracking-wider ${
+                isEyeCare ? 'text-slate-400' : 'text-slate-700 font-black'
+              }`}>
                 Select Subject for Timer Session
               </label>
               {loadingSubjects ? (
-                <div className="w-full py-3.5 px-4 rounded-2xl bg-navy-900 border border-white/15 text-slate-400 text-sm">
+                <div className={`w-full py-3.5 px-4 rounded-2xl border text-sm ${
+                  isEyeCare ? 'bg-navy-900 border-white/15 text-slate-400' : 'bg-slate-100 border-slate-300 text-slate-600 font-bold'
+                }`}>
                   Loading subjects...
                 </div>
               ) : subjects.length > 0 ? (
@@ -961,7 +1025,11 @@ export default function StudyTimer() {
                   value={selectedSubject}
                   disabled={isActive}
                   onChange={(e) => handleSubjectChange(e.target.value)}
-                  className="w-full py-3.5 px-4 rounded-2xl bg-navy-900 border border-white/15 text-white font-bold text-sm focus:outline-none focus:border-royal-500 cursor-pointer disabled:opacity-60"
+                  className={`w-full py-3.5 px-4 rounded-2xl border font-bold text-sm focus:outline-none cursor-pointer disabled:opacity-60 ${
+                    isEyeCare 
+                      ? 'bg-navy-900 border-white/15 text-white focus:border-royal-500' 
+                      : 'bg-white border-2 border-blue-300 text-slate-950 focus:border-blue-600 shadow-sm'
+                  }`}
                 >
                   {subjects.map((sub) => (
                     <option key={sub} value={sub}>{sub}</option>
@@ -979,13 +1047,17 @@ export default function StudyTimer() {
               <div className="inline-block relative">
                 {/* Glowing Ring */}
                 <div className={`absolute -inset-6 rounded-full blur-2xl transition-all duration-500 ${
-                  isActive ? 'bg-royal-500/25 scale-105' : 'bg-transparent'
+                  isActive ? (isEyeCare ? 'bg-royal-500/25 scale-105' : 'bg-blue-500/20 scale-105') : 'bg-transparent'
                 }`} />
 
-                <div className="relative z-10 font-mono text-6xl sm:text-7xl font-black tracking-tight text-white drop-shadow-lg">
+                <div className={`relative z-10 font-mono text-6xl sm:text-7xl font-black tracking-tight drop-shadow-sm ${
+                  isEyeCare ? 'text-white' : 'text-slate-950 font-black'
+                }`}>
                   {formatTimerTime(seconds)}
                 </div>
-                <div className="text-xs text-slate-400 mt-2 font-medium">
+                <div className={`text-xs mt-2 font-bold ${
+                  isEyeCare ? 'text-slate-400' : 'text-slate-600'
+                }`}>
                   {isActive ? 'Session Active — Time Recording...' : seconds > 0 ? 'Session Paused' : 'Ready to Start'}
                 </div>
               </div>
@@ -1020,12 +1092,14 @@ export default function StudyTimer() {
             )}
 
             {/* Timer Control Buttons */}
-            <div className="flex flex-wrap items-center justify-center gap-4 pt-4 border-t border-white/10">
+            <div className={`flex flex-wrap items-center justify-center gap-4 pt-4 border-t ${
+              isEyeCare ? 'border-white/10' : 'border-slate-200'
+            }`}>
               {!isActive ? (
                 <button
                   onClick={handleStart}
                   disabled={Boolean(todayDayOff) || subjects.length === 0}
-                  className="px-8 py-4 rounded-2xl bg-gradient-to-r from-royal-600 to-royal-500 hover:from-royal-500 hover:to-royal-600 text-white font-black text-base shadow-glow-blue hover:scale-105 transition-all flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="px-8 py-4 rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-black text-base shadow-md hover:scale-105 transition-all flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <Play className="w-5 h-5 fill-white" />
                   <span>{seconds > 0 ? 'Resume Session' : 'Start Session'}</span>
@@ -1033,9 +1107,9 @@ export default function StudyTimer() {
               ) : (
                 <button
                   onClick={handlePause}
-                  className="px-8 py-4 rounded-2xl bg-amber-500 hover:bg-amber-600 text-navy-950 font-black text-base shadow-glow-gold hover:scale-105 transition-all flex items-center gap-2"
+                  className="px-8 py-4 rounded-2xl bg-amber-500 hover:bg-amber-600 text-slate-950 font-black text-base shadow-md hover:scale-105 transition-all flex items-center gap-2"
                 >
-                  <Pause className="w-5 h-5 fill-navy-950" />
+                  <Pause className="w-5 h-5 fill-slate-950" />
                   <span>Pause Session</span>
                 </button>
               )}
@@ -1053,41 +1127,51 @@ export default function StudyTimer() {
             </div>
 
             {/* Your Timer Day Button */}
-            <div className="pt-5 border-t border-white/10 text-center">
+            <div className={`pt-5 border-t text-center ${
+              isEyeCare ? 'border-white/10' : 'border-slate-200'
+            }`}>
               <button
                 onClick={() => setShowTimerDayModal(true)}
-                className="w-full py-4 rounded-2xl bg-gradient-to-r from-purple-600/20 to-purple-500/20 hover:from-purple-600/30 hover:to-purple-500/30 border border-purple-500/30 text-purple-300 font-bold text-sm sm:text-base shadow-glow-purple hover:scale-[1.02] transition-all flex items-center justify-center gap-2"
+                className={`w-full py-4 rounded-2xl border font-bold text-sm sm:text-base hover:scale-[1.02] transition-all flex items-center justify-center gap-2 ${
+                  isEyeCare 
+                    ? 'bg-gradient-to-r from-purple-600/20 to-purple-500/20 hover:from-purple-600/30 hover:to-purple-500/30 border-purple-500/30 text-purple-300' 
+                    : 'bg-purple-50 hover:bg-purple-100 border-purple-200 text-purple-900 font-extrabold'
+                }`}
               >
                 <Calendar className="w-5 h-5" />
                 <span>Your Timer Day</span>
               </button>
             </div>
 
-            <div className="pt-5 border-t border-white/10 text-left">
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 rounded-2xl bg-amber-500/10 border border-amber-500/25 p-4">
+            <div className={`pt-5 border-t text-left ${
+              isEyeCare ? 'border-white/10' : 'border-slate-200'
+            }`}>
+              <div className={`flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 rounded-2xl p-4 border ${
+                isEyeCare ? 'bg-amber-500/10 border-amber-500/25' : 'bg-amber-50/80 border-amber-300'
+              }`}>
                 <div className="flex items-start gap-3">
-                  <ShieldCheck className="w-5 h-5 text-amber-400 mt-0.5 shrink-0" />
+                  <ShieldCheck className="w-5 h-5 text-amber-500 mt-0.5 shrink-0" />
                   <div>
-                    <div className="text-sm font-bold text-white">{todayDayOff ? 'Day Off Active' : 'Day Off'}</div>
-                    <div className="text-xs text-slate-300 mt-1">
+                    <div className={`text-sm font-black ${isEyeCare ? 'text-white' : 'text-slate-950'}`}>{todayDayOff ? 'Day Off Active' : 'Day Off'}</div>
+                    <div className={`text-xs mt-1 font-semibold ${isEyeCare ? 'text-slate-300' : 'text-slate-700'}`}>
                       {todayDayOff ? "You're all set for today. No study penalty will be applied." : `${dayOffsUsed}/7 used this month`}
                     </div>
-                    {todayDayOff && <div className="text-xs text-amber-300 mt-1">Day Offs used this month: {dayOffsUsed}/7</div>}
+                    {todayDayOff && <div className="text-xs text-amber-600 font-bold mt-1">Day Offs used this month: {dayOffsUsed}/7</div>}
                   </div>
                 </div>
                 {todayDayOff ? (
                   <button
                     onClick={() => { setDayOffError(''); setShowDayOnModal(true); }}
-                    className="shrink-0 px-4 py-2.5 rounded-xl bg-emerald-500/20 border border-emerald-400/40 text-emerald-300 text-xs font-black hover:bg-emerald-500/30 flex items-center gap-1.5 transition-all"
+                    className="shrink-0 px-4 py-2.5 rounded-xl bg-emerald-500/20 border border-emerald-400/40 text-emerald-800 text-xs font-black hover:bg-emerald-500/30 flex items-center gap-1.5 transition-all"
                   >
-                    <Zap className="w-3.5 h-3.5 text-emerald-400" />
+                    <Zap className="w-3.5 h-3.5 text-emerald-600" />
                     <span>Turn Day On</span>
                   </button>
                 ) : (
                   <button
                     onClick={() => { setDayOffError(''); setShowDayOffModal(true); }}
                     disabled={dayOffsUsed >= 7 || isActive}
-                    className="shrink-0 px-4 py-2.5 rounded-xl bg-amber-500/20 border border-amber-400/40 text-amber-200 text-xs font-black hover:bg-amber-500/30 disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="shrink-0 px-4 py-2.5 rounded-xl bg-amber-500/20 border border-amber-400/40 text-amber-900 text-xs font-black hover:bg-amber-500/30 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     {dayOffsUsed >= 7 ? 'Monthly limit reached (7/7)' : 'Take Day Off'}
                   </button>
@@ -1100,40 +1184,64 @@ export default function StudyTimer() {
 
         {/* Right Column: Today's Daily Study Summary */}
         <div className="lg:col-span-5 space-y-4">
-          <div className="p-6 sm:p-8 rounded-3xl glass-card border border-white/10 shadow-2xl relative overflow-hidden">
+          <div className={`p-6 sm:p-8 rounded-3xl border shadow-2xl relative overflow-hidden ${
+            isEyeCare ? 'glass-card border-white/10' : 'bg-white border-2 border-blue-200 shadow-md'
+          }`}>
              <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
              <div className="relative z-10 space-y-6">
                 <div className="flex items-center justify-between">
                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-xl bg-emerald-500/20 flex items-center justify-center text-emerald-400">
+                      <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${
+                        isEyeCare ? 'bg-emerald-500/20 text-emerald-400' : 'bg-blue-100 text-blue-700'
+                      }`}>
                          <BookOpen className="w-5 h-5" />
                       </div>
                       <div>
-                         <h3 className="text-lg font-bold text-white leading-tight">Today's Study</h3>
-                         <span className="text-[11px] font-bold text-emerald-400 tracking-wider uppercase">
+                         <h3 className={`text-lg font-black leading-tight ${
+                           isEyeCare ? 'text-white' : 'text-slate-950 font-black'
+                         }`}>Today's Study</h3>
+                         <span className={`text-[11px] font-black tracking-wider uppercase ${
+                           isEyeCare ? 'text-emerald-400' : 'text-blue-700'
+                         }`}>
                            {userProfile?.course || 'CA'} {userProfile?.level || 'Foundation'}
                          </span>
                       </div>
                    </div>
                 </div>
 
-                <div className="p-5 rounded-2xl bg-navy-900/60 border border-white/5 text-center space-y-1">
-                   <div className="text-3xl font-black text-white font-mono">{formatHm(todaySubjectTotals.totalSeconds)}</div>
-                   <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Total Stream Study Time</div>
+                <div className={`p-5 rounded-2xl border text-center space-y-1 ${
+                  isEyeCare ? 'bg-navy-900/60 border-white/5' : 'bg-blue-50/80 border-2 border-blue-200'
+                }`}>
+                   <div className={`text-3xl font-black font-mono ${
+                     isEyeCare ? 'text-white' : 'text-blue-900 font-black'
+                   }`}>{formatHm(todaySubjectTotals.totalSeconds)}</div>
+                   <div className={`text-[10px] font-black uppercase tracking-wider ${
+                     isEyeCare ? 'text-slate-400' : 'text-blue-800'
+                   }`}>Total Stream Study Time</div>
                 </div>
 
                 <div className="pt-2">
-                   <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4">Subjects Studied</h4>
+                   <h4 className={`text-xs font-bold uppercase tracking-wider mb-4 ${
+                     isEyeCare ? 'text-slate-400' : 'text-slate-700 font-black'
+                   }`}>Subjects Studied</h4>
                    {todaySubjectTotals.list.length === 0 ? (
-                      <div className="py-8 text-center text-slate-500 text-sm border border-white/5 rounded-2xl bg-white/5">
+                      <div className={`py-8 text-center text-sm border rounded-2xl ${
+                        isEyeCare ? 'text-slate-500 border-white/5 bg-white/5' : 'text-slate-600 border-slate-200 bg-slate-50 font-semibold'
+                      }`}>
                          You haven't recorded any sessions for today yet.
                       </div>
                    ) : (
                       <div className="space-y-3">
                          {todaySubjectTotals.list.map(([sub, dur]) => (
-                            <div key={sub} className="flex items-center justify-between p-3.5 rounded-2xl bg-navy-900/50 border border-white/5">
-                               <div className="font-semibold text-slate-300 text-sm truncate pr-4">{sub.split(':')[0]}</div>
-                               <div className="font-mono text-emerald-400 font-bold text-sm shrink-0">{formatHm(dur)}</div>
+                            <div key={sub} className={`flex items-center justify-between p-3.5 rounded-2xl border ${
+                              isEyeCare ? 'bg-navy-900/50 border-white/5' : 'bg-slate-50 border-slate-200'
+                            }`}>
+                               <div className={`font-bold text-sm truncate pr-4 ${
+                                 isEyeCare ? 'text-slate-300' : 'text-slate-900 font-bold'
+                               }`}>{sub.split(':')[0]}</div>
+                               <div className={`font-mono font-black text-sm shrink-0 ${
+                                 isEyeCare ? 'text-emerald-400' : 'text-emerald-800 font-black'
+                               }`}>{formatHm(dur)}</div>
                             </div>
                          ))}
                       </div>
@@ -1148,19 +1256,27 @@ export default function StudyTimer() {
       {/* Your Timer Day Modal */}
       {showTimerDayModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-navy-950/85 backdrop-blur-md">
-          <div className="glass-card w-full max-w-md max-h-[90vh] overflow-y-auto custom-scrollbar rounded-3xl border border-purple-500/30 shadow-2xl flex flex-col relative animate-in zoom-in-95 duration-200">
-            <div className="sticky top-0 bg-navy-900/95 backdrop-blur-md z-10 border-b border-white/10">
+          <div className={`w-full max-w-md max-h-[90vh] overflow-y-auto custom-scrollbar rounded-3xl border shadow-2xl flex flex-col relative animate-in zoom-in-95 duration-200 ${
+            isEyeCare ? 'glass-card border-purple-500/30' : 'bg-white border-2 border-purple-300'
+          }`}>
+            <div className={`sticky top-0 backdrop-blur-md z-10 border-b ${
+              isEyeCare ? 'bg-navy-900/95 border-white/10' : 'bg-white/95 border-slate-200'
+            }`}>
               <div className="p-6 flex items-center justify-between">
                 <div>
-                  <h2 className="text-xl font-black text-white flex items-center gap-2">
-                    <Calendar className="w-5 h-5 text-purple-400" />
+                  <h2 className={`text-xl font-black flex items-center gap-2 ${
+                    isEyeCare ? 'text-white' : 'text-slate-950'
+                  }`}>
+                    <Calendar className="w-5 h-5 text-purple-600" />
                     Your Timer Day
                   </h2>
-                  <p className="text-[11px] text-slate-400 font-medium uppercase tracking-wider mt-1">
+                  <p className={`text-[11px] font-bold uppercase tracking-wider mt-1 ${
+                    isEyeCare ? 'text-slate-400' : 'text-slate-600'
+                  }`}>
                     {userProfile?.course || 'CA'} {userProfile?.level || 'Foundation'}
                   </p>
                 </div>
-                <button onClick={() => setShowTimerDayModal(false)} className="w-8 h-8 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-slate-400 transition-colors">
+                <button onClick={() => setShowTimerDayModal(false)} className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-700 transition-colors">
                   <X className="w-4 h-4" />
                 </button>
               </div>
@@ -1169,17 +1285,17 @@ export default function StudyTimer() {
               <div className="px-6 pb-4 flex items-center justify-between">
                 <button 
                   onClick={() => setTimerDayDate(d => { const nd = new Date(d); nd.setDate(nd.getDate() - 1); return nd; })}
-                  className="px-3 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-slate-300 text-xs font-bold transition-colors"
+                  className="px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-bold transition-colors"
                 >
                   ← Prev Day
                 </button>
-                <div className="text-sm font-black text-gold-400">
+                <div className={`text-sm font-black ${isEyeCare ? 'text-gold-400' : 'text-blue-700'}`}>
                   {timerDayDate.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
                 </div>
                 <button 
                   onClick={() => setTimerDayDate(d => { const nd = new Date(d); nd.setDate(nd.getDate() + 1); return nd; })}
                   disabled={getDateKey(timerDayDate) >= getDateKey(new Date())}
-                  className="px-3 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-slate-300 text-xs font-bold transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                  className="px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-bold transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
                 >
                   Next Day →
                 </button>
@@ -1187,26 +1303,40 @@ export default function StudyTimer() {
             </div>
 
             <div className="p-6 space-y-6">
-              <div className="p-5 rounded-2xl bg-purple-500/10 border border-purple-500/20 text-center">
-                <div className="text-[10px] font-bold text-purple-300 uppercase tracking-wider mb-1">Total Study</div>
-                <div className="text-3xl font-black text-white font-mono">{formatHm(timerDayTotals.totalSeconds)}</div>
+              <div className={`p-5 rounded-2xl border text-center ${
+                isEyeCare ? 'bg-purple-500/10 border-purple-500/20' : 'bg-purple-50 border-purple-200'
+              }`}>
+                <div className={`text-[10px] font-black uppercase tracking-wider mb-1 ${
+                  isEyeCare ? 'text-purple-300' : 'text-purple-900'
+                }`}>Total Study</div>
+                <div className={`text-3xl font-black font-mono ${
+                  isEyeCare ? 'text-white' : 'text-purple-950'
+                }`}>{formatHm(timerDayTotals.totalSeconds)}</div>
               </div>
 
               <div>
-                <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">Subject-wise Study</h4>
+                <h4 className={`text-xs font-bold uppercase tracking-wider mb-3 ${
+                  isEyeCare ? 'text-slate-400' : 'text-slate-700'
+                }`}>Subject-wise Study</h4>
                 {timerDayTotals.list.length === 0 ? (
-                  <div className="p-8 text-center text-slate-500 text-sm border border-white/5 rounded-2xl bg-navy-900/50">
+                  <div className={`p-8 text-center text-sm border rounded-2xl ${
+                    isEyeCare ? 'text-slate-500 border-white/5 bg-navy-900/50' : 'text-slate-600 border-slate-200 bg-slate-50 font-semibold'
+                  }`}>
                     No study sessions recorded for this day.
                   </div>
                 ) : (
                   <div className="space-y-3">
                     {timerDayTotals.list.map(([sub, dur]) => (
-                      <div key={sub} className="flex flex-col p-4 rounded-2xl bg-navy-900/80 border border-white/5">
+                      <div key={sub} className={`flex flex-col p-4 rounded-2xl border ${
+                        isEyeCare ? 'bg-navy-900/80 border-white/5' : 'bg-slate-50 border-slate-200'
+                      }`}>
                         <div className="flex items-center gap-2 mb-2">
-                          <BookOpen className="w-4 h-4 text-royal-400" />
-                          <span className="font-bold text-white text-sm">{sub}</span>
+                          <BookOpen className="w-4 h-4 text-blue-600" />
+                          <span className={`font-bold text-sm ${isEyeCare ? 'text-white' : 'text-slate-950 font-bold'}`}>{sub}</span>
                         </div>
-                        <div className="font-mono text-emerald-400 font-bold text-sm">
+                        <div className={`font-mono font-bold text-sm ${
+                          isEyeCare ? 'text-emerald-400' : 'text-emerald-800 font-black'
+                        }`}>
                           {formatHm(dur)}
                         </div>
                       </div>
@@ -1220,28 +1350,38 @@ export default function StudyTimer() {
       )}
 
       {/* Rules Section */}
-      <div className="mt-8 p-6 sm:p-8 rounded-3xl bg-navy-900 border border-white/5 space-y-6">
-        <h2 className="text-xl font-extrabold text-white flex items-center gap-2">
-          <ShieldCheck className="w-6 h-6 text-royal-400" />
+      <div className={`mt-8 p-6 sm:p-8 rounded-3xl border space-y-6 ${
+        isEyeCare ? 'bg-navy-900 border-white/5' : 'bg-white border-2 border-blue-200 shadow-md'
+      }`}>
+        <h2 className={`text-xl font-extrabold flex items-center gap-2 ${
+          isEyeCare ? 'text-white' : 'text-slate-950 font-black'
+        }`}>
+          <ShieldCheck className="w-6 h-6 text-blue-600" />
           Study Timer Rules & Points System
         </h2>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {/* Rewards */}
           <div className="space-y-4">
-            <h3 className="text-sm font-bold text-emerald-400 flex items-center gap-2">
+            <h3 className={`text-sm font-black flex items-center gap-2 ${
+              isEyeCare ? 'text-emerald-400' : 'text-emerald-800'
+            }`}>
               <CheckCircle className="w-4 h-4" />
               Positive Points (Rewards)
             </h3>
-            <ul className="space-y-3 text-sm text-slate-300">
+            <ul className={`space-y-3 text-sm ${
+              isEyeCare ? 'text-slate-300' : 'text-slate-700 font-medium'
+            }`}>
               <li className="flex items-start gap-2">
-                <span className="text-emerald-400 mt-0.5">•</span>
+                <span className="text-emerald-600 mt-0.5">•</span>
                 <span><strong>6 Hours Complete:</strong> +5 Points (One-time daily milestone)</span>
               </li>
               <li className="flex items-start gap-2">
-                <span className="text-emerald-400 mt-0.5">•</span>
+                <span className="text-emerald-600 mt-0.5">•</span>
                 <span><strong>7+ Hours:</strong> +2 Points per additional hour</span>
               </li>
-              <li className="flex items-start gap-2 text-xs text-slate-400 mt-2">
+              <li className={`flex items-start gap-2 text-xs mt-2 ${
+                isEyeCare ? 'text-slate-400' : 'text-slate-600 font-medium'
+              }`}>
                 Note: Milestones (1-5 hours) give no points, only messages. Each timer session auto-stops at 5 hours; press Start again to continue. Streaks grow only on days with 4+ hours studied.
               </li>
             </ul>
@@ -1249,20 +1389,26 @@ export default function StudyTimer() {
           
           {/* Penalties */}
           <div className="space-y-4">
-            <h3 className="text-sm font-bold text-rose-400 flex items-center gap-2">
+            <h3 className={`text-sm font-black flex items-center gap-2 ${
+              isEyeCare ? 'text-rose-400' : 'text-rose-800'
+            }`}>
               <AlertTriangle className="w-4 h-4" />
               Negative Points (Penalties)
             </h3>
-            <ul className="space-y-3 text-sm text-slate-300">
+            <ul className={`space-y-3 text-sm ${
+              isEyeCare ? 'text-slate-300' : 'text-slate-700 font-medium'
+            }`}>
               <li className="flex items-start gap-2">
-                <span className="text-rose-400 mt-0.5">•</span>
+                <span className="text-rose-600 mt-0.5">•</span>
                 <span><strong>Missed Target:</strong> -3 Points per incomplete past target</span>
               </li>
               <li className="flex items-start gap-2">
-                <span className="text-rose-400 mt-0.5">•</span>
+                <span className="text-rose-600 mt-0.5">•</span>
                 <span><strong>Low Study Day:</strong> -3 Points if you study less than 4 hours in a day</span>
               </li>
-              <li className="flex items-start gap-2 text-xs text-slate-400 mt-2">
+              <li className={`flex items-start gap-2 text-xs mt-2 ${
+                isEyeCare ? 'text-slate-400' : 'text-slate-600 font-medium'
+              }`}>
                 Note: Penalties are checked and applied automatically when you log in the next day.
               </li>
             </ul>
@@ -1270,17 +1416,21 @@ export default function StudyTimer() {
 
           {/* Exemptions */}
           <div className="space-y-4">
-            <h3 className="text-sm font-bold text-amber-400 flex items-center gap-2">
+            <h3 className={`text-sm font-black flex items-center gap-2 ${
+              isEyeCare ? 'text-amber-400' : 'text-amber-800'
+            }`}>
               <ShieldCheck className="w-4 h-4" />
               Exemptions (Day Off)
             </h3>
-            <ul className="space-y-3 text-sm text-slate-300">
+            <ul className={`space-y-3 text-sm ${
+              isEyeCare ? 'text-slate-300' : 'text-slate-700 font-medium'
+            }`}>
               <li className="flex items-start gap-2">
-                <span className="text-amber-400 mt-0.5">•</span>
+                <span className="text-amber-600 mt-0.5">•</span>
                 <span><strong>No Penalty:</strong> If you mark a Day Off, you will not receive penalties for missed targets or low study hours.</span>
               </li>
               <li className="flex items-start gap-2">
-                <span className="text-amber-400 mt-0.5">•</span>
+                <span className="text-amber-600 mt-0.5">•</span>
                 <span><strong>Monthly Limit:</strong> You are allowed a maximum of 7 Day Offs per month.</span>
               </li>
             </ul>

@@ -36,6 +36,7 @@ import {
 } from 'lucide-react';
 import TestTracker from './TestTracker';
 import { isSubjectMatch, calculateTargetProgress, formatDurationHuman } from '../utils/subjectMatcher';
+import { useTheme } from '../contexts/ThemeContext';
 
 const CA_SUBJECTS = [
   'Paper 1: Accounting',
@@ -74,6 +75,7 @@ function parseStream(userProfile) {
 
 export default function Targets({ setActiveTab }) {
   const { currentUser, userProfile } = useAuth();
+  const { isEyeCare } = useTheme();
   const defaultSubjects = userProfile?.course === 'CMA' ? CMA_SUBJECTS : CA_SUBJECTS;
 
   const [hubTab, setHubTab] = useState('targets'); // 'targets', 'test_tracker'
@@ -466,14 +468,14 @@ export default function Targets({ setActiveTab }) {
   return (
     <div className="space-y-6">
       {/* Daily Target and Test Section Switcher */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-white/10 pb-4">
-        <div className="flex items-center gap-2 p-1.5 rounded-2xl glass-card border border-white/10">
+      <div className={`flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b pb-4 ${isEyeCare ? 'border-white/10' : 'border-slate-200'}`}>
+        <div className={`flex items-center gap-2 p-1.5 rounded-2xl border ${isEyeCare ? 'glass-card border-white/10' : 'bg-white border-slate-200 shadow-sm'}`}>
           <button
             onClick={() => setHubTab('targets')}
             className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-bold transition-all ${
               hubTab === 'targets'
-                ? 'bg-emerald-500 text-navy-950 font-black shadow-glow-emerald'
-                : 'text-slate-400 hover:text-white hover:bg-white/5'
+                ? 'bg-emerald-500 text-slate-950 font-black shadow-glow-emerald'
+                : isEyeCare ? 'text-slate-400 hover:text-white hover:bg-white/5' : 'text-slate-600 hover:text-slate-950 hover:bg-slate-100 font-bold'
             }`}
           >
             <Target className="w-4 h-4" />
@@ -485,7 +487,7 @@ export default function Targets({ setActiveTab }) {
             className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-bold transition-all ${
               hubTab === 'test_tracker'
                 ? 'bg-purple-600 text-white font-black shadow-glow-purple'
-                : 'text-slate-400 hover:text-white hover:bg-white/5'
+                : isEyeCare ? 'text-slate-400 hover:text-white hover:bg-white/5' : 'text-slate-600 hover:text-slate-950 hover:bg-slate-100 font-bold'
             }`}
           >
             <FileText className="w-4 h-4" />
@@ -495,15 +497,17 @@ export default function Targets({ setActiveTab }) {
 
         {/* Compact Test Summary Box */}
         {hubTab === 'targets' && (
-          <div className="flex items-center gap-3 p-3 rounded-2xl glass-card border border-purple-500/20 text-xs">
-            <div className="flex items-center gap-3 text-slate-300">
-              <div>Attempted: <strong className="text-white">{testSummary?.attempted ?? 0}</strong></div>
-              <div>Avg: <strong className="text-purple-300">{Number(testSummary?.avgScore || 0).toFixed(0)}%</strong></div>
-              <div>Best: <strong className="text-emerald-400">{Number(testSummary?.bestScore || 0).toFixed(0)}%</strong></div>
+          <div className={`flex items-center gap-3 p-3 rounded-2xl border text-xs ${
+            isEyeCare ? 'glass-card border-purple-500/20 text-slate-300' : 'bg-white border-purple-200 text-slate-700 shadow-sm'
+          }`}>
+            <div className={`flex items-center gap-3 ${isEyeCare ? 'text-slate-300' : 'text-slate-700 font-semibold'}`}>
+              <div>Attempted: <strong className={isEyeCare ? 'text-white' : 'text-slate-950 font-black'}>{testSummary?.attempted ?? 0}</strong></div>
+              <div>Avg: <strong className={isEyeCare ? 'text-purple-300' : 'text-purple-700 font-black'}>{Number(testSummary?.avgScore || 0).toFixed(0)}%</strong></div>
+              <div>Best: <strong className={isEyeCare ? 'text-emerald-400' : 'text-emerald-700 font-black'}>{Number(testSummary?.bestScore || 0).toFixed(0)}%</strong></div>
             </div>
             <button
               onClick={() => setHubTab('test_tracker')}
-              className="px-3 py-1.5 rounded-xl bg-purple-600 hover:bg-purple-500 text-white text-[11px] font-bold transition-all shadow-glow-purple cursor-pointer"
+              className="px-3 py-1.5 rounded-xl bg-purple-600 hover:bg-purple-500 text-white text-[11px] font-black transition-all shadow-glow-purple cursor-pointer"
             >
               View Tests →
             </button>
@@ -519,11 +523,11 @@ export default function Targets({ setActiveTab }) {
           {/* Header Section */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
-              <h1 className="text-2xl font-black text-white flex items-center gap-2">
-                <Target className="w-7 h-7 text-emerald-400" />
+              <h1 className={`text-2xl font-black flex items-center gap-2 ${isEyeCare ? 'text-white' : 'text-slate-950'}`}>
+                <Target className="w-7 h-7 text-emerald-500" />
                 Daily Subject Targets
               </h1>
-              <p className="text-sm text-slate-400 mt-1">
+              <p className={`text-sm mt-1 font-medium ${isEyeCare ? 'text-slate-400' : 'text-slate-600'}`}>
                 Connected strictly to your subject study timer. Fulfill your target on time to earn verified points!
               </p>
             </div>
@@ -531,15 +535,19 @@ export default function Targets({ setActiveTab }) {
             <div className="flex items-center gap-2.5">
               <button
                 onClick={() => setShowHistoryModal(true)}
-                className="px-4 py-2.5 rounded-xl bg-navy-900 hover:bg-navy-800 text-slate-300 border border-white/10 text-xs font-bold flex items-center gap-2 transition-all cursor-pointer"
+                className={`px-4 py-2.5 rounded-xl text-xs font-bold flex items-center gap-2 transition-all cursor-pointer ${
+                  isEyeCare 
+                    ? 'bg-navy-900 hover:bg-navy-800 text-slate-300 border border-white/10' 
+                    : 'bg-white hover:bg-slate-50 text-slate-800 border border-slate-200 shadow-sm'
+                }`}
               >
-                <History className="w-4 h-4 text-gold-400" />
+                <History className="w-4 h-4 text-amber-500" />
                 <span>Points History</span>
               </button>
 
               <button
                 onClick={() => setShowAddModal(true)}
-                className="px-5 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-navy-950 text-sm font-black flex items-center justify-center gap-2 transition-all shadow-glow-emerald cursor-pointer"
+                className="px-5 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-sm font-black flex items-center justify-center gap-2 transition-all shadow-glow-emerald cursor-pointer"
               >
                 <Plus className="w-4 h-4" />
                 <span>New Target</span>
@@ -548,48 +556,52 @@ export default function Targets({ setActiveTab }) {
           </div>
 
           {/* 📋 TARGET RULES PANEL */}
-          <div className="p-5 rounded-3xl bg-gradient-to-br from-navy-900 to-navy-950 border border-emerald-500/20 shadow-xl mb-6">
+          <div className={`p-5 rounded-3xl border shadow-sm mb-6 ${
+            isEyeCare 
+              ? 'bg-gradient-to-br from-navy-900 to-navy-950 border-emerald-500/20 shadow-xl' 
+              : 'bg-emerald-50/60 border-emerald-200 shadow-sm'
+          }`}>
             <div className="flex items-center gap-3 mb-4">
-              <div className="w-10 h-10 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center font-black shadow-[0_0_15px_rgba(16,185,129,0.2)]">
+              <div className="w-10 h-10 rounded-xl bg-emerald-500/20 text-emerald-500 flex items-center justify-center font-black shadow-[0_0_15px_rgba(16,185,129,0.2)]">
                 📋
               </div>
               <div>
-                <h3 className="text-base font-black text-white">Target Rules</h3>
-                <p className="text-xs text-slate-400">Strictly enforced for verified points</p>
+                <h3 className={`text-base font-black ${isEyeCare ? 'text-white' : 'text-slate-950'}`}>Target Rules</h3>
+                <p className={`text-xs font-medium ${isEyeCare ? 'text-slate-400' : 'text-slate-600'}`}>Strictly enforced for verified points</p>
               </div>
             </div>
             
-            <ul className="space-y-2.5 text-sm text-slate-300">
+            <ul className={`space-y-2.5 text-sm font-medium ${isEyeCare ? 'text-slate-300' : 'text-slate-700'}`}>
               <li className="flex items-start gap-2">
-                <span className="text-emerald-400 mt-0.5">•</span>
-                <span><strong className="text-white">Minimum 4 hours</strong> verified study daily is mandatory to earn points for targets.</span>
+                <span className="text-emerald-500 mt-0.5">•</span>
+                <span><strong className={isEyeCare ? 'text-white' : 'text-slate-950 font-bold'}>Minimum 4 hours</strong> verified study daily is mandatory to earn points for targets.</span>
               </li>
               <li className="flex items-start gap-2">
-                <span className="text-emerald-400 mt-0.5">•</span>
-                <span>Every Subject Target requires at least <strong className="text-emerald-400">20 minutes</strong> of verified study on that same subject.</span>
+                <span className="text-emerald-500 mt-0.5">•</span>
+                <span>Every Subject Target requires at least <strong className={isEyeCare ? 'text-emerald-400' : 'text-emerald-700 font-bold'}>20 minutes</strong> of verified study on that same subject.</span>
               </li>
               <li className="flex items-start gap-2">
-                <span className="text-emerald-400 mt-0.5">•</span>
-                <span>The 20 minutes must be recorded through the <strong className="text-white">Study Timer</strong>.</span>
+                <span className="text-emerald-500 mt-0.5">•</span>
+                <span>The 20 minutes must be recorded through the <strong className={isEyeCare ? 'text-white' : 'text-slate-950 font-bold'}>Study Timer</strong>.</span>
               </li>
               <li className="flex items-start gap-2">
-                <span className="text-emerald-400 mt-0.5">•</span>
-                <span>The Done button unlocks <strong className="text-amber-400">only after</strong> the 20-minute requirement is completed.</span>
+                <span className="text-emerald-500 mt-0.5">•</span>
+                <span>The Done button unlocks <strong className={isEyeCare ? 'text-amber-400' : 'text-amber-700 font-bold'}>only after</strong> the 20-minute requirement is completed.</span>
               </li>
               <li className="flex items-start gap-2">
-                <span className="text-emerald-400 mt-0.5">•</span>
+                <span className="text-emerald-500 mt-0.5">•</span>
                 <span>Subject timer minutes are calculated separately for each subject.</span>
               </li>
               <li className="flex items-start gap-2">
-                <span className="text-emerald-400 mt-0.5">•</span>
+                <span className="text-emerald-500 mt-0.5">•</span>
                 <span>All verified subject study time contributes toward the daily 4-hour requirement.</span>
               </li>
               <li className="flex items-start gap-2">
-                <span className="text-emerald-400 mt-0.5">•</span>
+                <span className="text-emerald-500 mt-0.5">•</span>
                 <span>"Other" Targets have no timer requirement and can be completed directly.</span>
               </li>
               <li className="flex items-start gap-2">
-                <span className="text-emerald-400 mt-0.5">•</span>
+                <span className="text-emerald-500 mt-0.5">•</span>
                 <span>Only verified Study Timer time counts toward study hours.</span>
               </li>
             </ul>
@@ -597,21 +609,29 @@ export default function Targets({ setActiveTab }) {
 
           {/* Quick Stats Grid */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-            <div className="p-3.5 rounded-2xl glass-card border border-white/5 flex flex-col gap-0.5">
-              <span className="text-[10px] font-black uppercase tracking-wider text-slate-400">Total Targets</span>
-              <span className="text-xl font-black text-white">{targets.length}</span>
+            <div className={`p-3.5 rounded-2xl border flex flex-col gap-0.5 ${
+              isEyeCare ? 'glass-card border-white/5' : 'bg-white border-slate-200 shadow-sm'
+            }`}>
+              <span className={`text-[10px] font-black uppercase tracking-wider ${isEyeCare ? 'text-slate-400' : 'text-slate-600'}`}>Total Targets</span>
+              <span className={`text-xl font-black ${isEyeCare ? 'text-white' : 'text-slate-950'}`}>{targets.length}</span>
             </div>
-            <div className="p-3.5 rounded-2xl glass-card border border-royal-500/20 bg-royal-500/5 flex flex-col gap-0.5">
-              <span className="text-[10px] font-black uppercase tracking-wider text-royal-400">Pending (Today)</span>
-              <span className="text-xl font-black text-royal-400">{pendingTargets.length}</span>
+            <div className={`p-3.5 rounded-2xl border flex flex-col gap-0.5 ${
+              isEyeCare ? 'glass-card border-royal-500/20 bg-royal-500/5' : 'bg-blue-50/70 border-blue-200 shadow-sm'
+            }`}>
+              <span className={`text-[10px] font-black uppercase tracking-wider ${isEyeCare ? 'text-royal-400' : 'text-blue-700'}`}>Pending (Today)</span>
+              <span className={`text-xl font-black ${isEyeCare ? 'text-royal-400' : 'text-blue-800'}`}>{pendingTargets.length}</span>
             </div>
-            <div className="p-3.5 rounded-2xl glass-card border border-emerald-500/20 bg-emerald-500/5 flex flex-col gap-0.5">
-              <span className="text-[10px] font-black uppercase tracking-wider text-emerald-400">Completed / Half Done</span>
-              <span className="text-xl font-black text-emerald-400">{completedTargets.length}</span>
+            <div className={`p-3.5 rounded-2xl border flex flex-col gap-0.5 ${
+              isEyeCare ? 'glass-card border-emerald-500/20 bg-emerald-500/5' : 'bg-emerald-50/70 border-emerald-200 shadow-sm'
+            }`}>
+              <span className={`text-[10px] font-black uppercase tracking-wider ${isEyeCare ? 'text-emerald-400' : 'text-emerald-700'}`}>Completed / Half Done</span>
+              <span className={`text-xl font-black ${isEyeCare ? 'text-emerald-400' : 'text-emerald-800'}`}>{completedTargets.length}</span>
             </div>
-            <div className="p-3.5 rounded-2xl glass-card border border-rose-500/20 bg-rose-500/5 flex flex-col gap-0.5">
-              <span className="text-[10px] font-black uppercase tracking-wider text-rose-400">Missed</span>
-              <span className="text-xl font-black text-rose-400">{missedTargets.length}</span>
+            <div className={`p-3.5 rounded-2xl border flex flex-col gap-0.5 ${
+              isEyeCare ? 'glass-card border-rose-500/20 bg-rose-500/5' : 'bg-rose-50/70 border-rose-200 shadow-sm'
+            }`}>
+              <span className={`text-[10px] font-black uppercase tracking-wider ${isEyeCare ? 'text-rose-400' : 'text-rose-700'}`}>Missed</span>
+              <span className={`text-xl font-black ${isEyeCare ? 'text-rose-400' : 'text-rose-800'}`}>{missedTargets.length}</span>
             </div>
           </div>
 
@@ -637,9 +657,11 @@ export default function Targets({ setActiveTab }) {
 
           {/* Filters Bar */}
           <div className="flex items-center gap-2 overflow-x-auto pb-2 custom-scrollbar">
-            <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-navy-900 border border-white/5">
-              <Filter className="w-4 h-4 text-slate-400" />
-              <span className="text-xs font-bold text-slate-300">Filter:</span>
+            <div className={`flex items-center gap-2 px-3 py-1.5 rounded-xl border ${
+              isEyeCare ? 'bg-navy-900 border-white/5' : 'bg-white border-slate-200 shadow-sm'
+            }`}>
+              <Filter className={`w-4 h-4 ${isEyeCare ? 'text-slate-400' : 'text-slate-600'}`} />
+              <span className={`text-xs font-bold ${isEyeCare ? 'text-slate-300' : 'text-slate-700'}`}>Filter:</span>
             </div>
             {[
               { id: 'all', label: `All (${targets.length})` },
@@ -652,8 +674,10 @@ export default function Targets({ setActiveTab }) {
                 onClick={() => setFilter(f.id)}
                 className={`px-4 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all cursor-pointer ${
                   filter === f.id 
-                    ? 'bg-emerald-500 text-navy-950 font-black shadow-glow-emerald' 
-                    : 'bg-navy-900 text-slate-400 border border-white/5 hover:bg-navy-800 hover:text-white'
+                    ? 'bg-emerald-500 text-slate-950 font-black shadow-glow-emerald' 
+                    : isEyeCare 
+                      ? 'bg-navy-900 text-slate-400 border border-white/5 hover:bg-navy-800 hover:text-white'
+                      : 'bg-white text-slate-700 border border-slate-200 hover:bg-slate-100 hover:text-slate-950 shadow-sm'
                 }`}
               >
                 {f.label}
@@ -663,15 +687,17 @@ export default function Targets({ setActiveTab }) {
 
           {/* Active Timer Running Alert Banner if user has an active timer right now */}
           {activeTimerState?.isActive && (
-            <div className="p-3.5 rounded-2xl bg-royal-600/20 border border-royal-500/40 flex items-center justify-between text-xs animate-pulse">
-              <div className="flex items-center gap-2 text-royal-300 font-semibold">
-                <Clock className="w-4 h-4 text-royal-400 shrink-0" />
-                <span>Timer currently running for <strong className="text-white">{activeTimerState.selectedSubject}</strong>. Target progress updating live!</span>
+            <div className={`p-3.5 rounded-2xl border flex items-center justify-between text-xs animate-pulse ${
+              isEyeCare ? 'bg-royal-600/20 border-royal-500/40' : 'bg-blue-50 border-blue-300 shadow-sm'
+            }`}>
+              <div className={`flex items-center gap-2 font-semibold ${isEyeCare ? 'text-royal-300' : 'text-blue-800'}`}>
+                <Clock className="w-4 h-4 text-blue-500 shrink-0" />
+                <span>Timer currently running for <strong className={isEyeCare ? 'text-white' : 'text-slate-950 font-bold'}>{activeTimerState.selectedSubject}</strong>. Target progress updating live!</span>
               </div>
               {setActiveTab && (
                 <button
                   onClick={() => setActiveTab('timer')}
-                  className="px-3 py-1 rounded-lg bg-royal-500 hover:bg-royal-400 text-white font-bold text-[11px] shrink-0 cursor-pointer"
+                  className="px-3 py-1 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-bold text-[11px] shrink-0 cursor-pointer shadow-sm"
                 >
                   View Timer →
                 </button>
@@ -687,7 +713,9 @@ export default function Targets({ setActiveTab }) {
               description="Create a subject target to challenge yourself. Start your subject timer, study the required hours, and earn +3 Points!"
             />
           ) : displayedTargets.length === 0 ? (
-            <div className="p-8 text-center text-slate-400 text-sm glass-card rounded-3xl border border-white/5">
+            <div className={`p-8 text-center text-sm rounded-3xl border ${
+              isEyeCare ? 'glass-card border-white/5 text-slate-400' : 'bg-white border-slate-200 text-slate-600 shadow-sm font-medium'
+            }`}>
               No targets found for this filter.
             </div>
           ) : (
@@ -701,12 +729,12 @@ export default function Targets({ setActiveTab }) {
                     key={target.id}
                     className={`p-5 rounded-3xl border transition-all flex flex-col justify-between ${
                       isCompleted 
-                        ? 'bg-emerald-500/5 border-emerald-500/30' 
+                        ? (isEyeCare ? 'bg-emerald-500/5 border-emerald-500/30' : 'bg-emerald-50/40 border-emerald-200 shadow-sm')
                         : isMissed
-                          ? 'bg-rose-500/5 border-rose-500/30'
+                          ? (isEyeCare ? 'bg-rose-500/5 border-rose-500/30' : 'bg-rose-50/40 border-rose-200 shadow-sm')
                           : progress.isEligible
-                            ? 'bg-emerald-500/10 border-emerald-400/50 shadow-glow-emerald ring-1 ring-emerald-400/30'
-                            : 'bg-navy-900 border-white/10 hover:border-white/20'
+                            ? (isEyeCare ? 'bg-emerald-500/10 border-emerald-400/50 shadow-glow-emerald ring-1 ring-emerald-400/30' : 'bg-emerald-50 border-emerald-400 shadow-md ring-1 ring-emerald-300')
+                            : (isEyeCare ? 'bg-navy-900 border-white/10 hover:border-white/20' : 'bg-white border-slate-200 hover:border-slate-300 shadow-sm')
                     }`}
                   >
                     <div>
@@ -715,12 +743,12 @@ export default function Targets({ setActiveTab }) {
                         <div className="flex flex-wrap items-center gap-1.5">
                           <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider ${
                             isCompleted 
-                              ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' 
+                              ? (isEyeCare ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' : 'bg-emerald-100 text-emerald-800 border border-emerald-200')
                               : isMissed
-                                ? 'bg-rose-500/20 text-rose-400 border border-rose-500/30'
+                                ? (isEyeCare ? 'bg-rose-500/20 text-rose-400 border border-rose-500/30' : 'bg-rose-100 text-rose-800 border border-rose-200')
                                 : progress.isEligible
-                                  ? 'bg-emerald-400 text-navy-950 font-black animate-pulse'
-                                  : 'bg-royal-500/20 text-royal-300 border border-royal-500/30'
+                                  ? 'bg-emerald-500 text-white font-black animate-pulse'
+                                  : (isEyeCare ? 'bg-royal-500/20 text-royal-300 border border-royal-500/30' : 'bg-blue-100 text-blue-800 border border-blue-200')
                           }`}>
                             {isCompleted 
                               ? '✅ Completed' 
@@ -735,52 +763,64 @@ export default function Targets({ setActiveTab }) {
                           </span>
 
                           {isTimerActiveForThis && isPending && (
-                            <span className="px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider bg-rose-500/20 text-rose-300 border border-rose-500/40 animate-pulse flex items-center gap-1">
-                              <span className="w-1.5 h-1.5 rounded-full bg-rose-400 animate-ping" />
+                            <span className="px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider bg-rose-500/20 text-rose-400 border border-rose-500/40 animate-pulse flex items-center gap-1">
+                              <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-ping" />
                               Timer Live
                             </span>
                           )}
                         </div>
 
                         {isCompleted || isHalfCompleted ? (
-                          <Award className="w-5 h-5 text-emerald-400 shrink-0" />
+                          <Award className="w-5 h-5 text-emerald-500 shrink-0" />
                         ) : isMissed ? (
-                          <XCircle className="w-5 h-5 text-rose-400 shrink-0" />
+                          <XCircle className="w-5 h-5 text-rose-500 shrink-0" />
                         ) : (
-                          <Clock className="w-5 h-5 text-slate-500 shrink-0" />
+                          <Clock className={`w-5 h-5 shrink-0 ${isEyeCare ? 'text-slate-500' : 'text-slate-400'}`} />
                         )}
                       </div>
 
                       {/* Title & Subject */}
-                      <h3 className={`text-base font-bold mb-1.5 leading-snug ${isCompleted || isHalfCompleted ? 'text-slate-300 line-through' : isMissed ? 'text-slate-400' : 'text-white'}`}>
+                      <h3 className={`text-base font-bold mb-1.5 leading-snug ${
+                        isCompleted || isHalfCompleted 
+                          ? (isEyeCare ? 'text-slate-400 line-through' : 'text-slate-500 line-through') 
+                          : isMissed 
+                            ? (isEyeCare ? 'text-slate-400' : 'text-slate-500') 
+                            : (isEyeCare ? 'text-white' : 'text-slate-950')
+                      }`}>
                         {target.title}
                       </h3>
 
-                      <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-navy-950 border border-white/10 text-xs font-semibold text-gold-400 mb-4">
+                      <div className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-xs font-bold mb-4 ${
+                        isEyeCare ? 'bg-navy-950 border-white/10 text-amber-400' : 'bg-amber-50 border-amber-200 text-amber-800'
+                      }`}>
                         <span>📖</span>
                         <span className="truncate max-w-[220px]">{target.subject}</span>
                       </div>
 
                       {/* Progress Section */}
-                      <div className={`p-3 rounded-2xl bg-navy-950/70 border space-y-2 mb-4 ${
-                        isCompleted ? 'border-emerald-500/20' : isMissed ? 'border-rose-500/20' : 'border-white/5'
+                      <div className={`p-3 rounded-2xl border space-y-2 mb-4 ${
+                        isEyeCare 
+                          ? `bg-navy-950/70 ${isCompleted ? 'border-emerald-500/20' : isMissed ? 'border-rose-500/20' : 'border-white/5'}`
+                          : `bg-slate-50 ${isCompleted ? 'border-emerald-200' : isMissed ? 'border-rose-200' : 'border-slate-200'}`
                       }`}>
                         <div className="flex items-center justify-between text-xs">
-                          <span className="text-slate-400 font-medium">Recorded Study Time:</span>
-                          <span className="font-bold text-white">
-                            {progress.studiedHuman} <span className="text-slate-500 font-normal">/ {progress.targetHuman}</span>
+                          <span className={`font-semibold ${isEyeCare ? 'text-slate-400' : 'text-slate-600'}`}>Recorded Study Time:</span>
+                          <span className={`font-bold ${isEyeCare ? 'text-white' : 'text-slate-950'}`}>
+                            {progress.studiedHuman} <span className={isEyeCare ? 'text-slate-500 font-normal' : 'text-slate-500 font-medium'}>/ {progress.targetHuman}</span>
                           </span>
                         </div>
 
                         {/* Progress Bar */}
-                        <div className="w-full bg-navy-900 h-2.5 rounded-full overflow-hidden border border-white/10 p-0.5">
+                        <div className={`w-full h-2.5 rounded-full overflow-hidden p-0.5 border ${
+                          isEyeCare ? 'bg-navy-900 border-white/10' : 'bg-slate-200 border-slate-300'
+                        }`}>
                           <div 
                             className={`h-full rounded-full transition-all duration-500 ${
                               isCompleted || isHalfCompleted || progress.isEligible 
                                 ? 'bg-gradient-to-r from-emerald-500 to-teal-400 shadow-glow-emerald' 
                                 : isMissed
                                   ? 'bg-gradient-to-r from-rose-500 to-red-600'
-                                  : 'bg-gradient-to-r from-gold-500 to-amber-400'
+                                  : 'bg-gradient-to-r from-amber-500 to-amber-400'
                             }`}
                             style={{ width: `${progress.progressPct}%` }}
                           />
@@ -788,56 +828,66 @@ export default function Targets({ setActiveTab }) {
 
                         <div className="flex items-center justify-between text-[11px] pt-0.5">
                           <span className={`font-black ${
-                            (isCompleted || isHalfCompleted) ? 'text-emerald-400' : isMissed ? 'text-rose-400' : progress.isEligible ? 'text-emerald-400' : 'text-gold-400'
+                            (isCompleted || isHalfCompleted) 
+                              ? (isEyeCare ? 'text-emerald-400' : 'text-emerald-700') 
+                              : isMissed 
+                                ? (isEyeCare ? 'text-rose-400' : 'text-rose-700') 
+                                : progress.isEligible 
+                                  ? (isEyeCare ? 'text-emerald-400' : 'text-emerald-700') 
+                                  : (isEyeCare ? 'text-amber-400' : 'text-amber-700')
                           }`}>
                             {progress.progressPct}% {(isCompleted || isHalfCompleted) ? 'Achieved' : isMissed ? 'Incomplete' : 'Complete'}
                           </span>
 
-                          <span className="font-semibold text-slate-400">
+                          <span className={`font-semibold ${isEyeCare ? 'text-slate-400' : 'text-slate-600'}`}>
                             {isCompleted ? (
-                              <span className="text-emerald-400 font-bold">Completed (+10 Points)</span>
+                              <span className={isEyeCare ? 'text-emerald-400 font-bold' : 'text-emerald-700 font-black'}>Completed (+10 Points)</span>
                             ) : isHalfCompleted ? (
-                              <span className="text-emerald-400 font-bold">Half Done (+5 Points)</span>
+                              <span className={isEyeCare ? 'text-emerald-400 font-bold' : 'text-emerald-700 font-black'}>Half Done (+5 Points)</span>
                             ) : isMissed ? (
-                              <span className="text-rose-400 font-bold">Target Missed (-3 Points)</span>
+                              <span className={isEyeCare ? 'text-rose-400 font-bold' : 'text-rose-700 font-black'}>Target Missed (-3 Points)</span>
                             ) : progress.isEligible ? (
-                              <span className="text-emerald-400 font-bold">Ready to Claim!</span>
+                              <span className={isEyeCare ? 'text-emerald-400 font-bold' : 'text-emerald-700 font-black'}>Ready to Claim!</span>
                             ) : (
-                              <span>Remaining: <strong className="text-amber-300">{progress.remainingHuman}</strong></span>
+                              <span>Remaining: <strong className={isEyeCare ? 'text-amber-300' : 'text-amber-700 font-bold'}>{progress.remainingHuman}</strong></span>
                             )}
                           </span>
                         </div>
                       </div>
 
                       {/* Target Meta Details */}
-                      <div className="text-[11px] text-slate-500 flex flex-col gap-1 mb-4">
+                      <div className={`text-[11px] flex flex-col gap-1 mb-4 ${isEyeCare ? 'text-slate-400' : 'text-slate-600 font-medium'}`}>
                         <div className="flex items-center justify-between">
                           <span>Assigned Date: {target.targetDateKey || 'Today'}</span>
                           <span className={`font-bold ${
-                            isCompleted || isHalfCompleted ? 'text-emerald-400' : isMissed ? 'text-rose-400' : 'text-gold-400'
+                            isCompleted || isHalfCompleted 
+                              ? (isEyeCare ? 'text-emerald-400' : 'text-emerald-700') 
+                              : isMissed 
+                                ? (isEyeCare ? 'text-rose-400' : 'text-rose-700') 
+                                : (isEyeCare ? 'text-amber-400' : 'text-amber-700')
                           }`}>
                             {isCompleted ? 'Done' : isHalfCompleted ? 'Half Done' : isMissed ? 'Missed' : 'Pending'}
                           </span>
                         </div>
                         {target.topicName && (
-                          <div><span className="text-slate-400 font-bold">Topic:</span> <span className="text-white">{target.topicName}</span></div>
+                          <div><span className={`font-bold ${isEyeCare ? 'text-slate-400' : 'text-slate-600'}`}>Topic:</span> <span className={isEyeCare ? 'text-white' : 'text-slate-900 font-semibold'}>{target.topicName}</span></div>
                         )}
                         {target.plannedTime && (
-                          <div><span className="text-slate-400 font-bold">Planned Time:</span> <span className="text-white">{target.plannedTime} hrs</span></div>
+                          <div><span className={`font-bold ${isEyeCare ? 'text-slate-400' : 'text-slate-600'}`}>Planned Time:</span> <span className={isEyeCare ? 'text-white' : 'text-slate-900 font-semibold'}>{target.plannedTime} hrs</span></div>
                         )}
                         {target.tasks && typeof target.tasks === 'object' && Object.values(target.tasks).some(Boolean) && (
                           <div className="flex gap-1.5 flex-wrap mt-1">
-                             {(target.tasks || {}).mcq && <span className="px-1.5 py-0.5 rounded bg-white/5 border border-white/10 text-[9px]">MCQ</span>}
-                             {(target.tasks || {}).dpp && <span className="px-1.5 py-0.5 rounded bg-white/5 border border-white/10 text-[9px]">DPP</span>}
-                             {(target.tasks || {}).notes && <span className="px-1.5 py-0.5 rounded bg-white/5 border border-white/10 text-[9px]">Notes</span>}
-                             {(target.tasks || {}).practice && <span className="px-1.5 py-0.5 rounded bg-white/5 border border-white/10 text-[9px]">Practice</span>}
+                             {(target.tasks || {}).mcq && <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold border ${isEyeCare ? 'bg-white/5 border-white/10 text-slate-300' : 'bg-slate-100 border-slate-200 text-slate-700'}`}>MCQ</span>}
+                             {(target.tasks || {}).dpp && <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold border ${isEyeCare ? 'bg-white/5 border-white/10 text-slate-300' : 'bg-slate-100 border-slate-200 text-slate-700'}`}>DPP</span>}
+                             {(target.tasks || {}).notes && <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold border ${isEyeCare ? 'bg-white/5 border-white/10 text-slate-300' : 'bg-slate-100 border-slate-200 text-slate-700'}`}>Notes</span>}
+                             {(target.tasks || {}).practice && <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold border ${isEyeCare ? 'bg-white/5 border-white/10 text-slate-300' : 'bg-slate-100 border-slate-200 text-slate-700'}`}>Practice</span>}
                           </div>
                         )}
                       </div>
                     </div>
 
                     {/* Action Buttons */}
-                    <div className="space-y-2 pt-2 border-t border-white/5">
+                    <div className={`space-y-2 pt-2 border-t ${isEyeCare ? 'border-white/5' : 'border-slate-200'}`}>
                       {isCompleted ? (
                         <div className="w-full py-2.5 rounded-xl bg-emerald-500/10 text-emerald-400 text-xs font-black flex items-center justify-center gap-1.5 border border-emerald-500/20 cursor-default">
                           <CheckCircle2 className="w-4 h-4" />
