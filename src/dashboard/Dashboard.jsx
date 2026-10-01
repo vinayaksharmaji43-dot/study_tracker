@@ -281,7 +281,7 @@ export default function Dashboard() {
                     <button
                       key={item.id}
                       onClick={() => setActiveTab(item.id)}
-                      className={`w-full flex items-center justify-between px-4 py-3 rounded-2xl text-sm font-semibold transition-all duration-200 cursor-pointer ${
+                      className={`w-full flex items-center justify-between px-4 py-3 rounded-2xl text-sm font-bold transition-all duration-200 cursor-pointer ${
                         isActive
                           ? isEyeCare
                             ? 'bg-blue-500/20 border border-blue-400/50 text-blue-300 shadow-[0_0_20px_rgba(59,130,246,0.3)]'
@@ -289,10 +289,10 @@ export default function Dashboard() {
                           : isLocked
                             ? isEyeCare
                               ? 'text-slate-400 hover:text-amber-300 hover:bg-amber-500/5 border border-transparent'
-                              : 'text-slate-500 hover:text-blue-700 hover:bg-blue-50 border border-transparent'
+                              : 'text-slate-600 hover:text-blue-700 hover:bg-blue-50 border border-transparent font-semibold'
                             : isEyeCare
                               ? 'text-slate-400 hover:text-white hover:bg-white/5 border border-transparent'
-                              : 'text-slate-700 hover:text-blue-700 hover:bg-blue-50/70 border border-transparent font-medium'
+                              : 'text-slate-800 hover:text-blue-700 hover:bg-blue-50 border border-transparent font-bold'
                       }`}
                     >
                       <div className="flex items-center space-x-3">
@@ -300,10 +300,10 @@ export default function Dashboard() {
                           isActive 
                             ? 'text-white' 
                             : isLocked 
-                              ? (isEyeCare ? 'text-amber-400/80' : 'text-slate-400') 
-                              : (isEyeCare ? 'text-slate-400' : 'text-slate-500')
+                              ? (isEyeCare ? 'text-amber-400/80' : 'text-slate-500') 
+                              : (isEyeCare ? 'text-slate-400' : 'text-slate-600')
                         }`} />
-                        <span className="font-semibold">{item.label}</span>
+                        <span className="font-bold">{item.label}</span>
                       </div>
                       <div className="flex items-center gap-1.5">
                         {isTrialLocked ? (

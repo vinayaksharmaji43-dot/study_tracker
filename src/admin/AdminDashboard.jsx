@@ -3,6 +3,7 @@ import { useSearchParams } from 'react-router-dom';
 import { collection, query, onSnapshot } from 'firebase/firestore';
 import { db } from '../config/firebase';
 import { useAuth } from '../contexts/AuthContext';
+import { useTheme } from '../contexts/ThemeContext';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 
@@ -81,6 +82,7 @@ import {
 
 export default function AdminDashboard() {
   const { userProfile, currentUser, logout } = useAuth();
+  const { isEyeCare } = useTheme();
   const [searchParams, setSearchParams] = useSearchParams();
   const [activeTab, setActiveTabState] = useState(() => searchParams.get('tab') || 'overview');
   const [pendingDoubtsCount, setPendingDoubtsCount] = useState(0);
@@ -158,7 +160,7 @@ export default function AdminDashboard() {
   ];
 
   return (
-    <div className="min-h-screen bg-navy-950 text-slate-100 flex flex-col selection:bg-emerald-500 selection:text-white">
+    <div className={`min-h-screen flex flex-col selection:bg-emerald-500 selection:text-white ${isEyeCare ? 'bg-navy-950 text-slate-100' : 'bg-[#f0f7ff] text-slate-900'}`}>
       <Navbar />
 
       <div className="flex-grow max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -168,18 +170,18 @@ export default function AdminDashboard() {
           
           {/* Admin Sidebar Navigation (Desktop) */}
           <aside className="hidden lg:block lg:col-span-3 sticky top-28 space-y-4">
-            <div className="p-4 rounded-3xl glass-card border border-emerald-500/30 space-y-2 shadow-xl">
+            <div className={`p-4 rounded-3xl space-y-2 shadow-xl border ${isEyeCare ? 'glass-card border-emerald-500/30' : 'bg-white border-2 border-blue-200/90'}`}>
               
               {/* Admin Snapshot Header */}
-              <div className="p-4 rounded-2xl bg-navy-900/80 border border-white/5 space-y-1 mb-2">
-                <div className="text-xs font-extrabold uppercase tracking-wider text-emerald-400 flex items-center gap-1.5">
+              <div className={`p-4 rounded-2xl border space-y-1 mb-2 ${isEyeCare ? 'bg-navy-900/80 border-white/5' : 'bg-blue-50/80 border-blue-100'}`}>
+                <div className={`text-xs font-black uppercase tracking-wider flex items-center gap-1.5 ${isEyeCare ? 'text-emerald-400' : 'text-blue-700'}`}>
                   <ShieldCheck className="w-4 h-4 text-gold-400" />
                   <span>Admin Panel</span>
                 </div>
-                <div className="text-sm font-bold text-white truncate">
+                <div className={`text-sm font-extrabold truncate ${isEyeCare ? 'text-white' : 'text-slate-900'}`}>
                   {userProfile?.name || currentUser?.email}
                 </div>
-                <div className="text-[11px] text-slate-400">
+                <div className={`text-xs font-semibold ${isEyeCare ? 'text-slate-400' : 'text-slate-600'}`}>
                   {currentUser?.email}
                 </div>
               </div>
@@ -194,15 +196,15 @@ export default function AdminDashboard() {
                     <button
                       key={item.id}
                       onClick={() => setActiveTab(item.id)}
-                      className={`w-full flex items-center justify-between px-4 py-2.5 rounded-2xl text-xs font-bold transition-all duration-200 ${
+                      className={`w-full flex items-center justify-between px-4 py-2.5 rounded-2xl text-xs font-bold transition-all duration-200 cursor-pointer ${
                         isActive
-                          ? 'bg-emerald-600/20 border border-emerald-500/40 text-emerald-400 shadow-glow-emerald'
-                          : 'text-slate-400 hover:text-white hover:bg-white/5 border border-transparent'
+                          ? (isEyeCare ? 'bg-emerald-600/20 border border-emerald-500/40 text-emerald-400 shadow-glow-emerald' : 'bg-blue-600 text-white shadow-md shadow-blue-500/25 border border-blue-500')
+                          : (isEyeCare ? 'text-slate-400 hover:text-white hover:bg-white/5 border border-transparent' : 'text-slate-700 hover:text-blue-700 hover:bg-blue-50 border border-transparent font-bold')
                       }`}
                     >
                       <div className="flex items-center space-x-3">
-                        <Icon className={`w-4 h-4 ${isActive ? 'text-emerald-400' : 'text-slate-400'}`} />
-                        <span>{item.label}</span>
+                        <Icon className={`w-4 h-4 ${isActive ? (isEyeCare ? 'text-emerald-400' : 'text-white') : (isEyeCare ? 'text-slate-400' : 'text-slate-600')}`} />
+                        <span className="font-bold">{item.label}</span>
                       </div>
                       <div className="flex items-center gap-1.5">
                         {item.badge > 0 && (
@@ -210,7 +212,7 @@ export default function AdminDashboard() {
                             {item.badge} New
                           </span>
                         )}
-                        {isActive && <ChevronRight className="w-3.5 h-3.5 text-emerald-400" />}
+                        {isActive && <ChevronRight className={`w-3.5 h-3.5 ${isEyeCare ? 'text-emerald-400' : 'text-white'}`} />}
                       </div>
                     </button>
                   );
@@ -221,7 +223,7 @@ export default function AdminDashboard() {
               <div className="pt-2 border-t border-white/10">
                 <button
                   onClick={logout}
-                  className="w-full flex items-center space-x-3 px-4 py-2.5 rounded-2xl text-xs font-bold text-red-400 hover:bg-red-500/10 transition-colors"
+                  className={`w-full flex items-center space-x-3 px-4 py-2.5 rounded-2xl text-xs font-bold transition-colors cursor-pointer ${isEyeCare ? 'text-red-400 hover:bg-red-500/10' : 'text-red-600 hover:bg-red-50 font-bold'}`}
                 >
                   <LogOut className="w-4 h-4" />
                   <span>Log Out</span>
@@ -232,7 +234,7 @@ export default function AdminDashboard() {
           </aside>
 
           {/* Mobile Drawer Bar */}
-          <div className="lg:hidden col-span-1 glass-card p-2 rounded-2xl border border-white/10 flex overflow-x-auto space-x-2 scrollbar-none">
+          <div className={`lg:hidden col-span-1 p-2 rounded-2xl border flex overflow-x-auto space-x-2 scrollbar-none ${isEyeCare ? 'glass-card border-white/10' : 'bg-white border-2 border-blue-200/90 shadow-sm'}`}>
             {navItems.map((item) => {
               const Icon = item.icon;
               const isActive = activeTab === item.id;
@@ -243,8 +245,8 @@ export default function AdminDashboard() {
                   onClick={() => setActiveTab(item.id)}
                   className={`flex items-center space-x-2 px-3.5 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all ${
                     isActive
-                      ? 'bg-emerald-600 text-white shadow-glow-emerald'
-                      : 'text-slate-400 hover:text-white hover:bg-white/5'
+                      ? (isEyeCare ? 'bg-emerald-600 text-white shadow-glow-emerald' : 'bg-blue-600 text-white shadow-sm font-bold')
+                      : (isEyeCare ? 'text-slate-400 hover:text-white hover:bg-white/5' : 'text-slate-700 hover:text-blue-700 hover:bg-blue-50 font-bold')
                   }`}
                 >
                   <Icon className="w-4 h-4" />
