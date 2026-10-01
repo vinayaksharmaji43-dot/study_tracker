@@ -68,7 +68,7 @@ export default function AdminTargets() {
             Target Milestones <span className="gold-gradient-text">Hub</span>
           </h1>
           <p className="text-slate-300 text-sm max-w-xl">
-            Monitor self-managed study goals created by CA Foundation & CMA students.
+            Monitor daily study goals and targets created by CA Foundation & CMA students.
           </p>
         </div>
       </div>

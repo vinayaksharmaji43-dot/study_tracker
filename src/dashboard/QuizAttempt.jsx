@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { doc, getDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../config/firebase';
-import { Clock, CheckCircle, AlertTriangle, ArrowLeft, Send } from 'lucide-react';
+import { Clock, CheckCircle, AlertTriangle, ArrowLeft, Send, Award, HelpCircle, XCircle } from 'lucide-react';
 import LoadingSpinner from '../components/LoadingSpinner';
 
 export default function QuizAttempt({ quiz, attemptId, onClose }) {
@@ -32,13 +32,10 @@ export default function QuizAttempt({ quiz, attemptId, onClose }) {
         
         // Calculate remaining time based on server start time
         if (data.status === 'in_progress' && data.startTime) {
-           const startMs = data.startTime.toMillis();
-           const limitMs = data.timeLimit * 60 * 1000;
+           const startMs = data.startTime.toMillis ? data.startTime.toMillis() : new Date(data.startTime).getTime();
+           const limitMs = (data.timeLimit || 30) * 60 * 1000;
            const expiryMs = startMs + limitMs;
            
-           // We need to calculate how much time is left relative to current actual time
-           // For robust implementation, we'd ideally get server time offset, but Date.now() is close enough for client side display
-           // However, if the time is already passed, submit it.
            const now = Date.now();
            const leftMs = expiryMs - now;
            
@@ -69,8 +66,7 @@ export default function QuizAttempt({ quiz, attemptId, onClose }) {
        if (leftMs <= 0) {
          clearInterval(timerRef.current);
          setRemainingSeconds(0);
-         // Grab latest answers from state ref ideally, but we will pass the answers we have
-         handleAutoSubmit(currentAttempt, docRef, answers);
+         handleAutoSubmit(currentAttempt, docRef, answersRef.current);
        } else {
          setRemainingSeconds(Math.floor(leftMs / 1000));
        }
@@ -98,25 +94,61 @@ export default function QuizAttempt({ quiz, attemptId, onClose }) {
     if (timerRef.current) clearInterval(timerRef.current);
     setSubmitting(true);
     try {
-       // Calculate score
-       let score = 0;
-       quiz.questions.forEach((q, idx) => {
-          if (finalAnswers[q.id] === q.correctOption) {
-             score++;
+       // Calculate score with question-wise positive marks and negative marks
+       let totalScore = 0;
+       let maxMarks = 0;
+       let correctCount = 0;
+       let wrongCount = 0;
+       let unattemptedCount = 0;
+       let totalNegativeDeduction = 0;
+
+       (quiz.questions || []).forEach((q) => {
+          const qMarks = Number(q.marks) > 0 ? Number(q.marks) : 1;
+          const qNeg = q.negativeMarks !== undefined && q.negativeMarks !== null ? Math.max(0, Number(q.negativeMarks)) : 0;
+          maxMarks += qMarks;
+
+          const ans = finalAnswers[q.id];
+          const isAnswered = ans !== undefined && ans !== null && ans !== '';
+
+          if (!isAnswered) {
+             // Unanswered: 0 marks, NO negative deduction
+             unattemptedCount++;
+          } else if (Number(ans) === Number(q.correctOption)) {
+             // Correct answer
+             totalScore += qMarks;
+             correctCount++;
+          } else {
+             // Incorrect answer: deduct negative marks
+             totalScore -= qNeg;
+             totalNegativeDeduction += qNeg;
+             wrongCount++;
           }
        });
+
+       const finalScore = Number(totalScore.toFixed(2));
+       const formattedMaxMarks = Number(maxMarks.toFixed(2));
+       const formattedNegativeDeduction = Number(totalNegativeDeduction.toFixed(2));
 
        const payload = {
           status: finalStatus,
           submissionTime: serverTimestamp(),
           answers: finalAnswers,
-          score
+          score: finalScore,
+          totalMarks: formattedMaxMarks,
+          correctCount,
+          wrongCount,
+          unattemptedCount,
+          negativeDeduction: formattedNegativeDeduction
        };
 
        await updateDoc(docRef, payload);
        
        // Update local state to show result immediately
-       setAttempt(prev => ({ ...prev, ...payload, submissionTime: { toMillis: () => Date.now() } }));
+       setAttempt(prev => ({ 
+         ...prev, 
+         ...payload, 
+         submissionTime: { toMillis: () => Date.now() } 
+       }));
        setShowConfirm(false);
     } catch (err) {
        console.error("Submit error", err);
@@ -132,7 +164,7 @@ export default function QuizAttempt({ quiz, attemptId, onClose }) {
     const newAnswers = { ...answers, [qId]: optIdx };
     setAnswers(newAnswers);
     
-    // Optionally auto-save answers to avoid loss on refresh
+    // Auto-save answers to avoid loss on accidental refresh
     try {
       const docRef = doc(db, 'quizAttempts', attemptId);
       await updateDoc(docRef, { answers: newAnswers });
@@ -154,86 +186,209 @@ export default function QuizAttempt({ quiz, attemptId, onClose }) {
 
   const isFinished = attempt.status !== 'in_progress';
 
+  // Compute breakdown for display (handles legacy attempts gracefully)
+  let displayCorrect = attempt.correctCount;
+  let displayWrong = attempt.wrongCount;
+  let displayUnattempted = attempt.unattemptedCount;
+  let displayNegativeDeduction = attempt.negativeDeduction;
+  let maxPossibleMarks = attempt.totalMarks;
+
+  if (displayCorrect === undefined || displayWrong === undefined || maxPossibleMarks === undefined) {
+    let c = 0, w = 0, u = 0, neg = 0, maxM = 0;
+    (quiz?.questions || []).forEach(q => {
+      const qMarks = Number(q.marks) > 0 ? Number(q.marks) : 1;
+      const qNeg = q.negativeMarks !== undefined && q.negativeMarks !== null ? Math.max(0, Number(q.negativeMarks)) : 0;
+      maxM += qMarks;
+
+      const ans = (attempt.answers || answers)[q.id];
+      if (ans === undefined || ans === null || ans === '') {
+        u++;
+      } else if (Number(ans) === Number(q.correctOption)) {
+        c++;
+      } else {
+        w++;
+        neg += qNeg;
+      }
+    });
+    displayCorrect = c;
+    displayWrong = w;
+    displayUnattempted = u;
+    displayNegativeDeduction = Number(neg.toFixed(2));
+    maxPossibleMarks = Number(maxM.toFixed(2));
+  }
+
+  const answeredCount = (quiz.questions || []).filter(q => answers[q.id] !== undefined && answers[q.id] !== null).length;
+
   return (
     <div className="space-y-6 animate-in fade-in duration-300">
       
       {/* Quiz Header - Sticky */}
       <div className="sticky top-20 z-40 p-4 sm:p-6 rounded-3xl glass-card border border-white/10 flex flex-wrap gap-4 items-center justify-between shadow-xl backdrop-blur-xl">
          <div className="flex items-center gap-4">
-            <button onClick={onClose} className="p-2 bg-white/5 hover:bg-white/10 rounded-xl transition-colors">
+            <button 
+              onClick={onClose} 
+              className="p-2.5 bg-white/5 hover:bg-white/10 rounded-2xl transition-colors cursor-pointer"
+              title="Return to quizzes"
+            >
                <ArrowLeft className="w-5 h-5 text-slate-300" />
             </button>
             <div>
-               <h2 className="text-xl font-bold text-white">{quiz.title}</h2>
-               <div className="text-xs font-semibold text-slate-400 mt-1">{quiz.subject} {quiz.chapter && `- ${quiz.chapter}`}</div>
+               <h2 className="text-xl sm:text-2xl font-black text-white">{quiz.title}</h2>
+               <div className="text-xs font-semibold text-slate-400 mt-0.5">
+                 {quiz.subject} {quiz.chapter && `• ${quiz.chapter}`}
+               </div>
             </div>
          </div>
 
          {!isFinished ? (
-            <div className={`flex items-center gap-3 px-4 py-2 rounded-xl border ${remainingSeconds < 60 ? 'bg-red-500/10 border-red-500/30 text-red-400 animate-pulse' : 'bg-navy-900/80 border-white/10 text-emerald-400'}`}>
-               <Clock className="w-5 h-5" />
-               <span className="text-xl font-mono font-black tracking-widest">{formatTime(remainingSeconds)}</span>
+            <div className="flex items-center gap-3">
+              <div className="hidden sm:block text-right">
+                <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">Answered</span>
+                <span className="text-xs font-black text-emerald-400">{answeredCount} of {quiz.questions?.length || 0}</span>
+              </div>
+              <div className={`flex items-center gap-2.5 px-4 py-2 rounded-2xl border ${remainingSeconds < 60 ? 'bg-red-500/10 border-red-500/30 text-red-400 animate-pulse' : 'bg-navy-900/90 border-white/10 text-emerald-400'}`}>
+                 <Clock className="w-5 h-5" />
+                 <span className="text-xl font-mono font-black tracking-widest">{formatTime(remainingSeconds)}</span>
+              </div>
             </div>
          ) : (
-            <div className="px-4 py-2 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 flex items-center gap-2 font-bold">
-               <CheckCircle className="w-5 h-5" />
-               Quiz Completed
+            <div className="px-4 py-2 rounded-2xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 flex items-center gap-2 font-black text-sm">
+               <CheckCircle className="w-4 h-4 text-emerald-400" />
+               <span>Quiz Completed</span>
             </div>
          )}
       </div>
 
-      {/* Result Card */}
+      {/* Result Card with Negative Marking Breakdown */}
       {isFinished && (
-         <div className="p-8 rounded-3xl bg-navy-900 border border-emerald-500/30 text-center space-y-4">
-            <h3 className="text-2xl font-black text-white">Your Score</h3>
-            <div className="text-5xl font-mono font-black text-emerald-400">
-               {attempt.score} <span className="text-2xl text-slate-500">/ {quiz.questions.length}</span>
+         <div className="p-6 sm:p-8 rounded-3xl bg-navy-900/90 border border-emerald-500/30 space-y-6 shadow-2xl">
+            <div className="text-center space-y-1">
+               <h3 className="text-2xl sm:text-3xl font-black text-white">Quiz Evaluation & Analysis</h3>
+               <p className="text-slate-400 text-xs font-semibold">
+                  {attempt.status === 'auto_submitted' ? 'Time expired. Automatically submitted.' : 'Test completed and submitted.'}
+               </p>
             </div>
-            <p className="text-slate-400 text-sm font-semibold">
-               {attempt.status === 'auto_submitted' ? 'Time expired. Automatically submitted.' : 'Successfully submitted.'}
+
+            {/* Big Score Box */}
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+              <div className="p-5 rounded-2xl bg-navy-950/80 border border-white/10 text-center min-w-[200px]">
+                <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
+                  Final Score
+                </span>
+                <div className="text-4xl sm:text-5xl font-mono font-black text-emerald-400">
+                   {attempt.score !== undefined ? attempt.score : 0} 
+                   <span className="text-xl text-slate-500 font-normal"> / {maxPossibleMarks || (quiz.questions?.length || 0)}</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Detailed Metric Cards */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 max-w-2xl mx-auto">
+              <div className="p-3.5 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-center">
+                <span className="text-[11px] font-bold text-emerald-400 uppercase tracking-wider block">Correct</span>
+                <div className="text-2xl font-black text-emerald-300 mt-0.5">{displayCorrect}</div>
+              </div>
+
+              <div className="p-3.5 rounded-2xl bg-red-500/10 border border-red-500/20 text-center">
+                <span className="text-[11px] font-bold text-red-400 uppercase tracking-wider block">Incorrect</span>
+                <div className="text-2xl font-black text-red-300 mt-0.5">{displayWrong}</div>
+              </div>
+
+              <div className="p-3.5 rounded-2xl bg-rose-500/10 border border-rose-500/20 text-center">
+                <span className="text-[11px] font-bold text-rose-400 uppercase tracking-wider block">Negative Marks</span>
+                <div className="text-2xl font-black text-rose-300 mt-0.5">
+                  {displayNegativeDeduction > 0 ? `-${displayNegativeDeduction}` : '0'}
+                </div>
+              </div>
+
+              <div className="p-3.5 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-center">
+                <span className="text-[11px] font-bold text-amber-400 uppercase tracking-wider block">Unanswered</span>
+                <div className="text-2xl font-black text-amber-300 mt-0.5">{displayUnattempted}</div>
+              </div>
+            </div>
+
+            {/* Note on Scoring */}
+            <p className="text-center text-xs text-slate-400 italic">
+              * Negative marks were deducted solely for incorrect answers. Unanswered questions did not receive any penalty.
             </p>
          </div>
       )}
 
-      {/* Questions */}
+      {/* Questions List */}
       <div className="space-y-6">
-         {quiz.questions.map((q, qIdx) => {
+         {(quiz.questions || []).map((q, qIdx) => {
             const selectedOpt = answers[q.id];
-            const isCorrect = isFinished && selectedOpt === q.correctOption;
-            const isWrong = isFinished && selectedOpt !== undefined && selectedOpt !== q.correctOption;
-            const missed = isFinished && selectedOpt === undefined;
+            const isAnswered = selectedOpt !== undefined && selectedOpt !== null && selectedOpt !== '';
+            const isCorrect = isFinished && isAnswered && Number(selectedOpt) === Number(q.correctOption);
+            const isWrong = isFinished && isAnswered && Number(selectedOpt) !== Number(q.correctOption);
+            const missed = isFinished && !isAnswered;
+
+            const qMarks = Number(q.marks) > 0 ? Number(q.marks) : 1;
+            const qNeg = q.negativeMarks !== undefined && q.negativeMarks !== null ? Math.max(0, Number(q.negativeMarks)) : 0;
 
             let borderClass = "border-white/10";
             if (isFinished) {
                if (isCorrect) borderClass = "border-emerald-500/50 bg-emerald-500/5";
                else if (isWrong) borderClass = "border-red-500/50 bg-red-500/5";
-               else if (missed) borderClass = "border-amber-500/50 bg-amber-500/5";
+               else if (missed) borderClass = "border-amber-500/30 bg-amber-500/5";
             }
 
             return (
-               <div key={q.id} className={`p-6 rounded-3xl glass-card border ${borderClass} space-y-6 transition-colors`}>
-                  <div className="flex gap-4">
-                     <div className="w-8 h-8 rounded-full bg-royal-500/20 text-royal-400 flex items-center justify-center font-bold text-sm shrink-0">
-                        {qIdx + 1}
+               <div key={q.id} className={`p-6 sm:p-7 rounded-3xl glass-card border ${borderClass} space-y-5 transition-colors shadow-lg`}>
+                  
+                  {/* Question Header: Number, Marks, Negative Tag */}
+                  <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/5 pb-3">
+                     <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-xl bg-royal-500/20 text-royal-400 flex items-center justify-center font-black text-sm shrink-0">
+                           {qIdx + 1}
+                        </div>
+                        <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">
+                           Question {qIdx + 1}
+                        </span>
                      </div>
-                     <h3 className="text-base font-bold text-slate-200 mt-1 whitespace-pre-wrap">{q.text}</h3>
+
+                     <div className="flex items-center gap-2 flex-wrap">
+                        <span className="px-2.5 py-1 rounded-lg text-[11px] font-bold bg-navy-950/80 border border-white/10 text-emerald-400">
+                           +{qMarks} Marks
+                        </span>
+
+                        {qNeg > 0 ? (
+                           <span className="px-2.5 py-1 rounded-lg text-[11px] font-bold bg-rose-500/15 border border-rose-500/30 text-rose-300">
+                              Negative: -{qNeg}
+                           </span>
+                        ) : (
+                           <span className="px-2.5 py-1 rounded-lg text-[11px] font-medium bg-slate-800 text-slate-400 border border-white/5">
+                              No Negative Marking
+                           </span>
+                        )}
+                     </div>
                   </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pl-12">
+                  {/* Question Text */}
+                  <div className="pl-1 sm:pl-2">
+                     <h3 className="text-base sm:text-lg font-bold text-slate-100 whitespace-pre-wrap leading-relaxed">
+                        {q.text}
+                     </h3>
+                  </div>
+
+                  {/* Options */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 pl-1 sm:pl-2">
                      {[0, 1, 2, 3].map((optIdx) => {
-                        const isSelected = selectedOpt === optIdx;
-                        const isActualCorrect = isFinished && q.correctOption === optIdx;
+                        const isSelected = Number(selectedOpt) === optIdx;
+                        const isActualCorrect = isFinished && Number(q.correctOption) === optIdx;
                         
-                        let optClass = "border-white/10 hover:border-white/30 bg-navy-900/50";
-                        if (isSelected && !isFinished) optClass = "border-royal-500 bg-royal-500/20 shadow-glow-royal";
+                        let optClass = "border-white/10 hover:border-white/30 bg-navy-900/50 text-slate-200";
+                        if (isSelected && !isFinished) {
+                          optClass = "border-royal-500 bg-royal-500/20 shadow-glow-royal text-white";
+                        }
                         
                         if (isFinished) {
                            if (isActualCorrect) {
-                              optClass = "border-emerald-500 bg-emerald-500/20 text-emerald-300"; // Highlight correct
+                              optClass = "border-emerald-500 bg-emerald-500/20 text-emerald-300 ring-1 ring-emerald-500/40";
                            } else if (isSelected && !isActualCorrect) {
-                              optClass = "border-red-500 bg-red-500/20 text-red-300"; // Highlight wrong choice
+                              optClass = "border-red-500 bg-red-500/20 text-red-300 ring-1 ring-red-500/40";
                            } else {
-                              optClass = "border-white/5 bg-navy-900/30 opacity-50";
+                              optClass = "border-white/5 bg-navy-900/30 opacity-50 text-slate-400";
                            }
                         }
 
@@ -242,25 +397,58 @@ export default function QuizAttempt({ quiz, attemptId, onClose }) {
                               key={optIdx}
                               onClick={() => handleSelectOption(q.id, optIdx)}
                               disabled={isFinished || submitting}
-                              className={`p-4 rounded-xl border flex items-start gap-3 text-left transition-all ${optClass} ${!isFinished && !submitting ? 'cursor-pointer' : 'cursor-default'}`}
+                              className={`p-4 rounded-2xl border flex items-start gap-3.5 text-left transition-all ${optClass} ${!isFinished && !submitting ? 'cursor-pointer hover:bg-navy-900/80' : 'cursor-default'}`}
                            >
-                              <div className={`w-5 h-5 mt-0.5 rounded-full border flex items-center justify-center shrink-0 ${isSelected ? 'border-royal-400 bg-royal-400 text-navy-950' : 'border-slate-500'}`}>
+                              <div className={`w-5 h-5 mt-0.5 rounded-full border flex items-center justify-center shrink-0 ${
+                                isSelected 
+                                  ? 'border-royal-400 bg-royal-400 text-navy-950' 
+                                  : isActualCorrect
+                                    ? 'border-emerald-400 bg-emerald-400 text-navy-950'
+                                    : 'border-slate-500'
+                              }`}>
                                  {isSelected && <div className="w-2 h-2 rounded-full bg-current" />}
                               </div>
-                              <span className="text-sm font-semibold">{q.options[optIdx]}</span>
+                              <div className="flex-grow">
+                                 <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-0.5">
+                                   Option {String.fromCharCode(65 + optIdx)}
+                                 </span>
+                                 <span className="text-sm font-semibold">{q.options[optIdx]}</span>
+                              </div>
                            </button>
                         );
                      })}
                   </div>
                   
-                  {/* Feedback for finished state */}
+                  {/* Detailed Feedback row when quiz is completed */}
                   {isFinished && (
-                     <div className="pl-12 pt-2">
-                        {isCorrect && <div className="text-xs font-bold text-emerald-400 flex items-center gap-1"><CheckCircle className="w-4 h-4"/> Correct Answer</div>}
-                        {isWrong && <div className="text-xs font-bold text-red-400 flex items-center gap-1"><AlertTriangle className="w-4 h-4"/> Incorrect Answer. Correct option was {String.fromCharCode(65 + q.correctOption)}</div>}
-                        {missed && <div className="text-xs font-bold text-amber-400 flex items-center gap-1"><AlertTriangle className="w-4 h-4"/> Not Attempted. Correct option was {String.fromCharCode(65 + q.correctOption)}</div>}
+                     <div className="pl-1 sm:pl-2 pt-2 border-t border-white/5">
+                        {isCorrect && (
+                           <div className="text-xs font-bold text-emerald-400 flex items-center gap-2">
+                              <CheckCircle className="w-4 h-4 text-emerald-400 shrink-0"/> 
+                              <span>Correct Answer (+{qMarks} marks awarded)</span>
+                           </div>
+                        )}
+                        {isWrong && (
+                           <div className="text-xs font-bold text-red-400 flex items-center gap-2 flex-wrap">
+                              <AlertTriangle className="w-4 h-4 text-red-400 shrink-0"/> 
+                              <span>
+                                 Incorrect Answer {qNeg > 0 ? `(-${qNeg} negative marks deducted)` : '(0 marks)'}. 
+                                 Correct option was <strong>Option {String.fromCharCode(65 + Number(q.correctOption))}</strong>.
+                              </span>
+                           </div>
+                        )}
+                        {missed && (
+                           <div className="text-xs font-bold text-amber-400 flex items-center gap-2 flex-wrap">
+                              <HelpCircle className="w-4 h-4 text-amber-400 shrink-0"/> 
+                              <span>
+                                 Not Attempted (0 marks, no negative deduction). 
+                                 Correct option was <strong>Option {String.fromCharCode(65 + Number(q.correctOption))}</strong>.
+                              </span>
+                           </div>
+                        )}
                      </div>
                   )}
+
                </div>
             );
          })}
@@ -268,37 +456,45 @@ export default function QuizAttempt({ quiz, attemptId, onClose }) {
 
       {/* Footer Submit Button */}
       {!isFinished && (
-         <div className="pt-8 pb-12 flex justify-center">
+         <div className="pt-6 pb-12 flex justify-center">
             <button
                onClick={() => setShowConfirm(true)}
                disabled={submitting}
-               className="px-8 py-4 rounded-2xl bg-royal-600 hover:bg-royal-500 text-white font-black text-lg transition-all shadow-glow-royal flex items-center gap-3 disabled:opacity-50"
+               className="px-10 py-4 rounded-2xl bg-royal-600 hover:bg-royal-500 text-white font-black text-lg transition-all shadow-glow-royal flex items-center gap-3 disabled:opacity-50 cursor-pointer hover:scale-[1.02]"
             >
-               {submitting ? 'Submitting...' : 'Submit Quiz'}
                <Send className="w-5 h-5" />
+               <span>{submitting ? 'Submitting Test...' : 'Submit Test'}</span>
             </button>
          </div>
       )}
 
-      {/* Confirmation Modal */}
+      {/* Submission Confirmation Modal */}
       {showConfirm && (
          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-navy-950/85 backdrop-blur-md">
-            <div className="glass-card p-8 rounded-3xl border border-white/10 max-w-md w-full shadow-2xl space-y-6 text-center animate-in zoom-in-95 duration-200">
-               <div className="w-16 h-16 mx-auto rounded-full bg-royal-500/20 text-royal-400 flex items-center justify-center">
+            <div className="glass-card p-6 sm:p-8 rounded-3xl border border-white/10 max-w-md w-full shadow-2xl space-y-6 text-center animate-in zoom-in-95 duration-200">
+               <div className="w-16 h-16 mx-auto rounded-2xl bg-royal-500/20 text-royal-400 flex items-center justify-center shadow-glow-royal">
                   <AlertTriangle className="w-8 h-8" />
                </div>
-               <div>
-                  <h3 className="text-xl font-bold text-white mb-2">Submit Quiz?</h3>
-                  <p className="text-sm text-slate-300">
-                     Are you sure you want to submit this quiz? You won't be able to change your answers after submission.
+               <div className="space-y-2">
+                  <h3 className="text-xl font-black text-white">Submit Your Test?</h3>
+                  <p className="text-xs text-slate-300 leading-relaxed">
+                     You have answered <strong className="text-emerald-400 font-bold">{answeredCount}</strong> of <strong className="text-white font-bold">{quiz.questions?.length || 0}</strong> questions.
+                     Once submitted, negative marking will be applied to any incorrect answers. Unanswered questions will not receive negative marks.
                   </p>
                </div>
                <div className="flex gap-3">
-                  <button onClick={() => setShowConfirm(false)} className="w-full py-3 rounded-xl border border-white/10 text-slate-300 text-sm font-semibold hover:bg-white/5 transition-colors">
-                     Cancel
+                  <button 
+                     onClick={() => setShowConfirm(false)} 
+                     className="w-full py-3 rounded-xl border border-white/10 text-slate-300 text-sm font-bold hover:bg-white/5 transition-colors cursor-pointer"
+                  >
+                     Keep Solving
                   </button>
-                  <button onClick={handleManualSubmit} disabled={submitting} className="w-full py-3 rounded-xl bg-royal-600 hover:bg-royal-500 text-white text-sm font-black transition-colors disabled:opacity-50 shadow-glow-royal">
-                     {submitting ? 'Submitting...' : 'Yes, Submit'}
+                  <button 
+                     onClick={handleManualSubmit} 
+                     disabled={submitting} 
+                     className="w-full py-3 rounded-xl bg-royal-600 hover:bg-royal-500 text-white text-sm font-black transition-colors disabled:opacity-50 shadow-glow-royal cursor-pointer"
+                  >
+                     {submitting ? 'Submitting...' : 'Yes, Submit Test'}
                   </button>
                </div>
             </div>

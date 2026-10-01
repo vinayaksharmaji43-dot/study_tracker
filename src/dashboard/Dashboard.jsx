@@ -137,7 +137,7 @@ export default function Dashboard() {
     { id: 'quiz', label: 'Quiz', icon: BrainCircuit },
     { id: 'writing', label: 'Writing Practice', icon: PenLine },
     { id: 'missions', label: 'Weekly Mission', icon: Flag },
-    { id: 'targets', label: 'Self-Managed Hub', icon: Target },
+    { id: 'targets', label: 'Daily Target and Test', icon: Target },
     { id: 'notes', label: 'Notes & Resources', icon: FileText },
     { id: 'doubts', label: 'Doubt & Guidance', icon: HelpCircle },
     { id: 'product', label: 'Product', icon: ShoppingBag, isSpecial: true },

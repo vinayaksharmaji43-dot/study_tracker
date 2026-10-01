@@ -836,7 +836,7 @@ export default function StudyTimer() {
           ) : (
             <div className="space-y-0.5">
               <span className="text-sm font-bold text-slate-400 truncate block">No Target for {selectedSubject || 'Subject'}</span>
-              <span className="text-[10px] font-semibold text-slate-500 block">Set in Self-Manage Hub</span>
+              <span className="text-[10px] font-semibold text-slate-500 block">Set in Daily Target and Test</span>
             </div>
           )}
         </div>

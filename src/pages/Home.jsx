@@ -310,7 +310,7 @@ export default function Home() {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {[
                 { icon: Trophy, title: 'Live Leaderboard', desc: 'Compete through genuine study hours and points. Real-time updates with zero fake entries.', color: 'text-purple-400', bg: 'bg-purple-500/10' },
-                { icon: Target, title: 'Self-Managed Hub', desc: 'Create your own daily study goals, manage subject targets, and earn points upon completion.', color: 'text-gold-400', bg: 'bg-gold-500/10' },
+                { icon: Target, title: 'Daily Target and Test', desc: 'Create your own daily study goals, manage subject targets, and earn points upon completion.', color: 'text-gold-400', bg: 'bg-gold-500/10' },
                 { icon: Clock, title: 'Study Timer', desc: 'Track real study sessions and subject-wise time with auto-saving to your profile.', color: 'text-emerald-400', bg: 'bg-emerald-500/10' },
                 { icon: FileText, title: 'Notes & Resources', desc: 'Access admin-controlled educational resources, study PDFs, and academic summaries.', color: 'text-purple-400', bg: 'bg-purple-500/10' },
                 { icon: HelpCircle, title: 'Academic Doubts', desc: 'Ask subject questions directly and receive verified admin and faculty answers.', color: 'text-amber-400', bg: 'bg-amber-500/10' },

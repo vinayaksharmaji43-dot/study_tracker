@@ -121,13 +121,9 @@ export default function StudentQuizzes({ setActiveTab }) {
     try {
       const existingAttempt = attempts[quiz.id];
       if (existingAttempt) {
-        if (existingAttempt.status === 'in_progress') {
-          setActiveQuizId(quiz.id);
-          return;
-        } else {
-          alert('You have already completed this quiz.');
-          return;
-        }
+        // If in progress or already completed, open QuizAttempt view
+        setActiveQuizId(quiz.id);
+        return;
       }
 
       // Create new attempt
@@ -397,30 +393,55 @@ export default function StudentQuizzes({ setActiveTab }) {
                 </div>
 
                 {/* Metrics Pill Strip */}
-                <div className="flex items-center gap-3 pt-1">
-                  <div className="flex items-center gap-1.5 text-xs font-bold text-slate-300 bg-navy-950/60 border border-white/5 px-2.5 py-1.5 rounded-xl">
-                    <Clock className="w-3.5 h-3.5 text-amber-400" />
-                    <span>{q.timeLimit || 30} Mins</span>
-                  </div>
-                  <div className="flex items-center gap-1.5 text-xs font-bold text-slate-300 bg-navy-950/60 border border-white/5 px-2.5 py-1.5 rounded-xl">
-                    <Layers className="w-3.5 h-3.5 text-royal-400" />
-                    <span>{q.questions?.length || 0} Questions</span>
-                  </div>
-                </div>
+                {(() => {
+                  const totalQuizMarks = (q.questions || []).reduce((sum, item) => sum + (Number(item.marks) || 1), 0);
+                  const hasNegativeMarking = (q.questions || []).some(item => Number(item.negativeMarks) > 0);
 
-                {/* Completed Score Strip */}
-                {isCompleted && attempt.score !== undefined && (
-                  <div className="mt-3 p-3 rounded-2xl bg-navy-950/80 border border-white/10 flex items-center justify-between">
-                    <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Your Score</span>
-                    <div className="flex items-center gap-2">
-                      <span className="text-base font-black text-emerald-400">{attempt.score}</span>
-                      <span className="text-xs font-bold text-slate-500">/ {q.questions?.length || 0}</span>
-                      <span className="text-[11px] px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 font-bold ml-1">
-                        {Math.round(((attempt.score || 0) / (q.questions?.length || 1)) * 100)}%
-                      </span>
-                    </div>
-                  </div>
-                )}
+                  return (
+                    <>
+                      <div className="flex items-center gap-2 pt-1 flex-wrap">
+                        <div className="flex items-center gap-1.5 text-xs font-bold text-slate-300 bg-navy-950/60 border border-white/5 px-2.5 py-1.5 rounded-xl">
+                          <Clock className="w-3.5 h-3.5 text-amber-400" />
+                          <span>{q.timeLimit || 30} Mins</span>
+                        </div>
+                        <div className="flex items-center gap-1.5 text-xs font-bold text-slate-300 bg-navy-950/60 border border-white/5 px-2.5 py-1.5 rounded-xl">
+                          <Layers className="w-3.5 h-3.5 text-royal-400" />
+                          <span>{q.questions?.length || 0} Qs</span>
+                        </div>
+                        <div className="flex items-center gap-1.5 text-xs font-bold text-slate-300 bg-navy-950/60 border border-white/5 px-2.5 py-1.5 rounded-xl">
+                          <Award className="w-3.5 h-3.5 text-emerald-400" />
+                          <span>{totalQuizMarks} Marks</span>
+                        </div>
+                        {hasNegativeMarking && (
+                          <div className="flex items-center gap-1 text-[11px] font-bold text-rose-300 bg-rose-500/15 border border-rose-500/25 px-2 py-1 rounded-xl">
+                            <span>⚠️ Negative Marking</span>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Completed Score Strip */}
+                      {isCompleted && attempt.score !== undefined && (
+                        <div className="mt-3 p-3 rounded-2xl bg-navy-950/80 border border-white/10 flex items-center justify-between">
+                          <div className="space-y-0.5">
+                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Your Score</span>
+                            {attempt.negativeDeduction > 0 && (
+                              <span className="text-[10px] text-rose-400 font-semibold block">
+                                (-{attempt.negativeDeduction} neg. deducted)
+                              </span>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span className="text-base font-black text-emerald-400">{attempt.score}</span>
+                            <span className="text-xs font-bold text-slate-500">/ {attempt.totalMarks || totalQuizMarks}</span>
+                            <span className="text-[11px] px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 font-bold ml-1">
+                              {Math.max(0, Math.round(((attempt.score || 0) / (attempt.totalMarks || totalQuizMarks || 1)) * 100))}%
+                            </span>
+                          </div>
+                        </div>
+                      )}
+                    </>
+                  );
+                })()}
 
               </div>
 
@@ -428,11 +449,11 @@ export default function StudentQuizzes({ setActiveTab }) {
               <div className="pt-5 border-t border-white/10 mt-5 relative z-10">
                 {isCompleted ? (
                   <button
-                    disabled
-                    className="w-full py-3 rounded-xl bg-emerald-500/10 text-emerald-400 font-bold border border-emerald-500/20 text-sm cursor-not-allowed flex items-center justify-center gap-2"
+                    onClick={() => setActiveQuizId(q.id)}
+                    className="w-full py-3 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-300 font-bold border border-emerald-500/30 text-sm transition-all flex items-center justify-center gap-2 cursor-pointer shadow-sm hover:scale-[1.01]"
                   >
-                    <CheckCircle className="w-4 h-4" />
-                    <span>Test Completed</span>
+                    <CheckCircle className="w-4 h-4 text-emerald-400" />
+                    <span>View Result & Analysis</span>
                   </button>
                 ) : isInProgress ? (
                   <button

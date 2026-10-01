@@ -335,7 +335,7 @@ export default function TestTracker() {
           <div className="space-y-2">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-purple-500/20 text-purple-300 text-xs font-bold border border-purple-500/30">
               <FileText className="w-3.5 h-3.5" />
-              <span>Self Manage Hub • Test Performance</span>
+              <span>Daily Target and Test • Test Performance</span>
             </div>
             <h1 className="text-2xl sm:text-3xl font-extrabold text-white">
               Academic <span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-400">Test Tracker & Papers</span>

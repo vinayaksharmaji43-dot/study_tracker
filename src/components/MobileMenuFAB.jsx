@@ -45,7 +45,7 @@ export default function MobileMenuFAB({ activeTab, setActiveTab }) {
     { id: 'mentor', label: 'Mentor Session', icon: Video },
     { id: 'leaderboard', label: 'Leaderboard', icon: Trophy },
     { id: 'overall_leaderboard', label: 'All Students', icon: Medal },
-    { id: 'targets', label: 'Daily Target', icon: Target },
+    { id: 'targets', label: 'Daily Target and Test', icon: Target },
     { id: 'notes', label: 'Notes', icon: FileText },
     { id: 'doubts', label: 'Doubt & Guidance', icon: HelpCircle },
     { id: 'product', label: 'Product Store', icon: ShoppingBag },

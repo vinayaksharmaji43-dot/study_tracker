@@ -100,7 +100,7 @@ export const DASHBOARD_SECTIONS = [
   },
   {
     id: 'targets',
-    label: 'Self-Managed Hub',
+    label: 'Daily Target and Test',
     description: 'Daily subject targets, timer completion verification, and test tracker',
     category: 'Planning',
     iconName: 'Target'

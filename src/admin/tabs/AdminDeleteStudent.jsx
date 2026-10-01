@@ -167,7 +167,7 @@ export default function AdminDeleteStudent() {
       await deleteQueryDocsInBatches(query(collection(db, 'pointTransactions'), where('studentId', '==', studentUid)), 'pointTransactions');
 
       // 5. Delete Targets
-      setDeletionProgress('Removing self-managed daily targets...');
+      setDeletionProgress('Removing daily targets and tests...');
       await deleteQueryDocsInBatches(query(collection(db, 'targets'), where('uid', '==', studentUid)), 'targets');
 
       // 6. Delete Coaching Study Entries

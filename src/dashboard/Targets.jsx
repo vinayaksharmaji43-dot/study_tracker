@@ -465,7 +465,7 @@ export default function Targets({ setActiveTab }) {
 
   return (
     <div className="space-y-6">
-      {/* Self Manage Hub Section Switcher */}
+      {/* Daily Target and Test Section Switcher */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-white/10 pb-4">
         <div className="flex items-center gap-2 p-1.5 rounded-2xl glass-card border border-white/10">
           <button
