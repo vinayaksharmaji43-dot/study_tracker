@@ -105,20 +105,24 @@ export default function CountdownWidget({ setActiveTab }) {
       }`}>
         
         {/* Background glow */}
-        <div className="absolute top-0 right-0 w-32 h-32 bg-gold-500/10 rounded-full blur-2xl pointer-events-none group-hover:bg-gold-500/20 transition-all duration-500" />
-        <div className="absolute bottom-0 left-0 w-32 h-32 bg-emerald-500/10 rounded-full blur-2xl pointer-events-none group-hover:bg-emerald-500/20 transition-all duration-500" />
+        <div className={`absolute top-0 right-0 w-32 h-32 rounded-full blur-2xl pointer-events-none transition-all duration-500 ${
+          isEyeCare ? 'bg-gold-500/10 group-hover:bg-gold-500/20' : 'bg-blue-500/5 group-hover:bg-blue-500/10'
+        }`} />
+        <div className={`absolute bottom-0 left-0 w-32 h-32 rounded-full blur-2xl pointer-events-none transition-all duration-500 ${
+          isEyeCare ? 'bg-emerald-500/10 group-hover:bg-emerald-500/20' : 'bg-blue-600/5 group-hover:bg-blue-600/10'
+        }`} />
 
         <div className="flex items-center gap-3 relative z-10 w-full sm:w-auto text-center sm:text-left justify-center sm:justify-start">
           <div className={`w-11 h-11 rounded-xl flex items-center justify-center shrink-0 border ${
             isEyeCare 
               ? 'bg-gold-500/20 border-gold-500/40 text-gold-400' 
-              : 'bg-amber-100 border-amber-300 text-amber-800'
+              : 'bg-blue-50 border-blue-200 text-blue-700'
           }`}>
             <Calendar className="w-5 h-5" />
           </div>
           <div>
             <div className={`text-xs font-black uppercase tracking-wider mb-0.5 ${
-              isEyeCare ? 'text-slate-400' : 'text-blue-600'
+              isEyeCare ? 'text-slate-400' : 'text-blue-700'
             }`}>
               Exam Target
             </div>
@@ -137,9 +141,9 @@ export default function CountdownWidget({ setActiveTab }) {
           <div className={`flex items-center gap-3 px-4 py-2.5 rounded-xl border transition-colors ${
             isEyeCare 
               ? 'bg-navy-950/80 border-white/10' 
-              : 'bg-amber-50/90 border-amber-300 shadow-sm'
+              : 'bg-blue-50/90 border-blue-200 shadow-sm'
           }`}>
-            <Clock className={`w-4 h-4 ${hasPassed ? 'text-slate-400' : isEyeCare ? 'text-gold-400 animate-pulse' : 'text-amber-700 animate-pulse'}`} />
+            <Clock className={`w-4 h-4 ${hasPassed ? 'text-slate-400' : isEyeCare ? 'text-gold-400 animate-pulse' : 'text-blue-700 animate-pulse'}`} />
             <div className="flex items-baseline gap-1.5">
               {hasPassed ? (
                 <span className={`text-sm font-bold ${isEyeCare ? 'text-slate-400' : 'text-slate-700'}`}>Exam Date Passed</span>
@@ -148,12 +152,12 @@ export default function CountdownWidget({ setActiveTab }) {
                   <span className={`text-2xl font-black font-mono ${
                     isEyeCare 
                       ? 'text-transparent bg-clip-text bg-gradient-to-r from-gold-400 to-amber-300' 
-                      : 'text-amber-700'
+                      : 'text-blue-700'
                   }`}>
                     {daysLeft}
                   </span>
                   <span className={`text-xs font-black uppercase tracking-wider ${
-                    isEyeCare ? 'text-gold-400/80' : 'text-amber-800'
+                    isEyeCare ? 'text-gold-400/80' : 'text-blue-900'
                   }`}>
                     Days Left
                   </span>
@@ -165,7 +169,11 @@ export default function CountdownWidget({ setActiveTab }) {
           {/* 🎥 Webcam Study Button */}
           <button
             onClick={() => setShowWebcamModal(true)}
-            className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-black text-xs transition-all duration-200 flex items-center gap-2 shadow-md hover:shadow-lg hover:scale-105 cursor-pointer border border-emerald-500/50"
+            className={`px-4 py-2.5 rounded-xl text-white font-black text-xs transition-all duration-200 flex items-center gap-2 shadow-md cursor-pointer border ${
+              isEyeCare
+                ? 'bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 border-emerald-500/50'
+                : 'bg-blue-600 hover:bg-blue-700 shadow-blue-500/25 border-blue-500'
+            }`}
             title="Join Live Webcam Study Hall"
           >
             <span className="relative flex h-2 w-2">

@@ -241,7 +241,7 @@ export default function Navbar({ activeTab, setActiveTab }) {
                     className={`flex items-center space-x-2 px-3.5 py-2 rounded-xl text-sm font-bold transition-all shadow-sm ${
                       isEyeCare
                         ? 'bg-gold-500/20 border border-gold-500/40 text-gold-400 hover:bg-gold-500 hover:text-navy-950 shadow-glow-gold'
-                        : 'bg-gradient-to-r from-amber-400 to-yellow-400 text-slate-950 hover:from-amber-500 hover:to-yellow-500 border border-amber-300 shadow-sm'
+                        : 'bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-300 shadow-sm'
                     }`}
                   >
                     <ShieldCheck className="w-4 h-4" />
@@ -286,7 +286,7 @@ export default function Navbar({ activeTab, setActiveTab }) {
                     className={`p-2 rounded-xl transition-colors flex items-center gap-1.5 text-xs font-bold border ${
                       isEyeCare
                         ? 'text-emerald-400 hover:text-emerald-300 hover:bg-emerald-500/10 border-emerald-500/20 bg-emerald-500/5'
-                        : 'text-emerald-800 bg-emerald-100/80 hover:bg-emerald-200/80 border-emerald-300'
+                        : 'text-blue-700 bg-blue-50 hover:bg-blue-100 border-blue-200'
                     }`}
                   >
                     <Headphones className="w-4 h-4" />

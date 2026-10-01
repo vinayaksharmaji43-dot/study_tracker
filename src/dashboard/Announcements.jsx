@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { db } from '../config/firebase';
 import { useAuth } from '../contexts/AuthContext';
+import { useTheme } from '../contexts/ThemeContext';
 import EmptyState from '../components/EmptyState';
 import { formatDate } from '../utils/helpers';
 
@@ -53,6 +54,7 @@ function isRecent(announcement) {
 
 export default function Announcements() {
   const { currentUser, userProfile, isAdmin } = useAuth();
+  const { isEyeCare } = useTheme();
   const [announcements, setAnnouncements] = useState([]);
   const [readIds, setReadIds] = useState(new Set());
   const [searchQuery, setSearchQuery] = useState('');
@@ -161,19 +163,23 @@ export default function Announcements() {
   return (
     <div className="space-y-8 animate-in fade-in duration-300">
       
-      {/* Header Banner */}
-      <header className="p-6 sm:p-8 rounded-3xl glass-card border border-amber-400/40 relative overflow-hidden shadow-2xl bg-gradient-to-r from-amber-500/15 via-yellow-500/10 to-amber-600/15">
+      {/* Header Banner - YELLOW + RED THEME */}
+      <header className={`p-6 sm:p-8 rounded-3xl border relative overflow-hidden shadow-md ${
+        isEyeCare
+          ? 'glass-card border-amber-400/40 bg-gradient-to-r from-amber-500/15 via-yellow-500/10 to-amber-600/15 shadow-2xl'
+          : 'bg-white border-2 border-amber-300'
+      }`}>
         <div className="absolute right-0 top-0 w-80 h-80 bg-amber-400/15 rounded-full blur-3xl pointer-events-none" />
         <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
           <div className="space-y-2">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-400 text-slate-950 text-xs font-black uppercase tracking-wider shadow-md border border-amber-300">
-              <Megaphone className="w-3.5 h-3.5 fill-current" />
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-400 text-slate-950 text-xs font-black uppercase tracking-wider shadow-sm border border-amber-300">
+              <Megaphone className="w-3.5 h-3.5 fill-current text-red-700" />
               <span>Official Announcements & Alerts</span>
             </div>
-            <h1 className="text-2xl sm:text-3xl font-extrabold text-white">
-              Platform <span className="bg-gradient-to-r from-yellow-300 via-amber-400 to-orange-400 bg-clip-text text-transparent">Announcements</span> 📢
+            <h1 className={`text-2xl sm:text-3xl font-extrabold ${isEyeCare ? 'text-white' : 'text-slate-900'}`}>
+              Platform <span className="text-red-600">Announcements</span> 📢
             </h1>
-            <p className="text-slate-300 text-sm max-w-xl">
+            <p className={`text-sm max-w-xl ${isEyeCare ? 'text-slate-300' : 'text-slate-700 font-medium'}`}>
               Stay up to date with exam schedules, syllabus updates, live session reminders, and platform notices.
             </p>
           </div>
@@ -183,9 +189,13 @@ export default function Announcements() {
               <button
                 onClick={handleMarkAllRead}
                 disabled={markingAll}
-                className="px-4 py-2.5 rounded-2xl bg-amber-500/20 border border-amber-400/50 text-amber-300 hover:bg-amber-500/30 text-xs font-bold transition-all flex items-center gap-2 shadow-[0_0_15px_rgba(245,158,11,0.25)] disabled:opacity-50 cursor-pointer"
+                className={`px-4 py-2.5 rounded-2xl text-xs font-bold transition-all flex items-center gap-2 disabled:opacity-50 cursor-pointer border ${
+                  isEyeCare
+                    ? 'bg-amber-500/20 border-amber-400/50 text-amber-300 hover:bg-amber-500/30 shadow-[0_0_15px_rgba(245,158,11,0.25)]'
+                    : 'bg-amber-50 border-amber-300 text-red-700 hover:bg-amber-100 shadow-sm'
+                }`}
               >
-                <CheckCheck className="w-4 h-4 text-amber-400" />
+                <CheckCheck className="w-4 h-4 text-red-600" />
                 <span>Mark All as Read ({unreadCount})</span>
               </button>
             </div>
@@ -193,22 +203,30 @@ export default function Announcements() {
         </div>
 
         {/* Filter & Search Bar */}
-        <div className="relative z-10 mt-6 pt-6 border-t border-amber-400/20 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4">
+        <div className={`relative z-10 mt-6 pt-6 border-t flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 ${
+          isEyeCare ? 'border-amber-400/20' : 'border-amber-200'
+        }`}>
           
           {/* Search Input */}
           <div className="relative flex-1 max-w-md">
-            <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+            <Search className={`w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none ${
+              isEyeCare ? 'text-slate-400' : 'text-amber-800'
+            }`} />
             <input
               type="text"
               placeholder="Search announcements..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-navy-900/80 border border-amber-400/30 text-white text-xs placeholder:text-slate-400 focus:outline-none focus:border-amber-400 focus:ring-1 focus:ring-amber-400 transition-colors"
+              className={`w-full pl-10 pr-4 py-2.5 rounded-xl text-xs focus:outline-none transition-colors border ${
+                isEyeCare
+                  ? 'bg-navy-900/80 border-amber-400/30 text-white placeholder:text-slate-400 focus:border-amber-400'
+                  : 'bg-amber-50/60 border-amber-300 text-slate-900 placeholder:text-slate-500 focus:border-red-400'
+              }`}
             />
             {searchQuery && (
               <button
                 onClick={() => setSearchQuery('')}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white"
+                className={`absolute right-3 top-1/2 -translate-y-1/2 ${isEyeCare ? 'text-slate-400 hover:text-white' : 'text-slate-500 hover:text-slate-900'}`}
               >
                 <X className="w-3.5 h-3.5" />
               </button>
@@ -221,8 +239,10 @@ export default function Announcements() {
               onClick={() => setFilterType('all')}
               className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap ${
                 filterType === 'all'
-                  ? 'bg-gradient-to-r from-amber-500 to-yellow-400 text-slate-950 font-black shadow-[0_0_15px_rgba(245,158,11,0.4)]'
-                  : 'bg-navy-900/80 text-amber-200/80 border border-amber-500/20 hover:text-white hover:bg-amber-500/15'
+                  ? 'bg-amber-400 text-slate-950 font-black shadow-sm'
+                  : isEyeCare
+                    ? 'bg-navy-900/80 text-amber-200/80 border border-amber-500/20 hover:text-white hover:bg-amber-500/15'
+                    : 'bg-amber-50 text-amber-900 border border-amber-300 hover:bg-amber-100'
               }`}
             >
               All ({announcements.length})
@@ -231,8 +251,10 @@ export default function Announcements() {
               onClick={() => setFilterType('unread')}
               className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap ${
                 filterType === 'unread'
-                  ? 'bg-gradient-to-r from-amber-500 to-yellow-400 text-slate-950 font-black shadow-[0_0_15px_rgba(245,158,11,0.4)]'
-                  : 'bg-navy-900/80 text-amber-200/80 border border-amber-500/20 hover:text-white hover:bg-amber-500/15'
+                  ? 'bg-amber-400 text-slate-950 font-black shadow-sm'
+                  : isEyeCare
+                    ? 'bg-navy-900/80 text-amber-200/80 border border-amber-500/20 hover:text-white hover:bg-amber-500/15'
+                    : 'bg-amber-50 text-amber-900 border border-amber-300 hover:bg-amber-100'
               }`}
             >
               Unread {unreadCount > 0 && `(${unreadCount})`}
@@ -241,8 +263,10 @@ export default function Announcements() {
               onClick={() => setFilterType('images')}
               className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap ${
                 filterType === 'images'
-                  ? 'bg-gradient-to-r from-amber-500 to-yellow-400 text-slate-950 font-black shadow-[0_0_15px_rgba(245,158,11,0.4)]'
-                  : 'bg-navy-900/80 text-amber-200/80 border border-amber-500/20 hover:text-white hover:bg-amber-500/15'
+                  ? 'bg-amber-400 text-slate-950 font-black shadow-sm'
+                  : isEyeCare
+                    ? 'bg-navy-900/80 text-amber-200/80 border border-amber-500/20 hover:text-white hover:bg-amber-500/15'
+                    : 'bg-amber-50 text-amber-900 border border-amber-300 hover:bg-amber-100'
               }`}
             >
               With Attachments
@@ -271,23 +295,29 @@ export default function Announcements() {
               <article
                 key={announcement.id}
                 onClick={() => markAsRead(announcement.id)}
-                className={`rounded-3xl glass-card border overflow-hidden transition-all duration-300 relative group cursor-pointer ${
-                  isUnread 
-                    ? 'border-amber-400/60 bg-gradient-to-b from-amber-500/15 via-yellow-500/5 to-transparent shadow-[0_0_35px_rgba(245,158,11,0.2)]' 
-                    : 'border-amber-500/20 hover:border-amber-400/50 bg-navy-950/70 hover:bg-navy-900/80'
+                className={`rounded-3xl border overflow-hidden transition-all duration-300 relative group cursor-pointer ${
+                  isEyeCare
+                    ? isUnread 
+                      ? 'glass-card border-amber-400/60 bg-gradient-to-b from-amber-500/15 via-yellow-500/5 to-transparent shadow-[0_0_35px_rgba(245,158,11,0.2)]' 
+                      : 'glass-card border-amber-500/20 hover:border-amber-400/50 bg-navy-950/70 hover:bg-navy-900/80'
+                    : isUnread
+                      ? 'bg-amber-50/80 border-2 border-amber-400 shadow-md hover:border-red-400'
+                      : 'bg-white border-2 border-amber-200 hover:border-amber-300 shadow-sm'
                 }`}
               >
                 {/* Top colored accent line */}
-                <div className={`h-1.5 w-full ${isUnread ? 'bg-gradient-to-r from-red-600 via-amber-400 to-yellow-300' : 'bg-gradient-to-r from-amber-500/30 to-yellow-500/10'}`} />
+                <div className={`h-1.5 w-full ${isUnread ? 'bg-gradient-to-r from-red-600 via-amber-400 to-yellow-300' : 'bg-gradient-to-r from-amber-400 to-yellow-300'}`} />
 
                 {/* Glow highlight for latest/unread */}
-                {(isLatest || isUnread) && (
+                {(isLatest || isUnread) && isEyeCare && (
                   <div className="absolute top-0 right-0 w-64 h-64 bg-amber-400/15 rounded-full blur-3xl pointer-events-none group-hover:bg-amber-400/25 transition-all" />
                 )}
 
                 {/* Announcement Image Attachment */}
                 {announcement.imageUrl && (
-                  <div className="relative overflow-hidden bg-navy-900/80 border-b border-amber-400/20 max-h-96 group/img">
+                  <div className={`relative overflow-hidden border-b max-h-96 group/img ${
+                    isEyeCare ? 'bg-navy-900/80 border-amber-400/20' : 'bg-amber-50 border-amber-200'
+                  }`}>
                     <img 
                       src={announcement.imageUrl} 
                       alt={announcement.title || 'Announcement attachment'} 
@@ -299,7 +329,11 @@ export default function Announcements() {
                         e.stopPropagation();
                         setActiveImageModal({ url: announcement.imageUrl, title: announcement.title });
                       }}
-                      className="absolute bottom-3 right-3 px-3 py-1.5 rounded-xl bg-navy-950/80 border border-amber-400/30 text-white text-xs font-bold backdrop-blur-md opacity-90 hover:opacity-100 hover:bg-amber-500 hover:text-slate-950 transition-all flex items-center gap-1.5 shadow-lg cursor-pointer"
+                      className={`absolute bottom-3 right-3 px-3 py-1.5 rounded-xl border text-xs font-bold backdrop-blur-md transition-all flex items-center gap-1.5 shadow-lg cursor-pointer ${
+                        isEyeCare 
+                          ? 'bg-navy-950/80 border-amber-400/30 text-white hover:bg-amber-500 hover:text-slate-950' 
+                          : 'bg-white/90 border-amber-300 text-slate-900 hover:bg-amber-400'
+                      }`}
                     >
                       <ZoomIn className="w-3.5 h-3.5" />
                       <span>View Full Image</span>
@@ -313,7 +347,7 @@ export default function Announcements() {
                   <div className="flex flex-wrap items-center justify-between gap-2.5">
                     <div className="flex flex-wrap items-center gap-2">
                       {isLatest && (
-                        <span className="px-2.5 py-1 rounded-full bg-gradient-to-r from-red-600 via-rose-500 to-amber-500 text-white text-[10px] font-black uppercase tracking-wider shadow-sm flex items-center gap-1">
+                        <span className="px-2.5 py-1 rounded-full bg-red-600 text-white text-[10px] font-black uppercase tracking-wider shadow-sm flex items-center gap-1">
                           <Sparkles className="w-3 h-3" />
                           <span>Latest Alert</span>
                         </span>
@@ -325,47 +359,63 @@ export default function Announcements() {
                         </span>
                       )}
 
-                      <span className="px-2.5 py-1 rounded-full bg-amber-500/10 text-amber-200 border border-amber-500/20 text-[10px] font-bold uppercase tracking-wider">
+                      <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider border ${
+                        isEyeCare 
+                          ? 'bg-amber-500/10 text-amber-200 border-amber-500/20' 
+                          : 'bg-amber-100 text-amber-900 border-amber-300'
+                      }`}>
                         {announcement.audienceType === 'specific' 
                           ? `${announcement.course} ${announcement.level} • ${announcement.attempt}` 
                           : 'All Students'}
                       </span>
 
                       {isUnread && (
-                        <span className="px-2 py-0.5 rounded-md bg-red-500/20 text-red-400 text-[10px] font-black uppercase tracking-wider border border-red-500/40">
+                        <span className={`px-2 py-0.5 rounded-md text-[10px] font-black uppercase tracking-wider border ${
+                          isEyeCare 
+                            ? 'bg-red-500/20 text-red-400 border-red-500/40' 
+                            : 'bg-red-100 text-red-700 border-red-300'
+                        }`}>
                           Unread
                         </span>
                       )}
                     </div>
 
-                    <div className="flex items-center gap-2 text-xs text-slate-400">
+                    <div className={`flex items-center gap-2 text-xs ${isEyeCare ? 'text-slate-400' : 'text-amber-900 font-semibold'}`}>
                       <span className="inline-flex items-center gap-1.5">
-                        <Clock className="w-3.5 h-3.5 text-amber-400" />
+                        <Clock className={`w-3.5 h-3.5 ${isEyeCare ? 'text-amber-400' : 'text-amber-700'}`} />
                         {formatDate(announcement.createdAt)}
                       </span>
                     </div>
                   </div>
 
                   {/* Title */}
-                  <h2 className="text-xl sm:text-2xl font-extrabold text-white leading-snug group-hover:text-amber-300 transition-colors">
+                  <h2 className={`text-xl sm:text-2xl font-extrabold leading-snug transition-colors ${
+                    isEyeCare ? 'text-white group-hover:text-amber-300' : 'text-slate-900 group-hover:text-red-700'
+                  }`}>
                     {announcement.title}
                   </h2>
 
                   {/* Description / Content */}
-                  <div className="text-slate-300 text-sm leading-relaxed whitespace-pre-wrap font-normal selection:bg-amber-500 selection:text-slate-950">
+                  <div className={`text-sm leading-relaxed whitespace-pre-wrap font-medium ${
+                    isEyeCare ? 'text-slate-300' : 'text-slate-700'
+                  }`}>
                     {message}
                   </div>
 
                   {/* Footer Info */}
-                  <div className="pt-3 border-t border-amber-400/10 flex flex-wrap items-center justify-between gap-3 text-xs text-slate-400">
+                  <div className={`pt-3 border-t flex flex-wrap items-center justify-between gap-3 text-xs ${
+                    isEyeCare ? 'border-amber-400/10 text-slate-400' : 'border-amber-200 text-slate-600'
+                  }`}>
                     <div className="flex items-center gap-2">
-                      <span className="w-1.5 h-1.5 rounded-full bg-amber-400"></span>
-                      <span>Published by <span className="font-semibold text-slate-300">{announcement.author || 'Platform Admin'}</span></span>
+                      <span className="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
+                      <span>Published by <span className={`font-semibold ${isEyeCare ? 'text-slate-300' : 'text-slate-900'}`}>{announcement.author || 'Platform Admin'}</span></span>
                     </div>
 
                     {announcement.imageUrl && (
-                      <span className="inline-flex items-center gap-1.5 text-amber-300/90 font-medium">
-                        <ImageIcon className="w-3.5 h-3.5 text-amber-400" />
+                      <span className={`inline-flex items-center gap-1.5 font-medium ${
+                        isEyeCare ? 'text-amber-300/90' : 'text-red-700'
+                      }`}>
+                        <ImageIcon className="w-3.5 h-3.5" />
                         <span>Attached Photo</span>
                       </span>
                     )}

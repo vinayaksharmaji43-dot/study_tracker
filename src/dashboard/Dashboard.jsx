@@ -189,7 +189,9 @@ export default function Dashboard() {
                     </span>
                     {isPro && <ProBadge size="sm" />}
                   </div>
-                  <span className="text-xs px-2 py-0.5 rounded-lg bg-gold-500/20 text-gold-500 font-bold border border-gold-500/30 shrink-0" title={`Level ${levelInfo?.currentLevelNumber}: ${levelInfo?.currentLevelName}`}>
+                  <span className={`text-xs px-2 py-0.5 rounded-lg font-bold border shrink-0 ${
+                    isEyeCare ? 'bg-gold-500/20 text-gold-400 border-gold-500/30' : 'bg-blue-100 text-blue-800 border-blue-200'
+                  }`} title={`Level ${levelInfo?.currentLevelNumber}: ${levelInfo?.currentLevelName}`}>
                     {levelInfo?.badge} {levelInfo?.currentLevelName}
                   </span>
                 </div>
@@ -197,7 +199,7 @@ export default function Dashboard() {
                   isEyeCare ? 'text-gold-400' : 'text-blue-700'
                 }`}>
                   <div className="flex items-center gap-1.5 truncate">
-                    <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                    <span className={`w-2 h-2 rounded-full animate-pulse ${isEyeCare ? 'bg-emerald-500' : 'bg-blue-600'}`}></span>
                     <span className="truncate">{userProfile?.course || 'CA Foundation'}</span>
                     {userProfile?.attempt ? ` • ${userProfile.attempt}` : ''}
                   </div>
@@ -205,7 +207,7 @@ export default function Dashboard() {
                     <span className={`text-[10px] font-black uppercase px-2 py-0.5 rounded-md border shrink-0 ${
                       canShowTrialExpiredUI 
                         ? 'bg-rose-500/20 text-rose-400 border-rose-500/30' 
-                        : 'bg-emerald-500/20 text-emerald-600 border-emerald-500/30'
+                        : (isEyeCare ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30' : 'bg-blue-100 text-blue-700 border-blue-200')
                     }`}>
                       {canShowTrialExpiredUI ? 'Trial Expired' : `${daysRemaining}d Trial`}
                     </span>
@@ -246,22 +248,30 @@ export default function Dashboard() {
                         onClick={() => setActiveTab(item.id)}
                         className={`w-full flex items-center justify-between px-4 py-3 rounded-2xl text-sm font-bold transition-all duration-200 cursor-pointer my-1.5 ${
                           isActive
-                            ? 'bg-gradient-to-r from-amber-500/25 via-purple-500/25 to-amber-500/25 border border-amber-400/60 text-amber-300 shadow-[0_0_20px_rgba(245,158,11,0.25)]'
-                            : 'bg-gradient-to-r from-amber-500/10 via-purple-500/10 to-amber-500/10 border border-amber-500/30 text-amber-300 hover:border-amber-400/60 hover:shadow-[0_0_15px_rgba(245,158,11,0.15)]'
+                            ? isEyeCare
+                              ? 'bg-gradient-to-r from-amber-500/25 via-purple-500/25 to-amber-500/25 border border-amber-400/60 text-amber-300 shadow-[0_0_20px_rgba(245,158,11,0.25)]'
+                              : 'bg-blue-600 text-white shadow-md shadow-blue-500/25 border border-blue-500'
+                            : isEyeCare
+                              ? 'bg-gradient-to-r from-amber-500/10 via-purple-500/10 to-amber-500/10 border border-amber-500/30 text-amber-300 hover:border-amber-400/60'
+                              : 'bg-blue-50/70 border border-blue-200 text-blue-800 hover:bg-blue-100/80 hover:border-blue-300'
                         }`}
                       >
                         <div className="flex items-center space-x-3">
-                          <ShoppingBag className={`w-5 h-5 ${isActive ? 'text-amber-400' : 'text-amber-400/90'}`} />
-                          <span className="bg-gradient-to-r from-amber-200 to-amber-400 bg-clip-text text-transparent font-black tracking-wide">
+                          <ShoppingBag className={`w-5 h-5 ${isActive ? (isEyeCare ? 'text-amber-400' : 'text-white') : (isEyeCare ? 'text-amber-400/90' : 'text-blue-700')}`} />
+                          <span className={`tracking-wide font-black ${
+                            isActive ? (isEyeCare ? 'text-amber-300' : 'text-white') : (isEyeCare ? 'text-amber-300' : 'text-blue-900')
+                          }`}>
                             {item.label}
                           </span>
                         </div>
                         <div className="flex items-center gap-1.5">
-                          <span className="px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-amber-500/20 text-amber-300 border border-amber-500/30 flex items-center gap-1 shadow-sm">
+                          <span className={`px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider border flex items-center gap-1 shadow-sm ${
+                            isEyeCare ? 'bg-amber-500/20 text-amber-300 border-amber-500/30' : (isActive ? 'bg-blue-700 text-white border-blue-400' : 'bg-blue-100 text-blue-700 border-blue-200')
+                          }`}>
                             <Sparkles className="w-2.5 h-2.5" />
                             <span>Store</span>
                           </span>
-                          {isActive && <ChevronRight className="w-4 h-4 text-amber-400" />}
+                          {isActive && <ChevronRight className={`w-4 h-4 ${isEyeCare ? 'text-amber-400' : 'text-white'}`} />}
                         </div>
                       </button>
                     );
@@ -275,30 +285,32 @@ export default function Dashboard() {
                         isActive
                           ? isEyeCare
                             ? 'bg-blue-500/20 border border-blue-400/50 text-blue-300 shadow-[0_0_20px_rgba(59,130,246,0.3)]'
-                            : 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-md shadow-blue-500/25'
+                            : 'bg-blue-600 text-white shadow-md shadow-blue-500/25 border border-blue-500'
                           : isLocked
                             ? isEyeCare
                               ? 'text-slate-400 hover:text-amber-300 hover:bg-amber-500/5 border border-transparent'
-                              : 'text-slate-500 hover:text-amber-600 hover:bg-amber-50 border border-transparent'
+                              : 'text-slate-500 hover:text-blue-700 hover:bg-blue-50 border border-transparent'
                             : isEyeCare
                               ? 'text-slate-400 hover:text-white hover:bg-white/5 border border-transparent'
-                              : 'text-slate-600 hover:text-blue-700 hover:bg-blue-50/70 border border-transparent'
+                              : 'text-slate-700 hover:text-blue-700 hover:bg-blue-50/70 border border-transparent font-medium'
                       }`}
                     >
                       <div className="flex items-center space-x-3">
                         <Icon className={`w-5 h-5 ${
                           isActive 
-                            ? isEyeCare ? 'text-blue-300' : 'text-white' 
+                            ? 'text-white' 
                             : isLocked 
-                              ? 'text-amber-400/80' 
-                              : isEyeCare ? 'text-slate-400' : 'text-slate-500'
+                              ? (isEyeCare ? 'text-amber-400/80' : 'text-slate-400') 
+                              : (isEyeCare ? 'text-slate-400' : 'text-slate-500')
                         }`} />
-                        <span className="font-medium">{item.label}</span>
+                        <span className="font-semibold">{item.label}</span>
                       </div>
                       <div className="flex items-center gap-1.5">
                         {isTrialLocked ? (
-                          <span title="Free Trial Expired - Premium Required" className="px-1.5 py-0.5 rounded-md bg-amber-500/15 text-amber-300 border border-amber-500/30 text-[10px] font-black flex items-center gap-1">
-                            <Lock className="w-3 h-3 text-amber-400" />
+                          <span title="Free Trial Expired - Premium Required" className={`px-1.5 py-0.5 rounded-md border text-[10px] font-black flex items-center gap-1 ${
+                            isEyeCare ? 'bg-amber-500/15 text-amber-300 border-amber-500/30' : 'bg-blue-100 text-blue-700 border-blue-200'
+                          }`}>
+                            <Lock className="w-3 h-3" />
                             <span>PRO</span>
                           </span>
                         ) : isMaintenanceLocked ? (
@@ -317,13 +329,19 @@ export default function Dashboard() {
               <div className={`pt-2 border-t space-y-1 ${isEyeCare ? 'border-white/10' : 'border-blue-100'}`}>
                 <button
                   onClick={() => { setActiveTab('support'); if(typeof setMobileMenuOpen === 'function'){setMobileMenuOpen(false);} }}
-                  className="w-full flex items-center justify-between px-4 py-3 rounded-2xl text-sm font-bold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 hover:bg-emerald-500/20 transition-all cursor-pointer"
+                  className={`w-full flex items-center justify-between px-4 py-3 rounded-2xl text-sm font-bold border transition-all cursor-pointer ${
+                    isEyeCare 
+                      ? 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20 hover:bg-emerald-500/20' 
+                      : 'text-blue-700 bg-blue-50 hover:bg-blue-100 border-blue-200'
+                  }`}
                 >
                   <div className="flex items-center space-x-3">
-                    <Headphones className="w-5 h-5 text-emerald-400" />
+                    <Headphones className={`w-5 h-5 ${isEyeCare ? 'text-emerald-400' : 'text-blue-600'}`} />
                     <span>Help & Support</span>
                   </div>
-                  <span className="text-[10px] font-black uppercase bg-emerald-500 text-navy-950 px-2 py-0.5 rounded-md">8 AM - 9 PM</span>
+                  <span className={`text-[10px] font-black uppercase px-2 py-0.5 rounded-md ${
+                    isEyeCare ? 'bg-emerald-500 text-navy-950' : 'bg-blue-600 text-white'
+                  }`}>8 AM - 9 PM</span>
                 </button>
 
                 <button
