@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "prebuild": "node -e \"const fs = require('fs'); if (fs.existsSync('dist')) { fs.rmSync('dist', { recursive: true, force: true }); console.log('Cleaned cached dist directory'); }\"",
     "build": "vite build",
     "postbuild": "node scripts/copy-index.cjs",
     "predeploy": "vite build --base=/study_tracker/",
