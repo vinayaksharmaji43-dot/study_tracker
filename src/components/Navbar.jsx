@@ -234,11 +234,15 @@ export default function Navbar({ activeTab, setActiveTab }) {
             )}
 
             {currentUser ? (
-              <div className="flex items-center space-x-4">
+              <div className="flex items-center space-x-3 sm:space-x-4">
                 {isAdmin && (
                   <Link
                     to="/admin"
-                    className="flex items-center space-x-2 px-4 py-2 rounded-xl bg-gold-500/20 border border-gold-500/40 text-gold-400 hover:bg-gold-500 hover:text-navy-950 transition-all text-sm font-bold shadow-glow-gold"
+                    className={`flex items-center space-x-2 px-3.5 py-2 rounded-xl text-sm font-bold transition-all shadow-sm ${
+                      isEyeCare
+                        ? 'bg-gold-500/20 border border-gold-500/40 text-gold-400 hover:bg-gold-500 hover:text-navy-950 shadow-glow-gold'
+                        : 'bg-gradient-to-r from-amber-400 to-yellow-400 text-slate-950 hover:from-amber-500 hover:to-yellow-500 border border-amber-300 shadow-sm'
+                    }`}
                   >
                     <ShieldCheck className="w-4 h-4" />
                     <span>Admin Panel</span>
@@ -247,26 +251,30 @@ export default function Navbar({ activeTab, setActiveTab }) {
                 
                 <Link
                   to="/dashboard"
-                  className="flex items-center space-x-2 px-4 py-2 rounded-xl bg-royal-600/20 border border-royal-500/30 text-royal-400 hover:bg-royal-600/30 hover:text-white transition-all text-sm font-semibold shadow-glow-blue"
+                  className={`flex items-center space-x-2 px-3.5 py-2 rounded-xl text-sm font-bold transition-all ${
+                    isEyeCare
+                      ? 'bg-royal-600/20 border border-royal-500/30 text-royal-400 hover:bg-royal-600/30 hover:text-white shadow-glow-blue'
+                      : 'bg-blue-600 hover:bg-blue-700 text-white shadow-md shadow-blue-500/20'
+                  }`}
                 >
                   <LayoutDashboard className="w-4 h-4" />
                   <span>Dashboard</span>
                 </Link>
                 
-                <div className="flex items-center space-x-2.5 pl-2 border-l border-white/10">
+                <div className={`flex items-center space-x-2.5 pl-2 border-l ${isEyeCare ? 'border-white/10' : 'border-slate-200'}`}>
                   {/* Eye Care Toggle Button */}
                   <button
                     onClick={toggleEyeCare}
-                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs font-bold transition-all duration-200 cursor-pointer shadow-sm ${
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs font-black transition-all duration-200 cursor-pointer shadow-sm ${
                       isEyeCare
                         ? 'bg-amber-400/20 border-amber-400/50 text-amber-300 shadow-[0_0_15px_rgba(251,191,36,0.3)] hover:bg-amber-400/30'
-                        : 'bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100 hover:border-blue-300 shadow-[0_0_10px_rgba(37,99,235,0.08)]'
+                        : 'bg-blue-50 border-blue-300 text-blue-700 hover:bg-blue-100 hover:border-blue-400 shadow-[0_0_10px_rgba(37,99,235,0.08)]'
                     }`}
                     title={isEyeCare ? 'Eye Care is ON (Black Theme) - Click for White & Blue Theme' : 'Click to enable Eye Care (Black Theme)'}
                     aria-label="Toggle Eye Care Mode"
                   >
                     <span className="text-sm">👁️</span>
-                    <span className="font-extrabold tracking-wide">
+                    <span className="tracking-wide">
                       {isEyeCare ? 'Eye Care: ON' : 'Eye Care'}
                     </span>
                   </button>
@@ -275,7 +283,11 @@ export default function Navbar({ activeTab, setActiveTab }) {
                   <button
                     onClick={() => navigate('/dashboard?tab=support')}
                     title="Student Support & Help"
-                    className="p-2 rounded-xl text-emerald-400 hover:text-emerald-300 hover:bg-emerald-500/10 transition-colors flex items-center gap-1.5 text-xs font-bold border border-emerald-500/20 bg-emerald-500/5"
+                    className={`p-2 rounded-xl transition-colors flex items-center gap-1.5 text-xs font-bold border ${
+                      isEyeCare
+                        ? 'text-emerald-400 hover:text-emerald-300 hover:bg-emerald-500/10 border-emerald-500/20 bg-emerald-500/5'
+                        : 'text-emerald-800 bg-emerald-100/80 hover:bg-emerald-200/80 border-emerald-300'
+                    }`}
                   >
                     <Headphones className="w-4 h-4" />
                     <span>Support</span>
@@ -285,30 +297,42 @@ export default function Navbar({ activeTab, setActiveTab }) {
                   {currentUser && (
                     <button
                       onClick={handleAnnouncementClick}
-                      className="relative p-2 rounded-xl bg-amber-500/15 border border-amber-400/40 text-amber-300 hover:bg-amber-500/25 hover:border-amber-300/60 hover:text-white transition-all mr-1 shadow-[0_0_14px_rgba(245,158,11,0.2)] cursor-pointer"
+                      className={`relative p-2 rounded-xl transition-all mr-1 cursor-pointer border ${
+                        isEyeCare
+                          ? 'bg-amber-500/15 border-amber-400/40 text-amber-300 hover:bg-amber-500/25 hover:border-amber-300/60 shadow-[0_0_14px_rgba(245,158,11,0.2)]'
+                          : 'bg-amber-50 border-amber-300 text-amber-700 hover:bg-amber-100 hover:border-amber-400 shadow-sm'
+                      }`}
                       title="Announcements"
                       aria-label="Announcements"
                     >
-                      <Bell className="w-5 h-5 text-amber-400" />
+                      <Bell className="w-5 h-5 text-amber-500" />
                       {announcements.filter(a => !readIds.has(a.id)).length > 0 && (
-                        <span className="absolute top-1.5 right-1.5 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-navy-950 animate-pulse"></span>
+                        <span className="absolute top-1.5 right-1.5 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-white animate-pulse"></span>
                       )}
                     </button>
                   )}
 
                   <div className="text-right hidden sm:block">
-                    <div className="text-xs font-semibold text-white flex items-center justify-end gap-1.5">
+                    <div className={`text-xs font-extrabold flex items-center justify-end gap-1.5 ${
+                      isEyeCare ? 'text-white' : 'text-slate-900'
+                    }`}>
                       <span className="truncate max-w-[140px]">{userProfile?.name || currentUser.email}</span>
                       {userProfile?.isPro && <ProBadge size="sm" />}
                     </div>
-                    <div className="text-[11px] text-gold-400 font-medium font-mono">
+                    <div className={`text-[11px] font-black uppercase tracking-wider font-mono ${
+                      isEyeCare ? 'text-gold-400' : 'text-blue-700'
+                    }`}>
                       {isAdmin ? 'Administrator' : (userProfile?.rollNumber || userProfile?.course || 'Student')}
                     </div>
                   </div>
                   <button
                     onClick={handleLogout}
                     title="Log Out"
-                    className="p-2 rounded-xl text-slate-400 hover:text-red-400 hover:bg-red-500/10 transition-colors"
+                    className={`p-2 rounded-xl transition-colors ${
+                      isEyeCare
+                        ? 'text-slate-400 hover:text-red-400 hover:bg-red-500/10'
+                        : 'text-slate-600 hover:text-red-600 hover:bg-red-50'
+                    }`}
                   >
                     <LogOut className="w-5 h-5" />
                   </button>
@@ -318,7 +342,9 @@ export default function Navbar({ activeTab, setActiveTab }) {
               <div className="flex items-center space-x-4">
                 <Link
                   to="/login"
-                  className="text-sm font-semibold text-slate-300 hover:text-white px-4 py-2 rounded-xl transition-colors"
+                  className={`text-sm font-bold px-4 py-2 rounded-xl transition-colors ${
+                    isEyeCare ? 'text-slate-300 hover:text-white' : 'text-slate-700 hover:text-blue-600'
+                  }`}
                 >
                   Login
                 </Link>

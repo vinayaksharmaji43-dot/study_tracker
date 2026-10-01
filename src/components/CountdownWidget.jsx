@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { Calendar, Clock, Video } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
+import { useTheme } from '../contexts/ThemeContext';
 import WebcamStudyModal from './WebcamStudyModal';
 
 export default function CountdownWidget({ setActiveTab }) {
   const { userProfile } = useAuth();
+  const { isEyeCare } = useTheme();
   const [daysLeft, setDaysLeft] = useState(null);
   const [targetDateStr, setTargetDateStr] = useState('');
   const [displayTitle, setDisplayTitle] = useState('');
@@ -96,19 +98,33 @@ export default function CountdownWidget({ setActiveTab }) {
 
   return (
     <>
-      <div className="w-full relative overflow-hidden rounded-2xl glass-card border border-gold-500/30 p-4 sm:p-5 flex flex-col sm:flex-row items-center justify-between gap-4 shadow-[0_0_20px_rgba(251,191,36,0.1)] group">
+      <div className={`w-full relative overflow-hidden rounded-2xl p-4 sm:p-5 flex flex-col sm:flex-row items-center justify-between gap-4 transition-all duration-300 shadow-md group ${
+        isEyeCare
+          ? 'glass-card border border-gold-500/30 shadow-[0_0_20px_rgba(251,191,36,0.1)]'
+          : 'bg-white border border-blue-200/90 shadow-[0_4px_25px_-5px_rgba(37,99,235,0.08)]'
+      }`}>
         
         {/* Background glow */}
         <div className="absolute top-0 right-0 w-32 h-32 bg-gold-500/10 rounded-full blur-2xl pointer-events-none group-hover:bg-gold-500/20 transition-all duration-500" />
         <div className="absolute bottom-0 left-0 w-32 h-32 bg-emerald-500/10 rounded-full blur-2xl pointer-events-none group-hover:bg-emerald-500/20 transition-all duration-500" />
 
         <div className="flex items-center gap-3 relative z-10 w-full sm:w-auto text-center sm:text-left justify-center sm:justify-start">
-          <div className="w-10 h-10 rounded-xl bg-gold-500/20 border border-gold-500/30 flex items-center justify-center text-gold-400 shrink-0">
+          <div className={`w-11 h-11 rounded-xl flex items-center justify-center shrink-0 border ${
+            isEyeCare 
+              ? 'bg-gold-500/20 border-gold-500/40 text-gold-400' 
+              : 'bg-amber-100 border-amber-300 text-amber-800'
+          }`}>
             <Calendar className="w-5 h-5" />
           </div>
           <div>
-            <div className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-0.5">Exam Target</div>
-            <div className="text-sm font-bold text-white flex items-center justify-center sm:justify-start gap-2">
+            <div className={`text-xs font-black uppercase tracking-wider mb-0.5 ${
+              isEyeCare ? 'text-slate-400' : 'text-blue-600'
+            }`}>
+              Exam Target
+            </div>
+            <div className={`text-base font-extrabold flex items-center justify-center sm:justify-start gap-2 ${
+              isEyeCare ? 'text-white' : 'text-slate-900'
+            }`}>
               {displayTitle} 
             </div>
           </div>
@@ -118,17 +134,29 @@ export default function CountdownWidget({ setActiveTab }) {
         <div className="flex items-center gap-3 relative z-10 shrink-0 w-full sm:w-auto justify-center sm:justify-end flex-wrap">
           
           {/* Days Left Card */}
-          <div className="flex items-center gap-3 bg-navy-950/50 px-4 py-2 rounded-xl border border-white/5">
-            <Clock className={`w-4 h-4 ${hasPassed ? 'text-slate-400' : 'text-gold-400 animate-pulse'}`} />
+          <div className={`flex items-center gap-3 px-4 py-2.5 rounded-xl border transition-colors ${
+            isEyeCare 
+              ? 'bg-navy-950/80 border-white/10' 
+              : 'bg-amber-50/90 border-amber-300 shadow-sm'
+          }`}>
+            <Clock className={`w-4 h-4 ${hasPassed ? 'text-slate-400' : isEyeCare ? 'text-gold-400 animate-pulse' : 'text-amber-700 animate-pulse'}`} />
             <div className="flex items-baseline gap-1.5">
               {hasPassed ? (
-                <span className="text-lg font-black text-slate-300">Exam Date Passed</span>
+                <span className={`text-sm font-bold ${isEyeCare ? 'text-slate-400' : 'text-slate-700'}`}>Exam Date Passed</span>
               ) : (
                 <>
-                  <span className="text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-gold-400 to-amber-300 font-mono">
+                  <span className={`text-2xl font-black font-mono ${
+                    isEyeCare 
+                      ? 'text-transparent bg-clip-text bg-gradient-to-r from-gold-400 to-amber-300' 
+                      : 'text-amber-700'
+                  }`}>
                     {daysLeft}
                   </span>
-                  <span className="text-sm font-bold text-gold-400/80">Days Left</span>
+                  <span className={`text-xs font-black uppercase tracking-wider ${
+                    isEyeCare ? 'text-gold-400/80' : 'text-amber-800'
+                  }`}>
+                    Days Left
+                  </span>
                 </>
               )}
             </div>
@@ -137,15 +165,15 @@ export default function CountdownWidget({ setActiveTab }) {
           {/* 🎥 Webcam Study Button */}
           <button
             onClick={() => setShowWebcamModal(true)}
-            className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500/20 via-teal-500/20 to-emerald-500/20 hover:from-emerald-500/30 hover:to-teal-500/30 border border-emerald-500/40 hover:border-emerald-400 text-emerald-300 hover:text-white font-bold text-xs transition-all duration-300 flex items-center gap-2 shadow-[0_0_15px_rgba(16,185,129,0.15)] hover:shadow-[0_0_20px_rgba(16,185,129,0.3)] hover:scale-105 cursor-pointer"
+            className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-black text-xs transition-all duration-200 flex items-center gap-2 shadow-md hover:shadow-lg hover:scale-105 cursor-pointer border border-emerald-500/50"
             title="Join Live Webcam Study Hall"
           >
             <span className="relative flex h-2 w-2">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-white"></span>
             </span>
-            <Video className="w-4 h-4 text-emerald-400" />
-            <span>🎥 Webcam Study</span>
+            <Video className="w-4 h-4 text-white" />
+            <span>Webcam Study</span>
           </button>
         </div>
         
