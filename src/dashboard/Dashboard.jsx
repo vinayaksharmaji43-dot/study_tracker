@@ -150,7 +150,7 @@ export default function Dashboard() {
     <div className={`min-h-screen flex flex-col relative transition-colors duration-300 ${
       isEyeCare 
         ? 'bg-[#000000] text-slate-100 selection:bg-emerald-500 selection:text-white' 
-        : 'bg-[#f0f7ff] text-slate-900 selection:bg-blue-600 selection:text-white'
+        : 'bg-[#f0f7ff] text-slate-900 selection:bg-blue-600 selection:text-white dashboard-theme-light'
     }`}>
       <div className={`flex flex-col min-h-screen transition-all duration-300 ${
         !isProfileCompleted ? 'pointer-events-none select-none filter blur-sm opacity-40' : ''

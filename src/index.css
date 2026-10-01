@@ -9,17 +9,17 @@
     scroll-behavior: smooth;
   }
   
-  /* DEFAULT THEME: Clean White & Blue Mode */
+  /* DEFAULT WEBSITE THEME: Original Rich Dark Mode (Preserved for Home, Landing, Login, Register) */
   body {
-    background: radial-gradient(circle at top left, rgba(37, 99, 235, 0.04), transparent 40%),
-      radial-gradient(circle at top right, rgba(59, 130, 246, 0.03), transparent 40%),
-      #f0f7ff;
-    color: #0f172a;
+    background: radial-gradient(circle at top left, rgba(236, 72, 153, 0.16), transparent 35%),
+      radial-gradient(circle at top right, rgba(168, 85, 247, 0.22), transparent 35%),
+      radial-gradient(circle at bottom left, rgba(245, 158, 11, 0.12), transparent 40%),
+      linear-gradient(135deg, #0d0714 0%, #160b24 45%, #1e1030 100%);
+    color: #f8fafc;
     font-family: 'Inter', sans-serif;
     overflow-x: hidden;
     min-height: 100vh;
     padding-bottom: env(safe-area-inset-bottom);
-    transition: background 0.3s ease, color 0.3s ease;
   }
 
   /* EYE CARE THEME: Deep Soothing Black Mode (Preserved exactly as original) */
@@ -32,55 +32,34 @@
 }
 
 @layer utilities {
-  /* Default (White & Blue Mode) Glass Cards */
+  /* Default Website Glass Cards (Original Dark Theme for Home Page) */
   .glass-card {
-    background: #ffffff;
+    background: rgba(28, 16, 44, 0.72);
     backdrop-filter: blur(16px);
     -webkit-backdrop-filter: blur(16px);
-    border: 1px solid #dbeafe;
-    box-shadow: 0 4px 20px -2px rgba(37, 99, 235, 0.06), 0 2px 6px rgba(0, 0, 0, 0.02);
-    color: #0f172a;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    color: #f8fafc;
   }
 
   .glass-card-hover {
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   }
   .glass-card-hover:hover {
-    background: #ffffff;
-    border-color: #93c5fd;
+    background: rgba(40, 23, 62, 0.82);
+    border-color: rgba(244, 114, 182, 0.35);
     transform: translateY(-2px);
-    box-shadow: 0 12px 30px -10px rgba(37, 99, 235, 0.12);
+    box-shadow: 0 12px 30px -10px rgba(0, 0, 0, 0.5), 0 0 20px -5px rgba(168, 85, 247, 0.3);
   }
 
   .glass-nav {
-    background: rgba(255, 255, 255, 0.98);
+    background: rgba(13, 7, 20, 0.88);
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
-    border-bottom: 1px solid #dbeafe;
-    box-shadow: 0 2px 14px rgba(37, 99, 235, 0.04);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.07);
     padding-top: env(safe-area-inset-top);
   }
 
-  /* Eye Care (Black Theme) Overrides */
-  html.eye-care-black .glass-card {
-    background: #09060f !important;
-    border: 1px solid rgba(255, 255, 255, 0.08) !important;
-    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.65) !important;
-    color: #f8fafc !important;
-  }
-
-  html.eye-care-black .glass-card-hover:hover {
-    background: #140d22 !important;
-    border-color: rgba(99, 102, 241, 0.4) !important;
-    box-shadow: 0 12px 30px -10px rgba(0, 0, 0, 0.8), 0 0 20px -5px rgba(59, 130, 246, 0.3) !important;
-  }
-
-  html.eye-care-black .glass-nav {
-    background: rgba(0, 0, 0, 0.95) !important;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.7) !important;
-  }
-
+  /* Original Gradients */
   .gold-gradient-text {
     background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 50%, #ea580c 100%);
     -webkit-background-clip: text;
@@ -101,202 +80,241 @@
 }
 
 /* ==========================================================
-   THEME ADAPTATION HELPERS: White & Blue Mode vs Eye Care
+   DASHBOARD-ONLY WHITE + BLUE THEME & HIGH-CONTRAST TYPOGRAPHY
+   Applies STRICTLY inside .dashboard-theme-light (Home page is untouched)
    ========================================================== */
 
-/* Light (White & Blue) Mode Surface Mappings */
-html:not(.eye-care-black) .bg-navy-950 {
+.dashboard-theme-light {
   background-color: #f0f7ff !important;
+  color: #0f172a !important;
 }
 
-html:not(.eye-care-black) .bg-navy-900 {
+/* 1. Dashboard Surfaces & Cards: Clean White with Crisp Light Blue Border */
+.dashboard-theme-light .glass-card,
+.dashboard-theme-light .bg-navy-900,
+.dashboard-theme-light .bg-navy-900\/80,
+.dashboard-theme-light .bg-navy-900\/60,
+.dashboard-theme-light .bg-navy-900\/50,
+.dashboard-theme-light .bg-navy-950\/70,
+.dashboard-theme-light .bg-navy-950\/80,
+.dashboard-theme-light .bg-navy-950\/90,
+.dashboard-theme-light .bg-navy-950\/40,
+.dashboard-theme-light .bg-navy-850 {
   background-color: #ffffff !important;
+  border-color: #bfdbfe !important;
+  box-shadow: 0 4px 16px -2px rgba(37, 99, 235, 0.07), 0 2px 6px rgba(0, 0, 0, 0.02) !important;
+  color: #0f172a !important;
 }
 
-html:not(.eye-care-black) .bg-navy-900\/80,
-html:not(.eye-care-black) .bg-navy-900\/60,
-html:not(.eye-care-black) .bg-navy-950\/70,
-html:not(.eye-care-black) .bg-navy-950\/80,
-html:not(.eye-care-black) .bg-navy-950\/90,
-html:not(.eye-care-black) .bg-navy-950\/40 {
+.dashboard-theme-light .glass-card-hover:hover {
   background-color: #ffffff !important;
+  border-color: #60a5fa !important;
+  box-shadow: 0 10px 25px -5px rgba(37, 99, 235, 0.12) !important;
 }
 
-html:not(.eye-care-black) .bg-navy-850 {
+.dashboard-theme-light .glass-nav {
+  background-color: rgba(255, 255, 255, 0.98) !important;
+  border-bottom: 1px solid #bfdbfe !important;
+  box-shadow: 0 2px 14px rgba(37, 99, 235, 0.05) !important;
+}
+
+/* Insets inside cards (secondary light slate containers) */
+.dashboard-theme-light .bg-navy-950,
+.dashboard-theme-light .bg-navy-800,
+.dashboard-theme-light .bg-navy-950\/60 {
   background-color: #f8fafc !important;
+  border-color: #cbd5e1 !important;
 }
 
-html:not(.eye-care-black) .bg-navy-800 {
-  background-color: #f1f5f9 !important;
+.dashboard-theme-light .border-white\/10,
+.dashboard-theme-light .border-white\/5,
+.dashboard-theme-light .border-white\/20 {
+  border-color: #cbd5e1 !important;
 }
 
-html:not(.eye-care-black) .border-white\/10,
-html:not(.eye-care-black) .border-white\/5,
-html:not(.eye-care-black) .border-white\/20 {
+.dashboard-theme-light .divide-white\/5 > :not([hidden]) ~ :not([hidden]),
+.dashboard-theme-light .divide-white\/10 > :not([hidden]) ~ :not([hidden]) {
   border-color: #e2e8f0 !important;
 }
 
-html:not(.eye-care-black) .divide-white\/5 > :not([hidden]) ~ :not([hidden]),
-html:not(.eye-care-black) .divide-white\/10 > :not([hidden]) ~ :not([hidden]) {
-  border-color: #e2e8f0 !important;
-}
-
-/* ==========================================================
-   GLOBAL TYPOGRAPHY & HIGH-CONTRAST TEXT SYSTEM (LIGHT MODE)
-   Modeled after the Overview section: Bold, Focused, Premium
-   ========================================================== */
-
-/* 1. All Headings & Section Titles across Dashboard & Admin */
-html:not(.eye-care-black) h1:not([class*="gradient"]):not([class*="bg-"]):not(button *):not(a[class*="bg-"] *),
-html:not(.eye-care-black) h2:not([class*="gradient"]):not([class*="bg-"]):not(button *):not(a[class*="bg-"] *),
-html:not(.eye-care-black) h3:not([class*="gradient"]):not([class*="bg-"]):not(button *):not(a[class*="bg-"] *),
-html:not(.eye-care-black) h4:not([class*="gradient"]):not([class*="bg-"]):not(button *):not(a[class*="bg-"] *),
-html:not(.eye-care-black) h5:not([class*="gradient"]):not([class*="bg-"]):not(button *):not(a[class*="bg-"] *),
-html:not(.eye-care-black) h6:not([class*="gradient"]):not([class*="bg-"]):not(button *):not(a[class*="bg-"] *) {
+/* 2. All Headings & Titles: Dark Navy Bold / Extrabold */
+.dashboard-theme-light h1:not([class*="gradient"]):not([class*="bg-"]):not(button *):not(a[class*="bg-"] *),
+.dashboard-theme-light h2:not([class*="gradient"]):not([class*="bg-"]):not(button *):not(a[class*="bg-"] *),
+.dashboard-theme-light h3:not([class*="gradient"]):not([class*="bg-"]):not(button *):not(a[class*="bg-"] *),
+.dashboard-theme-light h4:not([class*="gradient"]):not([class*="bg-"]):not(button *):not(a[class*="bg-"] *),
+.dashboard-theme-light h5:not([class*="gradient"]):not([class*="bg-"]):not(button *):not(a[class*="bg-"] *),
+.dashboard-theme-light h6:not([class*="gradient"]):not([class*="bg-"]):not(button *):not(a[class*="bg-"] *) {
   color: #0f172a !important;
   font-weight: 800 !important;
   letter-spacing: -0.015em;
 }
 
-/* 2. Text Visibility & Contrast Fixes (Eliminates All Faded or Pale Gray Text) */
-html:not(.eye-care-black) .text-slate-400:not(button):not(button *):not(a[class*="bg-"]):not(a[class*="bg-"] *):not([class*="bg-blue-600"] *):not([class*="bg-red-600"] *):not([class*="bg-emerald-600"] *),
-html:not(.eye-care-black) .text-gray-400:not(button):not(button *):not(a[class*="bg-"]):not(a[class*="bg-"] *),
-html:not(.eye-care-black) .text-zinc-400:not(button):not(button *):not(a[class*="bg-"]):not(a[class*="bg-"] *) {
-  color: #334155 !important; /* Dark Slate 700 - sharp and prominent */
+/* 3. Text Contrast & Typography Hierarchy (No Faded Gray) */
+/* Secondary text: Rich, crisp Dark Slate 700 with semi-bold ink weight */
+.dashboard-theme-light .text-slate-400:not(button):not(button *):not(a[class*="bg-"]):not(a[class*="bg-"] *):not([class*="bg-blue-600"] *):not([class*="bg-red-600"] *):not([class*="bg-emerald-600"] *):not([class*="bg-amber-400"] *),
+.dashboard-theme-light .text-gray-400:not(button):not(button *):not(a[class*="bg-"]):not(a[class*="bg-"] *),
+.dashboard-theme-light .text-zinc-400:not(button):not(button *):not(a[class*="bg-"]):not(a[class*="bg-"] *) {
+  color: #334155 !important;
   font-weight: 600 !important;
 }
 
-html:not(.eye-care-black) .text-slate-500:not(button):not(button *):not(a[class*="bg-"]):not(a[class*="bg-"] *),
-html:not(.eye-care-black) .text-gray-500:not(button):not(button *):not(a[class*="bg-"]):not(a[class*="bg-"] *) {
-  color: #334155 !important; /* Dark Slate 700 */
+.dashboard-theme-light .text-slate-500:not(button):not(button *):not(a[class*="bg-"]):not(a[class*="bg-"] *),
+.dashboard-theme-light .text-gray-500:not(button):not(button *):not(a[class*="bg-"]):not(a[class*="bg-"] *) {
+  color: #334155 !important;
   font-weight: 600 !important;
 }
 
-html:not(.eye-care-black) .text-slate-300:not(button):not(button *):not(a[class*="bg-"]):not(a[class*="bg-"] *):not([class*="bg-blue-600"] *):not([class*="bg-red-600"] *):not([class*="bg-emerald-600"] *),
-html:not(.eye-care-black) .text-gray-300:not(button):not(button *):not(a[class*="bg-"]):not(a[class*="bg-"] *) {
-  color: #1e293b !important; /* Rich Dark Slate 800 */
-  font-weight: 600 !important;
-}
-
-html:not(.eye-care-black) .text-slate-200:not(button):not(button *):not(a[class*="bg-"]):not(a[class*="bg-"] *):not([class*="bg-blue-600"] *):not([class*="bg-red-600"] *) {
-  color: #0f172a !important; /* Slate 900 */
-  font-weight: 600 !important;
-}
-
-html:not(.eye-care-black) .text-slate-600 {
+.dashboard-theme-light .text-slate-300:not(button):not(button *):not(a[class*="bg-"]):not(a[class*="bg-"] *):not([class*="bg-blue-600"] *):not([class*="bg-red-600"] *):not([class*="bg-emerald-600"] *),
+.dashboard-theme-light .text-gray-300:not(button):not(button *):not(a[class*="bg-"]):not(a[class*="bg-"] *) {
   color: #1e293b !important;
   font-weight: 600 !important;
 }
 
-/* Paragraph text across cards and sections */
-html:not(.eye-care-black) p:not(button *):not(a[class*="bg-"] *):not([class*="bg-blue-600"] *):not([class*="bg-red-600"] *) {
-  color: #334155;
-  font-weight: 500;
-}
-
-/* 3. White Text In Light Mode -> Solid Dark Navy (Outside of Solid Colored Buttons/Badges) */
-html:not(.eye-care-black) .text-white:not(button):not(button *):not(a[class*="bg-"]):not(a[class*="bg-"] *):not([class*="bg-blue-"]):not([class*="bg-blue-"] *):not([class*="bg-emerald-"]):not([class*="bg-emerald-"] *):not([class*="bg-rose-"]):not([class*="bg-rose-"] *):not([class*="bg-red-"]):not([class*="bg-red-"] *):not([class*="bg-amber-500"]):not([class*="bg-amber-500"] *):not([class*="bg-purple-600"]):not([class*="bg-purple-600"] *):not([class*="bg-indigo-600"]):not([class*="bg-indigo-600"] *):not([class*="bg-gradient"]):not([class*="badge"]):not(.fill-white):not([class*="from-"]):not([class*="to-"]) {
+.dashboard-theme-light .text-slate-200:not(button):not(button *):not(a[class*="bg-"]):not(a[class*="bg-"] *):not([class*="bg-blue-600"] *):not([class*="bg-red-600"] *) {
   color: #0f172a !important;
   font-weight: 700 !important;
 }
 
-html:not(.eye-care-black) .text-slate-100:not(button):not(button *):not(a[class*="bg-"]):not(a[class*="bg-"] *):not([class*="bg-blue-"]):not([class*="bg-blue-"] *):not([class*="bg-emerald-"]):not([class*="bg-emerald-"] *) {
+.dashboard-theme-light .text-slate-600 {
+  color: #1e293b !important;
+  font-weight: 600 !important;
+}
+
+/* Paragraphs & helper text */
+.dashboard-theme-light p:not(button *):not(a[class*="bg-"] *):not([class*="bg-blue-600"] *):not([class*="bg-red-600"] *) {
+  color: #334155 !important;
+  font-weight: 500 !important;
+}
+
+/* White Text In Light Mode -> Solid Dark Navy (Outside of Solid Colored Buttons/Badges) */
+.dashboard-theme-light .text-white:not(button):not(button *):not(a[class*="bg-"]):not(a[class*="bg-"] *):not([class*="bg-blue-"]):not([class*="bg-blue-"] *):not([class*="bg-emerald-"]):not([class*="bg-emerald-"] *):not([class*="bg-rose-"]):not([class*="bg-rose-"] *):not([class*="bg-red-"]):not([class*="bg-red-"] *):not([class*="bg-amber-500"]):not([class*="bg-amber-500"] *):not([class*="bg-purple-600"]):not([class*="bg-purple-600"] *):not([class*="bg-indigo-600"]):not([class*="bg-indigo-600"] *):not([class*="bg-gradient"]):not([class*="badge"]):not(.fill-white):not([class*="from-"]):not([class*="to-"]):not([class*="avatar"]) {
+  color: #0f172a !important;
+  font-weight: 700 !important;
+}
+
+.dashboard-theme-light .text-slate-100:not(button):not(button *):not(a[class*="bg-"]):not(a[class*="bg-"] *):not([class*="bg-blue-"]):not([class*="bg-blue-"] *):not([class*="bg-emerald-"]):not([class*="bg-emerald-"] *) {
   color: #0f172a !important;
   font-weight: 700 !important;
 }
 
 /* 4. Section Subheadings & Uppercase Tracking Labels */
-html:not(.eye-care-black) [class*="uppercase"][class*="tracking-"]:not(button *):not(a[class*="bg-"] *):not([class*="text-red-"]):not([class*="text-emerald-"]):not([class*="text-amber-"]):not([class*="bg-"]) {
-  color: #1e3a8a !important; /* Deep Blue 900 */
+.dashboard-theme-light [class*="uppercase"][class*="tracking-"]:not(button *):not(a[class*="bg-"] *):not([class*="text-red-"]):not([class*="text-emerald-"]):not([class*="text-amber-"]):not([class*="bg-"]) {
+  color: #1e3a8a !important;
   font-weight: 800 !important;
 }
 
-/* 5. Calendar Text, Dates, Day Headers, and Month Titles */
-html:not(.eye-care-black) .grid-cols-7 > div {
+/* 5. Calendar Section Text Visibility */
+.dashboard-theme-light .grid-cols-7 > div {
   font-weight: 700;
 }
-html:not(.eye-care-black) .border-b.border-white\/10 .py-1 {
+.dashboard-theme-light .border-b.border-white\/10 .py-1 {
   color: #1e293b !important;
   font-weight: 800 !important;
 }
-html:not(.eye-care-black) span[class*="min-w-\[170px\]"] {
+.dashboard-theme-light span[class*="min-w-\[170px\]"] {
   color: #0f172a !important;
   font-weight: 900 !important;
 }
 
 /* 6. Tables & Data Lists (Leaderboard, Syllabus, Revision, Students, Quizzes, Logs) */
-html:not(.eye-care-black) th,
-html:not(.eye-care-black) [class*="grid-cols-"][class*="uppercase"] {
+.dashboard-theme-light th,
+.dashboard-theme-light [class*="grid-cols-"][class*="uppercase"] {
   color: #0f172a !important;
   font-weight: 800 !important;
+  background-color: #f1f5f9 !important;
 }
-html:not(.eye-care-black) td {
+.dashboard-theme-light td {
   color: #1e293b !important;
   font-weight: 600 !important;
 }
 
 /* 7. Navigation & Menu Text (Sidebar & Header) */
-html:not(.eye-care-black) aside nav button:not([class*="bg-emerald-600"]):not([class*="bg-blue-600"]) span,
-html:not(.eye-care-black) aside nav a:not([class*="bg-blue-600"]) span {
+.dashboard-theme-light aside nav button:not([class*="bg-emerald-600"]):not([class*="bg-blue-600"]) span,
+.dashboard-theme-light aside nav a:not([class*="bg-blue-600"]) span {
   color: #334155 !important;
-  font-weight: 600 !important;
-}
-html:not(.eye-care-black) aside nav button:hover span,
-html:not(.eye-care-black) aside nav a:hover span {
-  color: #1d4ed8 !important;
   font-weight: 700 !important;
 }
+.dashboard-theme-light aside nav button:hover span,
+.dashboard-theme-light aside nav a:hover span {
+  color: #1d4ed8 !important;
+  font-weight: 800 !important;
+}
 
-/* 8. Form Controls (Input, Select, Textarea) */
-html:not(.eye-care-black) input,
-html:not(.eye-care-black) select,
-html:not(.eye-care-black) textarea {
+/* 8. Forms, Inputs, Selects, Dropdowns, and Modals */
+.dashboard-theme-light input,
+.dashboard-theme-light select,
+.dashboard-theme-light textarea {
   color: #0f172a !important;
   font-weight: 600 !important;
   background-color: #ffffff !important;
-  border-color: #cbd5e1 !important;
+  border-color: #93c5fd !important;
 }
-html:not(.eye-care-black) input::placeholder,
-html:not(.eye-care-black) textarea::placeholder {
+.dashboard-theme-light input::placeholder,
+.dashboard-theme-light textarea::placeholder {
   color: #64748b !important;
   font-weight: 500 !important;
   opacity: 1 !important;
 }
+.dashboard-theme-light label {
+  color: #0f172a !important;
+  font-weight: 700 !important;
+}
 
 /* 9. Accent & Color Accents on Light Surfaces (Bold and High Contrast) */
-html:not(.eye-care-black) .text-gold-400:not([class*="bg-"]):not(button *),
-html:not(.eye-care-black) .text-gold-300:not([class*="bg-"]):not(button *),
-html:not(.eye-care-black) .text-amber-300:not([class*="bg-"]):not(button *) {
-  color: #b45309 !important; /* Deep Warm Amber 700 */
+.dashboard-theme-light .text-gold-400:not([class*="bg-"]):not(button *),
+.dashboard-theme-light .text-gold-300:not([class*="bg-"]):not(button *),
+.dashboard-theme-light .text-amber-300:not([class*="bg-"]):not(button *) {
+  color: #b45309 !important;
   font-weight: 700 !important;
 }
 
-html:not(.eye-care-black) .text-emerald-400:not([class*="bg-"]):not(button *) {
-  color: #047857 !important; /* Deep Vibrant Emerald 700 */
+.dashboard-theme-light .text-emerald-400:not([class*="bg-"]):not(button *) {
+  color: #047857 !important;
   font-weight: 700 !important;
 }
 
-html:not(.eye-care-black) .text-royal-400:not([class*="bg-"]):not(button *),
-html:not(.eye-care-black) .text-royal-300:not([class*="bg-"]):not(button *),
-html:not(.eye-care-black) .text-sky-300:not([class*="bg-"]):not(button *) {
-  color: #1d4ed8 !important; /* Deep Professional Blue 700 */
+.dashboard-theme-light .text-royal-400:not([class*="bg-"]):not(button *),
+.dashboard-theme-light .text-royal-300:not([class*="bg-"]):not(button *),
+.dashboard-theme-light .text-sky-300:not([class*="bg-"]):not(button *) {
+  color: #1d4ed8 !important;
   font-weight: 700 !important;
 }
 
 /* 10. Admin Panel Specific Readability */
-html:not(.eye-care-black) .bg-navy-950 .glass-card {
+.dashboard-theme-light.bg-navy-950 .glass-card {
   border-color: #bfdbfe !important;
 }
-html:not(.eye-care-black) aside .text-white {
+.dashboard-theme-light aside .text-white {
   color: #0f172a !important;
   font-weight: 700 !important;
 }
-html:not(.eye-care-black) aside .text-slate-400 {
+.dashboard-theme-light aside .text-slate-400 {
   color: #475569 !important;
   font-weight: 600 !important;
 }
 
-/* Eye Care Black Overrides */
+/* ==========================================================
+   EYE CARE THEME (BLACK MODE) - Preserved exactly as original
+   ========================================================== */
+html.eye-care-black .glass-card {
+  background: #09060f !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.65) !important;
+  color: #f8fafc !important;
+}
+
+html.eye-care-black .glass-card-hover:hover {
+  background: #140d22 !important;
+  border-color: rgba(99, 102, 241, 0.4) !important;
+  box-shadow: 0 12px 30px -10px rgba(0, 0, 0, 0.8), 0 0 20px -5px rgba(59, 130, 246, 0.3) !important;
+}
+
+html.eye-care-black .glass-nav {
+  background: rgba(0, 0, 0, 0.95) !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.7) !important;
+}
+
 html.eye-care-black .bg-navy-950 {
   background-color: #000000 !important;
   color: #f8fafc !important;
