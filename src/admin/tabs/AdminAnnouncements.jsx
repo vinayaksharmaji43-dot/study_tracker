@@ -8,18 +8,35 @@ import { Megaphone, Plus, Edit2, Trash2, CheckCircle, EyeOff, AlertCircle, Image
 import toast from 'react-hot-toast';
 
 const COURSES = ['CA', 'CMA'];
-const LEVELS = ['Foundation', 'Intermediate'];
-const CA_ATTEMPTS = ['May 27', 'Jan 27', 'Sep 27', 'May 2027', 'Jan 2027', 'Sep 2027'];
-const DEFAULT_CMA_ATTEMPTS = ['Dec 26', 'June 27', 'Dec 27', 'Dec 2026', 'June 2027', 'December 2027'];
+const LEVELS = ['Foundation', 'Intermediate', 'Final'];
+const DEFAULT_CA_ATTEMPTS = ['January 2027', 'May 2027', 'September 2027'];
+const DEFAULT_CMA_ATTEMPTS = ['June 2027', 'December 2027'];
 
 export default function AdminAnnouncements() {
   const { userProfile } = useAuth();
   const [announcements, setAnnouncements] = useState([]);
-  const [cmaAttempts, setCmaAttempts] = useState(DEFAULT_CMA_ATTEMPTS);
+  const [coursesConfig, setCoursesConfig] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  function getAttempts(courseName) {
-    return courseName === 'CMA' ? cmaAttempts : CA_ATTEMPTS;
+  function getAttempts(courseName, levelName = 'Foundation') {
+    const cKey = (courseName || 'CA').toLowerCase();
+    const lKey = (levelName || 'Foundation').toLowerCase();
+
+    if (coursesConfig) {
+      if (cKey === 'ca') {
+        if (lKey === 'foundation' && Array.isArray(coursesConfig.caFoundationAttempts)) return coursesConfig.caFoundationAttempts;
+        if (lKey === 'intermediate' && Array.isArray(coursesConfig.caIntermediateAttempts)) return coursesConfig.caIntermediateAttempts;
+        if (lKey === 'final' && Array.isArray(coursesConfig.caFinalAttempts)) return coursesConfig.caFinalAttempts;
+        if (Array.isArray(coursesConfig.caAttempts)) return coursesConfig.caAttempts;
+      } else if (cKey === 'cma') {
+        if (lKey === 'foundation' && Array.isArray(coursesConfig.cmaFoundationAttempts)) return coursesConfig.cmaFoundationAttempts;
+        if (lKey === 'intermediate' && Array.isArray(coursesConfig.cmaIntermediateAttempts)) return coursesConfig.cmaIntermediateAttempts;
+        if (lKey === 'final' && Array.isArray(coursesConfig.cmaFinalAttempts)) return coursesConfig.cmaFinalAttempts;
+        if (Array.isArray(coursesConfig.cmaAttempts)) return coursesConfig.cmaAttempts;
+      }
+    }
+
+    return cKey === 'cma' ? DEFAULT_CMA_ATTEMPTS : DEFAULT_CA_ATTEMPTS;
   }
 
   // Modal State
@@ -89,8 +106,8 @@ export default function AdminAnnouncements() {
     });
 
     const unsubCourses = onSnapshot(doc(db, 'settings', 'courses'), (snap) => {
-      if (snap.exists() && snap.data()?.cmaAttempts && Array.isArray(snap.data().cmaAttempts)) {
-        setCmaAttempts(snap.data().cmaAttempts);
+      if (snap.exists()) {
+        setCoursesConfig(snap.data());
       }
     });
 
@@ -435,13 +452,31 @@ export default function AdminAnnouncements() {
                       <div className="grid grid-cols-2 gap-3">
                         <div>
                           <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Course</label>
-                          <select value={course} onChange={e => { setCourse(e.target.value); setAttempt(getAttempts(e.target.value)[0]); }} className="w-full px-3 py-2 rounded-lg bg-navy-900 border border-white/10 text-white text-xs font-bold focus:outline-none focus:border-rose-500">
+                          <select 
+                            value={course} 
+                            onChange={e => { 
+                              const newCourse = e.target.value;
+                              setCourse(newCourse); 
+                              const validAttempts = getAttempts(newCourse, level);
+                              setAttempt(validAttempts[0] || ''); 
+                            }} 
+                            className="w-full px-3 py-2 rounded-lg bg-navy-900 border border-white/10 text-white text-xs font-bold focus:outline-none focus:border-rose-500"
+                          >
                             {COURSES.map(c => <option key={c} value={c}>{c}</option>)}
                           </select>
                         </div>
                         <div>
                           <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Level</label>
-                          <select value={level} onChange={e => setLevel(e.target.value)} className="w-full px-3 py-2 rounded-lg bg-navy-900 border border-white/10 text-white text-xs font-bold focus:outline-none focus:border-rose-500">
+                          <select 
+                            value={level} 
+                            onChange={e => {
+                              const newLevel = e.target.value;
+                              setLevel(newLevel);
+                              const validAttempts = getAttempts(course, newLevel);
+                              setAttempt(validAttempts[0] || '');
+                            }} 
+                            className="w-full px-3 py-2 rounded-lg bg-navy-900 border border-white/10 text-white text-xs font-bold focus:outline-none focus:border-rose-500"
+                          >
                             {LEVELS.map(l => <option key={l} value={l}>{l}</option>)}
                           </select>
                         </div>
@@ -449,7 +484,7 @@ export default function AdminAnnouncements() {
                       <div>
                         <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Attempt</label>
                         <select value={attempt} onChange={e => setAttempt(e.target.value)} className="w-full px-3 py-2 rounded-lg bg-navy-900 border border-white/10 text-white text-xs font-bold focus:outline-none focus:border-rose-500">
-                          {getAttempts(course).map(a => <option key={a} value={a}>{a}</option>)}
+                          {getAttempts(course, level).map(a => <option key={a} value={a}>{a}</option>)}
                         </select>
                       </div>
                     </div>
