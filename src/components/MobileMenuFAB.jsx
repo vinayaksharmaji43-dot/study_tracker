@@ -20,8 +20,10 @@ import {
   Calendar as CalendarIcon
 } from 'lucide-react';
 import SupportModal from './SupportModal';
+import { useTheme } from '../contexts/ThemeContext';
 
 export default function MobileMenuFAB({ activeTab, setActiveTab }) {
+  const { isEyeCare } = useTheme();
   const [isOpen, setIsOpen] = useState(false);
   const [showSupportModal, setShowSupportModal] = useState(false);
 
@@ -87,17 +89,21 @@ export default function MobileMenuFAB({ activeTab, setActiveTab }) {
 
       {/* Bottom Sheet Menu */}
       <div 
-        className={`fixed bottom-0 left-0 right-0 z-[101] bg-navy-900 border-t border-white/10 rounded-t-3xl transition-transform duration-300 ease-out transform md:hidden ${
+        className={`fixed bottom-0 left-0 right-0 z-[101] border-t rounded-t-3xl transition-transform duration-300 ease-out transform md:hidden ${
           isOpen ? 'translate-y-0' : 'translate-y-full'
-        } max-h-[85vh] overflow-y-auto overscroll-contain custom-scrollbar`}
+        } max-h-[85vh] overflow-y-auto overscroll-contain custom-scrollbar ${
+          isEyeCare ? 'bg-navy-900 border-white/10 text-white' : 'bg-white border-slate-200 text-slate-900 shadow-2xl'
+        }`}
         style={{ WebkitOverflowScrolling: 'touch', overscrollBehavior: 'contain' }}
       >
         <div className="p-6 space-y-6">
           <div className="flex items-center justify-between">
-            <h2 className="text-xl font-black text-white">Menu</h2>
+            <h2 className={`text-xl font-bold ${isEyeCare ? 'text-white' : 'text-slate-950'}`}>Menu</h2>
             <button 
               onClick={() => setIsOpen(false)}
-              className="p-2 rounded-full bg-white/5 text-slate-400 hover:text-white"
+              className={`p-2 rounded-full transition-colors ${
+                isEyeCare ? 'bg-white/5 text-slate-400 hover:text-white' : 'bg-slate-100 text-slate-600 hover:text-slate-950'
+              }`}
             >
               <X className="w-5 h-5" />
             </button>
@@ -105,7 +111,9 @@ export default function MobileMenuFAB({ activeTab, setActiveTab }) {
 
           {/* Quick Join */}
           <div className="space-y-3">
-            <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2">
+            <h3 className={`text-xs font-bold uppercase tracking-wider flex items-center gap-2 ${
+              isEyeCare ? 'text-slate-400' : 'text-slate-700'
+            }`}>
               <span>⚡ Quick Join</span>
             </h3>
             <div className="grid grid-cols-2 gap-3">
@@ -115,12 +123,16 @@ export default function MobileMenuFAB({ activeTab, setActiveTab }) {
                   <button
                     key={item.id}
                     onClick={() => handleNav(item.id)}
-                    className="flex flex-col items-center justify-center gap-2 p-3 rounded-2xl bg-navy-950 border border-white/5 hover:bg-white/5 transition-colors"
+                    className={`flex flex-col items-center justify-center gap-2 p-3 rounded-2xl border transition-colors ${
+                      isEyeCare 
+                        ? 'bg-navy-950 border-white/5 hover:bg-white/5 text-slate-300' 
+                        : 'bg-slate-50 border-slate-200 hover:bg-blue-50 text-slate-800 shadow-sm'
+                    }`}
                   >
                     <div className={`p-3 rounded-xl ${item.bg} ${item.color}`}>
                       <Icon className="w-5 h-5" />
                     </div>
-                    <span className="text-xs font-bold text-slate-300">{item.label}</span>
+                    <span className={`text-xs font-bold ${isEyeCare ? 'text-slate-300' : 'text-slate-800'}`}>{item.label}</span>
                   </button>
                 )
               })}
@@ -129,7 +141,7 @@ export default function MobileMenuFAB({ activeTab, setActiveTab }) {
 
           {/* All Features */}
           <div className="space-y-3">
-            <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider">All Features</h3>
+            <h3 className={`text-xs font-bold uppercase tracking-wider ${isEyeCare ? 'text-slate-400' : 'text-slate-700'}`}>All Features</h3>
             <div className="grid grid-cols-1 gap-2">
               {navItems.map(item => {
                 const Icon = item.icon;
@@ -140,8 +152,8 @@ export default function MobileMenuFAB({ activeTab, setActiveTab }) {
                     onClick={() => handleNav(item.id)}
                     className={`flex items-center gap-3 w-full p-3 rounded-xl text-sm font-semibold transition-colors ${
                       isActive 
-                        ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' 
-                        : 'bg-transparent text-slate-300 hover:bg-white/5'
+                        ? (isEyeCare ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-blue-600 text-white shadow-sm font-bold') 
+                        : (isEyeCare ? 'bg-transparent text-slate-300 hover:bg-white/5' : 'bg-transparent text-slate-800 hover:bg-slate-100 font-semibold')
                     }`}
                   >
                     <Icon className="w-5 h-5" />
@@ -155,20 +167,26 @@ export default function MobileMenuFAB({ activeTab, setActiveTab }) {
                   setIsOpen(false);
                   setShowSupportModal(true);
                 }}
-                className="flex items-center gap-3 w-full p-3.5 rounded-xl bg-gradient-to-r from-emerald-500/20 to-sky-500/20 text-emerald-400 border border-emerald-500/30 text-sm font-bold shadow-sm hover:opacity-95"
+                className={`flex items-center gap-3 w-full p-3.5 rounded-xl border text-sm font-bold shadow-sm transition-all ${
+                  isEyeCare 
+                    ? 'bg-gradient-to-r from-emerald-500/20 to-sky-500/20 text-emerald-400 border-emerald-500/30' 
+                    : 'bg-emerald-50 text-emerald-900 border-emerald-200 hover:bg-emerald-100'
+                }`}
               >
-                <Headphones className="w-5 h-5 text-emerald-400" />
+                <Headphones className="w-5 h-5 text-emerald-600" />
                 <div className="flex-1 text-left">Help & Student Support</div>
-                <span className="text-[10px] font-black uppercase bg-emerald-500 text-navy-950 px-2 py-0.5 rounded-md">8 AM - 9 PM</span>
+                <span className="text-[10px] font-bold uppercase bg-emerald-500 text-slate-950 px-2 py-0.5 rounded-md">8 AM - 9 PM</span>
               </button>
 
               <button
                 disabled
-                className="flex items-center gap-3 w-full p-3 rounded-xl bg-transparent text-gold-400/70 border border-gold-500/10 text-sm font-semibold"
+                className={`flex items-center gap-3 w-full p-3 rounded-xl border text-sm font-semibold ${
+                  isEyeCare ? 'bg-transparent text-amber-400/70 border-amber-500/10' : 'bg-amber-50 text-amber-800 border-amber-200'
+                }`}
               >
-                <Crown className="w-5 h-5" />
+                <Crown className="w-5 h-5 text-amber-500" />
                 <div className="flex-1 text-left">Premium</div>
-                <span className="text-[9px] font-bold uppercase bg-gold-500/20 px-2 py-0.5 rounded-md">Coming Soon</span>
+                <span className="text-[9px] font-bold uppercase bg-amber-500/20 px-2 py-0.5 rounded-md">Coming Soon</span>
               </button>
             </div>
           </div>

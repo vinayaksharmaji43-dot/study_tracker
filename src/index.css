@@ -150,45 +150,45 @@
   border-color: #e2e8f0 !important;
 }
 
-/* 2. Global Font-Weight Enforcement: No Thin, Faded, or Washed-out Text Anywhere */
+/* 2. Global Font-Weight Enforcement: Clear, Readable, and Balanced (Never overly bold) */
 .dashboard-theme-light .font-thin,
 .dashboard-theme-light .font-extralight,
 .dashboard-theme-light .font-light {
-  font-weight: 500 !important;
+  font-weight: 400 !important;
 }
 
 .dashboard-theme-light .font-normal {
-  font-weight: 600 !important;
+  font-weight: 500 !important;
 }
 
 .dashboard-theme-light .font-medium {
-  font-weight: 600 !important;
+  font-weight: 500 !important;
 }
 
 .dashboard-theme-light .font-semibold {
-  font-weight: 700 !important;
+  font-weight: 600 !important;
 }
 
 .dashboard-theme-light .font-bold {
-  font-weight: 800 !important;
+  font-weight: 700 !important;
 }
 
 .dashboard-theme-light .font-extrabold,
 .dashboard-theme-light .font-black {
-  font-weight: 900 !important;
+  font-weight: 800 !important;
 }
 
-/* Small text & labels: Guaranteed crispness and legibility */
+/* Small text & labels: Guaranteed crispness and legibility without being blocky */
 .dashboard-theme-light .text-\[9px\],
 .dashboard-theme-light .text-\[10px\],
 .dashboard-theme-light .text-\[11px\],
 .dashboard-theme-light .text-\[12px\],
 .dashboard-theme-light .text-xs {
-  font-weight: 700 !important;
+  font-weight: 600 !important;
 }
 
 .dashboard-theme-light .text-sm {
-  font-weight: 600 !important;
+  font-weight: 500 !important;
 }
 
 /* Reset opacity on text so nothing looks washed out */
@@ -198,78 +198,87 @@
   opacity: 1 !important;
 }
 
-/* 3. All Headings & Titles: Dark Navy Bold / Extrabold (#0f172a) */
-.dashboard-theme-light h1:not([class*="gradient"]):not([class*="bg-"]):not(button *):not(a[class*="bg-"] *),
-.dashboard-theme-light h2:not([class*="gradient"]):not([class*="bg-"]):not(button *):not(a[class*="bg-"] *),
-.dashboard-theme-light h3:not([class*="gradient"]):not([class*="bg-"]):not(button *):not(a[class*="bg-"] *),
-.dashboard-theme-light h4:not([class*="gradient"]):not([class*="bg-"]):not(button *):not(a[class*="bg-"] *),
-.dashboard-theme-light h5:not([class*="gradient"]):not([class*="bg-"]):not(button *):not(a[class*="bg-"] *),
-.dashboard-theme-light h6:not([class*="gradient"]):not([class*="bg-"]):not(button *):not(a[class*="bg-"] *) {
+/* 3. Dark Panels / Menus / Dropdowns Protection */
+.dashboard-theme-light [class*="bg-[#090510]"] .text-white,
+.dashboard-theme-light [class*="bg-[#090510]"] .text-slate-100,
+.dashboard-theme-light [class*="bg-[#090510]"] .text-slate-200,
+.dashboard-theme-light [class*="bg-[#090510]"] .text-slate-300,
+.dashboard-theme-light [class*="bg-[#140b22]"] .text-white,
+.dashboard-theme-light [class*="bg-[#140b22]"] .text-slate-100,
+.dashboard-theme-light [class*="bg-[#140b22]"] .text-slate-200,
+.dashboard-theme-light [class*="bg-[#140b22]"] .text-slate-300,
+.dashboard-theme-light [class*="bg-navy-900"] .text-white,
+.dashboard-theme-light [class*="bg-navy-900"] .text-slate-100,
+.dashboard-theme-light [class*="bg-navy-900"] .text-slate-200,
+.dashboard-theme-light [class*="bg-navy-900"] .text-slate-300,
+.dashboard-theme-light [class*="bg-navy-950"] .text-white,
+.dashboard-theme-light [class*="bg-navy-950"] .text-slate-100,
+.dashboard-theme-light [class*="bg-navy-950"] .text-slate-200,
+.dashboard-theme-light [class*="bg-navy-950"] .text-slate-300 {
+  color: #ffffff !important;
+}
+
+/* 4. All Headings & Titles: Dark Navy Bold / Extrabold (#0f172a) on light surfaces */
+.dashboard-theme-light h1:not([class*="gradient"]):not([class*="bg-"]):not(button *):not(a[class*="bg-"] *):not([class*="bg-[#0"] *):not([class*="bg-[#1"] *):not([class*="bg-navy-"] *),
+.dashboard-theme-light h2:not([class*="gradient"]):not([class*="bg-"]):not(button *):not(a[class*="bg-"] *):not([class*="bg-[#0"] *):not([class*="bg-[#1"] *):not([class*="bg-navy-"] *),
+.dashboard-theme-light h3:not([class*="gradient"]):not([class*="bg-"]):not(button *):not(a[class*="bg-"] *):not([class*="bg-[#0"] *):not([class*="bg-[#1"] *):not([class*="bg-navy-"] *),
+.dashboard-theme-light h4:not([class*="gradient"]):not([class*="bg-"]):not(button *):not(a[class*="bg-"] *):not([class*="bg-[#0"] *):not([class*="bg-[#1"] *):not([class*="bg-navy-"] *),
+.dashboard-theme-light h5:not([class*="gradient"]):not([class*="bg-"]):not(button *):not(a[class*="bg-"] *):not([class*="bg-[#0"] *):not([class*="bg-[#1"] *):not([class*="bg-navy-"] *),
+.dashboard-theme-light h6:not([class*="gradient"]):not([class*="bg-"]):not(button *):not(a[class*="bg-"] *):not([class*="bg-[#0"] *):not([class*="bg-[#1"] *):not([class*="bg-navy-"] *) {
   color: #0f172a !important;
-  font-weight: 800 !important;
+  font-weight: 750 !important;
   letter-spacing: -0.015em;
 }
 
-/* 4. Text Contrast & Typography Hierarchy (Professional Dark Navy & Slate) */
-/* Slate/Gray/Zinc Hierarchy - Strong High Contrast */
-.dashboard-theme-light .text-slate-100,
-.dashboard-theme-light .text-slate-200,
-.dashboard-theme-light .text-zinc-100,
-.dashboard-theme-light .text-zinc-200,
-.dashboard-theme-light .text-gray-100,
-.dashboard-theme-light .text-gray-200 {
-  color: #0f172a !important;
-  font-weight: 800 !important;
-}
-
-.dashboard-theme-light .text-slate-300,
-.dashboard-theme-light .text-zinc-300,
-.dashboard-theme-light .text-gray-300 {
-  color: #1e293b !important;
-  font-weight: 700 !important;
-}
-
-.dashboard-theme-light .text-slate-400,
-.dashboard-theme-light .text-zinc-400,
-.dashboard-theme-light .text-gray-400 {
+/* 5. Text Contrast & Typography Hierarchy (Professional Dark Navy & Slate) */
+/* Light Card Slate/Gray/Zinc Hierarchy - Strong High Contrast */
+.dashboard-theme-light .glass-card .text-slate-300,
+.dashboard-theme-light .glass-card .text-slate-400,
+.dashboard-theme-light .bg-white .text-slate-300,
+.dashboard-theme-light .bg-white .text-slate-400,
+.dashboard-theme-light [class*="bg-slate-50"] .text-slate-300,
+.dashboard-theme-light [class*="bg-slate-50"] .text-slate-400,
+.dashboard-theme-light [class*="bg-[#f0f7ff]"] .text-slate-300,
+.dashboard-theme-light [class*="bg-[#f0f7ff]"] .text-slate-400 {
   color: #1e293b !important;
   font-weight: 600 !important;
 }
 
-.dashboard-theme-light .text-slate-500,
-.dashboard-theme-light .text-zinc-500,
-.dashboard-theme-light .text-gray-500 {
+.dashboard-theme-light .glass-card .text-slate-500,
+.dashboard-theme-light .bg-white .text-slate-500,
+.dashboard-theme-light [class*="bg-slate-50"] .text-slate-500,
+.dashboard-theme-light [class*="bg-[#f0f7ff]"] .text-slate-500 {
   color: #334155 !important;
-  font-weight: 600 !important;
+  font-weight: 500 !important;
 }
 
-.dashboard-theme-light .text-slate-600 {
-  color: #1e293b !important;
-  font-weight: 600 !important;
-}
-
-.dashboard-theme-light .text-slate-700 {
+.dashboard-theme-light .glass-card .text-slate-600,
+.dashboard-theme-light .glass-card .text-slate-700,
+.dashboard-theme-light .bg-white .text-slate-600,
+.dashboard-theme-light .bg-white .text-slate-700,
+.dashboard-theme-light [class*="bg-slate-50"] .text-slate-600,
+.dashboard-theme-light [class*="bg-slate-50"] .text-slate-700 {
   color: #0f172a !important;
-  font-weight: 700 !important;
+  font-weight: 600 !important;
 }
 
 /* Paragraphs & helper text */
-.dashboard-theme-light p:not(button *):not(a[class*="bg-"] *):not([class*="bg-blue-600"] *):not([class*="bg-red-600"] *) {
+.dashboard-theme-light p:not(button *):not(a[class*="bg-"] *):not([class*="bg-blue-600"] *):not([class*="bg-red-600"] *):not([class*="bg-[#0"] *):not([class*="bg-[#1"] *):not([class*="bg-navy-"] *) {
   color: #1e293b !important;
   font-weight: 500 !important;
   line-height: 1.5;
 }
 
-/* White Text In Light Mode -> Solid Dark Navy (Outside of Solid Colored Buttons/Badges) */
-.dashboard-theme-light .text-white:not(button):not(button *):not(a[class*="bg-"]):not(a[class*="bg-"] *):not([class*="bg-blue-"]):not([class*="bg-blue-"] *):not([class*="bg-emerald-"]):not([class*="bg-emerald-"] *):not([class*="bg-rose-"]):not([class*="bg-rose-"] *):not([class*="bg-red-"]):not([class*="bg-red-"] *):not([class*="bg-amber-500"]):not([class*="bg-amber-500"] *):not([class*="bg-purple-600"]):not([class*="bg-purple-600"] *):not([class*="bg-indigo-600"]):not([class*="bg-indigo-600"] *):not([class*="bg-gradient"]):not([class*="badge"]):not(.fill-white):not([class*="from-"]):not([class*="to-"]):not([class*="avatar"]) {
+/* White Text In Light Mode -> Solid Dark Navy (Outside of Solid Colored Buttons/Badges and Dark Containers) */
+.dashboard-theme-light .text-white:not(button):not(button *):not(a[class*="bg-"]):not(a[class*="bg-"] *):not([class*="bg-blue-"]):not([class*="bg-blue-"] *):not([class*="bg-emerald-"]):not([class*="bg-emerald-"] *):not([class*="bg-rose-"]):not([class*="bg-rose-"] *):not([class*="bg-red-"]):not([class*="bg-red-"] *):not([class*="bg-amber-500"]):not([class*="bg-amber-500"] *):not([class*="bg-purple-600"]):not([class*="bg-purple-600"] *):not([class*="bg-indigo-600"]):not([class*="bg-indigo-600"] *):not([class*="bg-gradient"]):not([class*="badge"]):not(.fill-white):not([class*="from-"]):not([class*="to-"]):not([class*="avatar"]):not([class*="bg-[#0"] *):not([class*="bg-[#1"] *):not([class*="bg-navy-"] *) {
   color: #0f172a !important;
-  font-weight: 800 !important;
+  font-weight: 700 !important;
 }
 
-/* 5. Section Subheadings & Uppercase Tracking Labels */
-.dashboard-theme-light [class*="uppercase"][class*="tracking-"]:not(button *):not(a[class*="bg-"] *):not([class*="text-red-"]):not([class*="text-emerald-"]):not([class*="text-amber-"]):not([class*="bg-"]) {
+/* 6. Section Subheadings & Uppercase Tracking Labels */
+.dashboard-theme-light [class*="uppercase"][class*="tracking-"]:not(button *):not(a[class*="bg-"] *):not([class*="text-red-"]):not([class*="text-emerald-"]):not([class*="text-amber-"]):not([class*="bg-"]):not([class*="bg-[#0"] *):not([class*="bg-[#1"] *):not([class*="bg-navy-"] *) {
   color: #1e3a8a !important;
-  font-weight: 800 !important;
+  font-weight: 700 !important;
 }
 
 /* 6. Calendar Section Text Visibility */

@@ -447,33 +447,43 @@ export default function Navbar({ activeTab, setActiveTab }) {
                       aria-hidden="true"
                     />
 
-                    {/* High-contrast, solid dark, scroll-contained mobile menu container */}
+                    {/* High-contrast, theme-aware, scroll-contained mobile menu container */}
                     <div 
-                      className="absolute right-0 top-[calc(100%+0.75rem)] z-50 w-[min(20.5rem,calc(100vw-1.25rem))] max-h-[min(82vh,calc(100dvh-5.5rem))] flex flex-col rounded-2xl border-2 border-violet-500/40 bg-[#090510] p-0 shadow-[0_25px_60px_rgba(0,0,0,0.95),0_0_35px_rgba(139,92,246,0.3)] animate-in fade-in slide-in-from-top-2 duration-200 overflow-hidden"
+                      className={`absolute right-0 top-[calc(100%+0.75rem)] z-50 w-[min(20.5rem,calc(100vw-1.25rem))] max-h-[min(82vh,calc(100dvh-5.5rem))] flex flex-col rounded-2xl border-2 p-0 shadow-2xl animate-in fade-in slide-in-from-top-2 duration-200 overflow-hidden ${
+                        isEyeCare 
+                          ? 'border-violet-500/40 bg-[#090510] shadow-[0_25px_60px_rgba(0,0,0,0.95),0_0_35px_rgba(139,92,246,0.3)]' 
+                          : 'border-slate-200 bg-white shadow-2xl'
+                      }`}
                     >
                       {/* Fixed Top Header inside Menu */}
-                      <div className="flex items-center justify-between px-4 py-3.5 border-b border-white/10 shrink-0 bg-[#090510]">
+                      <div className={`flex items-center justify-between px-4 py-3.5 border-b shrink-0 ${
+                        isEyeCare ? 'bg-[#090510] border-white/10' : 'bg-slate-50 border-slate-200'
+                      }`}>
                         <div>
-                          <div className="text-sm font-black text-white flex items-center gap-1.5">
+                          <div className={`text-sm font-bold flex items-center gap-1.5 ${isEyeCare ? 'text-white' : 'text-slate-950'}`}>
                             <span>{userProfile?.name ? userProfile.name.split(' ')[0] : 'Dashboard'}</span>
                             {userProfile?.isPro && <ProBadge size="sm" />}
                           </div>
-                          <div className="text-[10px] text-gold-400 font-extrabold uppercase tracking-[0.16em]">
+                          <div className={`text-[10px] font-bold uppercase tracking-[0.16em] ${isEyeCare ? 'text-amber-400' : 'text-blue-700'}`}>
                             {userProfile?.rollNumber || 'Quick access'}
                           </div>
                         </div>
                         <button 
                           onClick={() => setMobileActionMenuOpen(false)} 
-                          className="p-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-slate-300 hover:text-white transition-colors cursor-pointer" 
+                          className={`p-1.5 rounded-lg transition-colors cursor-pointer ${
+                            isEyeCare ? 'bg-white/10 hover:bg-white/20 text-slate-300 hover:text-white' : 'bg-slate-200 hover:bg-slate-300 text-slate-700'
+                          }`} 
                           aria-label="Close dashboard menu"
                         >
                           <X className="w-4 h-4" />
                         </button>
                       </div>
 
-                      {/* Smoothly Scrollable Options Area (Deep dark background with high-contrast buttons) */}
+                      {/* Smoothly Scrollable Options Area */}
                       <div 
-                        className="p-3.5 space-y-4 overflow-y-auto overscroll-contain flex-1 custom-scrollbar bg-[#090510]"
+                        className={`p-3.5 space-y-4 overflow-y-auto overscroll-contain flex-1 custom-scrollbar ${
+                          isEyeCare ? 'bg-[#090510]' : 'bg-white'
+                        }`}
                         style={{ WebkitOverflowScrolling: 'touch', overscrollBehavior: 'contain' }}
                       >
                         {/* Eye Care Toggle */}
@@ -482,14 +492,14 @@ export default function Navbar({ activeTab, setActiveTab }) {
                           className={`w-full flex items-center justify-between p-3 rounded-xl border transition-all text-xs font-bold cursor-pointer ${
                             isEyeCare
                               ? 'bg-amber-400/15 border-amber-400/50 text-amber-300 shadow-[0_0_15px_rgba(251,191,36,0.2)]'
-                              : 'bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100'
+                              : 'bg-slate-50 hover:bg-slate-100 border-slate-200 text-slate-800 shadow-sm'
                           }`}
                         >
                           <div className="flex items-center gap-2.5">
                             <span className="text-base">👁️</span>
-                            <span className="font-extrabold">Eye Care Mode (Black Theme)</span>
+                            <span className="font-bold">Eye Care Mode (Black Theme)</span>
                           </div>
-                          <span className={`px-2 py-0.5 rounded-md text-[10px] font-black uppercase tracking-wider ${
+                          <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider ${
                             isEyeCare ? 'bg-amber-400 text-slate-950 shadow-sm' : 'bg-blue-600 text-white'
                           }`}>
                             {isEyeCare ? 'ACTIVE' : 'OFF'}
@@ -498,7 +508,7 @@ export default function Navbar({ activeTab, setActiveTab }) {
 
                         {/* Quick Join */}
                         <div className="space-y-2">
-                          <div className="px-1 text-[11px] font-black uppercase tracking-wider text-gold-400">⚡ Quick Join</div>
+                          <div className={`px-1 text-[11px] font-bold uppercase tracking-wider ${isEyeCare ? 'text-amber-400' : 'text-slate-900'}`}>⚡ Quick Join</div>
                           <div className="grid grid-cols-2 gap-2">
                             {quickJoinItems.map(item => {
                               const Icon = item.icon;
@@ -507,15 +517,21 @@ export default function Navbar({ activeTab, setActiveTab }) {
                                 <button 
                                   key={item.id} 
                                   onClick={() => handleDashboardNav(item.id)} 
-                                  className="flex items-center justify-between gap-2 rounded-xl border border-white/10 bg-[#140b22] hover:bg-[#1f1035] hover:border-violet-400/40 p-2.5 text-left transition-all duration-150 cursor-pointer shadow-sm group"
+                                  className={`flex items-center justify-between gap-2 rounded-xl border p-2.5 text-left transition-all duration-150 cursor-pointer shadow-sm group ${
+                                    isEyeCare 
+                                      ? 'border-white/10 bg-[#140b22] hover:bg-[#1f1035] hover:border-violet-400/40 text-white' 
+                                      : 'border-slate-200 bg-slate-50 hover:bg-blue-50/70 hover:border-blue-300 text-slate-800'
+                                  }`}
                                 >
                                   <div className="flex items-center gap-2 truncate">
                                     <span className={`p-1.5 rounded-lg ${item.bg} ${item.color} shrink-0`}>
                                       <Icon className="w-4 h-4" />
                                     </span>
-                                    <span className="text-[12px] font-bold text-white group-hover:text-gold-300 truncate transition-colors">{item.label}</span>
+                                    <span className={`text-[12px] font-bold truncate transition-colors ${
+                                      isEyeCare ? 'text-white group-hover:text-amber-300' : 'text-slate-800 group-hover:text-blue-700'
+                                    }`}>{item.label}</span>
                                   </div>
-                                  {isLocked && <Lock className="w-3.5 h-3.5 text-amber-400 shrink-0" />}
+                                  {isLocked && <Lock className="w-3.5 h-3.5 text-amber-500 shrink-0" />}
                                 </button>
                               );
                             })}
@@ -523,8 +539,8 @@ export default function Navbar({ activeTab, setActiveTab }) {
                         </div>
 
                         {/* All Features */}
-                        <div className="border-t border-white/10 pt-3.5 space-y-2">
-                          <div className="px-1 text-[11px] font-black uppercase tracking-wider text-gold-400">✨ All Features</div>
+                        <div className={`border-t pt-3.5 space-y-2 ${isEyeCare ? 'border-white/10' : 'border-slate-200'}`}>
+                          <div className={`px-1 text-[11px] font-bold uppercase tracking-wider ${isEyeCare ? 'text-amber-400' : 'text-slate-900'}`}>✨ All Features</div>
                           <div className="space-y-1.5">
                             {dashboardNavItems.map(item => {
                               const Icon = item.icon;
@@ -537,17 +553,19 @@ export default function Navbar({ activeTab, setActiveTab }) {
                                   <button 
                                     key={item.id} 
                                     onClick={() => handleDashboardNav(item.id)} 
-                                    className={`flex items-center justify-between w-full rounded-xl px-3 py-2.5 text-xs font-black transition-all duration-150 cursor-pointer shadow-md my-1 ${
+                                    className={`flex items-center justify-between w-full rounded-xl px-3 py-2.5 text-xs font-bold transition-all duration-150 cursor-pointer shadow-sm my-1 ${
                                       isActive 
-                                        ? 'bg-gradient-to-r from-amber-500 via-purple-500 to-amber-500 text-white border border-amber-300 shadow-[0_0_15px_rgba(245,158,11,0.4)]' 
-                                        : 'bg-gradient-to-r from-amber-500/20 via-purple-500/15 to-amber-500/20 hover:from-amber-500/30 hover:to-purple-500/25 text-amber-200 hover:text-white border border-amber-400/50 hover:border-amber-300 shadow-[0_0_12px_rgba(245,158,11,0.15)]'
+                                        ? 'bg-gradient-to-r from-amber-500 via-purple-500 to-amber-500 text-white border border-amber-300 shadow-md' 
+                                        : isEyeCare 
+                                          ? 'bg-gradient-to-r from-amber-500/20 via-purple-500/15 to-amber-500/20 hover:from-amber-500/30 text-amber-200 border border-amber-400/50'
+                                          : 'bg-amber-50/80 hover:bg-amber-100/80 text-amber-900 border border-amber-300'
                                     }`}
                                   >
                                     <div className="flex items-center gap-3 truncate">
-                                      <Icon className="w-4 h-4 shrink-0 text-amber-400" />
+                                      <Icon className="w-4 h-4 shrink-0 text-amber-600" />
                                       <span className="truncate">{item.label}</span>
                                     </div>
-                                    <span className="text-[10px] font-black uppercase bg-amber-500/30 text-amber-300 border border-amber-400/50 px-2 py-0.5 rounded shadow-sm">
+                                    <span className="text-[10px] font-bold uppercase bg-amber-500/20 text-amber-800 border border-amber-400 px-2 py-0.5 rounded shadow-sm">
                                       PRO 🔒
                                     </span>
                                   </button>
@@ -560,15 +578,22 @@ export default function Navbar({ activeTab, setActiveTab }) {
                                   onClick={() => handleDashboardNav(item.id)} 
                                   className={`flex items-center justify-between w-full rounded-xl px-3 py-2.5 text-xs font-bold transition-all duration-150 cursor-pointer shadow-sm ${
                                     isActive 
-                                      ? 'bg-violet-600/35 text-violet-100 border border-violet-400/60 shadow-[0_0_12px_rgba(139,92,246,0.25)]' 
-                                      : 'bg-[#140b22] hover:bg-[#1f1035] text-slate-100 hover:text-white border border-white/10 hover:border-violet-400/40'
+                                      ? (isEyeCare ? 'bg-violet-600/40 text-white border border-violet-400/60 shadow-md' : 'bg-blue-600 text-white border border-blue-600 shadow-md')
+                                      : (isEyeCare 
+                                          ? 'bg-[#140b22] hover:bg-[#1f1035] text-white hover:text-white border border-white/10 hover:border-violet-400/40' 
+                                          : 'bg-slate-50 hover:bg-blue-50/80 text-slate-800 hover:text-blue-900 border border-slate-200 hover:border-blue-300'
+                                        )
                                   }`}
                                 >
                                   <div className="flex items-center gap-3 truncate">
-                                    <Icon className={`w-4 h-4 shrink-0 ${isActive ? 'text-violet-300' : isLocked ? 'text-amber-400' : 'text-slate-300'}`} />
-                                    <span className="truncate">{item.label}</span>
+                                    <Icon className={`w-4 h-4 shrink-0 ${
+                                      isActive ? 'text-white' : isLocked ? 'text-amber-500' : isEyeCare ? 'text-slate-300' : 'text-slate-600'
+                                    }`} />
+                                    <span className={`truncate ${
+                                      isActive ? 'text-white font-bold' : isEyeCare ? 'text-white font-semibold' : 'text-slate-800 font-semibold'
+                                    }`}>{item.label}</span>
                                   </div>
-                                  {isLocked && <Lock className="w-3.5 h-3.5 text-amber-400 shrink-0" />}
+                                  {isLocked && <Lock className="w-3.5 h-3.5 text-amber-500 shrink-0" />}
                                 </button>
                               );
                             })}
@@ -577,16 +602,22 @@ export default function Navbar({ activeTab, setActiveTab }) {
                           <div className="pt-2 space-y-2">
                             <button 
                               onClick={() => { setMobileActionMenuOpen(false); navigate('/dashboard?tab=support'); }} 
-                              className="flex items-center gap-3 w-full rounded-xl px-3 py-2.5 text-xs font-bold text-emerald-300 bg-emerald-950/80 border border-emerald-500/40 hover:bg-emerald-900/80 transition-all cursor-pointer shadow-sm"
+                              className={`flex items-center gap-3 w-full rounded-xl px-3 py-2.5 text-xs font-bold transition-all cursor-pointer shadow-sm ${
+                                isEyeCare 
+                                  ? 'text-emerald-300 bg-emerald-950/80 border border-emerald-500/40 hover:bg-emerald-900/80' 
+                                  : 'text-emerald-900 bg-emerald-50 border border-emerald-200 hover:bg-emerald-100'
+                              }`}
                             >
-                              <Headphones className="w-4 h-4 text-emerald-400 shrink-0" />
-                              <span className="flex-1 text-left text-white font-bold">Help & Student Support</span>
-                              <span className="text-[9px] font-black uppercase bg-emerald-500 text-navy-950 px-2 py-0.5 rounded shadow">24/7</span>
+                              <Headphones className="w-4 h-4 text-emerald-600 shrink-0" />
+                              <span className={`flex-1 text-left font-bold ${isEyeCare ? 'text-white' : 'text-emerald-950'}`}>Help & Student Support</span>
+                              <span className="text-[9px] font-bold uppercase bg-emerald-500 text-slate-950 px-2 py-0.5 rounded shadow">24/7</span>
                             </button>
-                            <div className="flex items-center gap-3 w-full rounded-xl px-3 py-2.5 text-xs font-semibold text-gold-300 bg-gold-950/40 border border-gold-500/20 shadow-sm">
-                              <Crown className="w-4 h-4 text-gold-400 shrink-0" />
+                            <div className={`flex items-center gap-3 w-full rounded-xl px-3 py-2.5 text-xs font-semibold shadow-sm ${
+                              isEyeCare ? 'text-amber-300 bg-amber-950/40 border border-amber-500/20' : 'text-amber-900 bg-amber-50 border border-amber-200'
+                            }`}>
+                              <Crown className="w-4 h-4 text-amber-500 shrink-0" />
                               <span className="flex-1 font-bold">Premium</span>
-                              <span className="text-[9px] font-black uppercase bg-gold-500/20 text-gold-300 px-2 py-0.5 rounded border border-gold-500/30">Coming Soon</span>
+                              <span className="text-[9px] font-bold uppercase bg-amber-500/20 text-amber-800 px-2 py-0.5 rounded border border-amber-300">Coming Soon</span>
                             </div>
                           </div>
                         </div>
