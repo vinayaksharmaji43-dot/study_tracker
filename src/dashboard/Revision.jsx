@@ -673,7 +673,7 @@ export default function Revision() {
                               }`}>
                                 {ch.chapterNo ? `Ch ${ch.chapterNo}: ${ch.title}` : ch.title}
                               </div>
-                              <div className={`text-xs font-bold ${isEyeCare ? 'text-slate-400' : 'text-slate-700'}`}>
+                              <div className={`text-xs font-bold ${isEyeCare ? 'text-slate-400' : 'text-slate-800 font-extrabold'}`}>
                                 Progress: {chRevisedUnits}/{chTotalUnits} Units Revised — {chPct}%
                               </div>
                             </div>
@@ -745,7 +745,7 @@ export default function Revision() {
                                     <span className={`text-[11px] font-mono font-black px-2 py-0.5 rounded border shrink-0 ${
                                       isEyeCare 
                                         ? 'bg-navy-900 border-white/10 text-royal-300' 
-                                        : 'bg-blue-100 border-blue-300 text-blue-900'
+                                        : 'bg-blue-100 border-blue-300 text-blue-950 font-black'
                                     }`}>
                                       {unit.unitNo || 'Unit'}
                                     </span>
@@ -755,7 +755,7 @@ export default function Revision() {
                                         <span className={`text-xs sm:text-sm font-bold transition-all ${
                                           isEyeCare 
                                             ? (isFullyRevised ? 'text-emerald-200 line-through decoration-emerald-500/50' : 'text-slate-200')
-                                            : (isFullyRevised ? 'text-emerald-950 font-black line-through decoration-emerald-700' : 'text-slate-900 font-bold')
+                                            : (isFullyRevised ? 'text-emerald-950 font-black line-through decoration-emerald-700' : 'text-slate-950 font-black')
                                         }`}>
                                           {unit.title}
                                         </span>
@@ -769,8 +769,8 @@ export default function Revision() {
                                       </div>
 
                                       {unit.description && (
-                                        <p className={`text-[11px] font-medium truncate max-w-sm sm:max-w-lg mt-0.5 ${
-                                          isEyeCare ? 'text-slate-400' : 'text-slate-600'
+                                        <p className={`text-xs font-semibold truncate max-w-sm sm:max-w-lg mt-0.5 ${
+                                          isEyeCare ? 'text-slate-400' : 'text-slate-700 font-bold'
                                         }`}>
                                           {unit.description}
                                         </p>
@@ -808,14 +808,14 @@ export default function Revision() {
                                                 isEyeCare ? 'text-emerald-400 fill-emerald-500/20' : 'text-emerald-700 fill-emerald-200'
                                               }`} />
                                             ) : (
-                                              <Circle className={`w-5 h-5 sm:w-6 sm:h-6 ${
-                                                isEyeCare ? 'text-slate-500 hover:text-royal-400' : 'text-slate-400 hover:text-blue-600'
+                                              <Circle className={`w-5 h-5 sm:w-6 sm:h-6 stroke-[2.2] ${
+                                                isEyeCare ? 'text-slate-500 hover:text-royal-400' : 'text-slate-500 hover:text-blue-700'
                                               }`} />
                                             )}
                                             <span className={`text-[10px] font-black ${
                                               isChecked 
                                                 ? (isEyeCare ? 'text-emerald-400' : 'text-emerald-800') 
-                                                : (isEyeCare ? 'text-slate-400' : 'text-slate-600')
+                                                : (isEyeCare ? 'text-slate-400' : 'text-slate-900')
                                             }`}>
                                               R{revNum}
                                             </span>
@@ -836,7 +836,7 @@ export default function Revision() {
                                       </span>
                                       {!isFullyRevised && (
                                         <span className={`text-[9px] font-black uppercase tracking-wider ${
-                                          isEyeCare ? 'text-slate-500' : 'text-slate-600'
+                                          isEyeCare ? 'text-slate-500' : 'text-slate-800 font-extrabold'
                                         }`}>
                                           At R3
                                         </span>
@@ -908,17 +908,17 @@ export default function Revision() {
                               >
                                 {isChecked ? (
                                   <CheckCircle2 className={`w-5 h-5 sm:w-6 sm:h-6 ${
-                                    isEyeCare ? 'text-emerald-400 fill-emerald-500/20' : 'text-emerald-600 fill-emerald-100'
+                                    isEyeCare ? 'text-emerald-400 fill-emerald-500/20' : 'text-emerald-700 fill-emerald-200'
                                   }`} />
                                 ) : (
-                                  <Circle className={`w-5 h-5 sm:w-6 sm:h-6 ${
-                                    isEyeCare ? 'text-slate-500 hover:text-royal-400' : 'text-slate-400 hover:text-blue-600'
+                                  <Circle className={`w-5 h-5 sm:w-6 sm:h-6 stroke-[2.2] ${
+                                    isEyeCare ? 'text-slate-500 hover:text-royal-400' : 'text-slate-500 hover:text-blue-700'
                                   }`} />
                                 )}
                                 <span className={`text-[10px] font-black ${
                                   isChecked 
                                     ? (isEyeCare ? 'text-emerald-400' : 'text-emerald-800') 
-                                    : (isEyeCare ? 'text-slate-400' : 'text-slate-700')
+                                    : (isEyeCare ? 'text-slate-400' : 'text-slate-900')
                                 }`}>
                                   R{revNum}
                                 </span>
@@ -939,7 +939,7 @@ export default function Revision() {
                           </span>
                           {!isFullyRevised && (
                             <span className={`text-[9px] font-black uppercase tracking-wider ${
-                              isEyeCare ? 'text-slate-500' : 'text-slate-700'
+                              isEyeCare ? 'text-slate-500' : 'text-slate-800 font-extrabold'
                             }`}>
                               At R3
                             </span>

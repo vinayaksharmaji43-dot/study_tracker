@@ -24,13 +24,38 @@ import ProBadge from './ProBadge';
 import { useTheme } from '../contexts/ThemeContext';
 
 // Helpers
-function getBadge(durationSecs) {
+function getBadge(durationSecs, isEyeCare = false) {
   const hours = durationSecs / 3600;
-  if (hours >= 5) return { text: '💎 Unstoppable', color: 'text-cyan-400', bg: 'bg-cyan-400/20', border: 'border-cyan-400/40' };
-  if (hours >= 4) return { text: '🏆 Study Beast', color: 'text-gold-400', bg: 'bg-gold-500/20', border: 'border-gold-500/40' };
-  if (hours >= 3) return { text: '⚡ Deep Focus', color: 'text-purple-400', bg: 'bg-purple-500/20', border: 'border-purple-500/40' };
-  if (hours >= 2) return { text: '🔥 Locked In', color: 'text-rose-400', bg: 'bg-rose-500/20', border: 'border-rose-500/40' };
-  if (hours >= 1) return { text: '🟢 Focused', color: 'text-emerald-400', bg: 'bg-emerald-500/20', border: 'border-emerald-500/40' };
+  if (hours >= 5) return { 
+    text: '💎 Unstoppable', 
+    color: isEyeCare ? 'text-cyan-400' : 'text-cyan-950 font-black', 
+    bg: isEyeCare ? 'bg-cyan-400/20' : 'bg-cyan-100 border border-cyan-300', 
+    border: isEyeCare ? 'border-cyan-400/40' : 'border-cyan-300' 
+  };
+  if (hours >= 4) return { 
+    text: '🏆 Study Beast', 
+    color: isEyeCare ? 'text-gold-400' : 'text-amber-950 font-black', 
+    bg: isEyeCare ? 'bg-gold-500/20' : 'bg-amber-100 border border-amber-300', 
+    border: isEyeCare ? 'border-gold-500/40' : 'border-amber-300' 
+  };
+  if (hours >= 3) return { 
+    text: '⚡ Deep Focus', 
+    color: isEyeCare ? 'text-purple-400' : 'text-purple-950 font-black', 
+    bg: isEyeCare ? 'bg-purple-500/20' : 'bg-purple-100 border border-purple-300', 
+    border: isEyeCare ? 'border-purple-500/40' : 'border-purple-300' 
+  };
+  if (hours >= 2) return { 
+    text: '🔥 Locked In', 
+    color: isEyeCare ? 'text-rose-400' : 'text-rose-950 font-black', 
+    bg: isEyeCare ? 'bg-rose-500/20' : 'bg-rose-100 border border-rose-300', 
+    border: isEyeCare ? 'border-rose-500/40' : 'border-rose-300' 
+  };
+  if (hours >= 1) return { 
+    text: '🟢 Focused', 
+    color: isEyeCare ? 'text-emerald-400' : 'text-emerald-950 font-black', 
+    bg: isEyeCare ? 'bg-emerald-500/20' : 'bg-emerald-100 border border-emerald-300', 
+    border: isEyeCare ? 'border-emerald-500/40' : 'border-emerald-300' 
+  };
   return null;
 }
 
@@ -216,7 +241,7 @@ export default function StudentProfileModal({ student, activeSession: initialAct
   const streamLevelConfig = levelConfigs[streamId] || getDefaultStreamLevels(streamId);
   const studentLevel = calculateStudentLevel(points, streamLevelConfig);
 
-  const liveBadge = isCurrentlyStudying ? getBadge(liveDurationSecs) : null;
+  const liveBadge = isCurrentlyStudying ? getBadge(liveDurationSecs, isEyeCare) : null;
 
   // Calendar Day Aggregations
   // Map dateKey -> { totalSecs, sessions: [], pointsEarned, longestSessionSecs, maxFocusSecs }
@@ -430,15 +455,15 @@ export default function StudentProfileModal({ student, activeSession: initialAct
                 {Boolean(student?.isPro || student?.proAccess || userData?.isPro) && <ProBadge size="sm" />}
                 <span className="text-base">{studentLevel.badge}</span>
                 {student?.badge && (
-                  <span className={`text-xs px-2 py-0.5 rounded-full border font-bold ${
-                    isEyeCare ? 'bg-white/5 border-white/10 text-slate-300' : 'bg-blue-100 border-blue-300 text-blue-900'
+                  <span className={`text-xs px-2 py-0.5 rounded-full border font-black ${
+                    isEyeCare ? 'bg-white/5 border-white/10 text-slate-300' : 'bg-blue-100 border-blue-300 text-blue-950 font-black'
                   }`}>
                     {student.badge}
                   </span>
                 )}
               </div>
-              <div className={`text-[11px] font-bold truncate ${
-                isEyeCare ? 'text-slate-400' : 'text-slate-700'
+              <div className={`text-[11px] font-black truncate ${
+                isEyeCare ? 'text-slate-400' : 'text-slate-800'
               }`}>
                 Level {studentLevel.currentLevelNumber} • {studentLevel.currentLevelName}
               </div>
@@ -452,7 +477,7 @@ export default function StudentProfileModal({ student, activeSession: initialAct
               className={`px-3.5 py-1.5 rounded-xl text-xs font-black transition-all flex items-center gap-1.5 border shadow-sm cursor-pointer ${
                 viewMode === 'statistics'
                   ? (isEyeCare ? 'bg-gold-500 text-navy-950 border-gold-400 shadow-glow-gold' : 'bg-blue-600 text-white border-blue-500 font-black')
-                  : (isEyeCare ? 'bg-navy-800 text-slate-200 border-white/10 hover:bg-navy-700 hover:text-white' : 'bg-white text-slate-700 border-2 border-blue-200 hover:bg-blue-50 hover:text-blue-900 font-black')
+                  : (isEyeCare ? 'bg-navy-800 text-slate-200 border-white/10 hover:bg-navy-700 hover:text-white' : 'bg-white text-slate-900 border-2 border-blue-200 hover:bg-blue-50 hover:text-blue-950 font-black')
               }`}
             >
               {viewMode === 'statistics' ? (
@@ -471,7 +496,7 @@ export default function StudentProfileModal({ student, activeSession: initialAct
             <button
               onClick={onClose}
               className={`p-1.5 rounded-xl transition-colors cursor-pointer ${
-                isEyeCare ? 'text-slate-400 hover:text-white hover:bg-white/10' : 'text-slate-500 hover:text-slate-900 hover:bg-slate-100'
+                isEyeCare ? 'text-slate-400 hover:text-white hover:bg-white/10' : 'text-slate-700 hover:text-slate-950 hover:bg-slate-100 font-bold'
               }`}
               aria-label="Close"
             >
@@ -512,7 +537,7 @@ export default function StudentProfileModal({ student, activeSession: initialAct
                     </div>
                     
                     <div className={`text-xs font-black flex items-center gap-2 ${
-                      isEyeCare ? 'text-gold-400' : 'text-blue-900'
+                      isEyeCare ? 'text-gold-400' : 'text-blue-950 font-black'
                     }`}>
                       <span>Level {studentLevel.currentLevelNumber}</span>
                       <span>•</span>
@@ -520,9 +545,9 @@ export default function StudentProfileModal({ student, activeSession: initialAct
                     </div>
 
                     <div className={`text-xs font-bold pt-0.5 ${
-                      isEyeCare ? 'text-slate-300' : 'text-slate-700'
+                      isEyeCare ? 'text-slate-300' : 'text-slate-800 font-extrabold'
                     }`}>
-                      <span className={`font-black ${isEyeCare ? 'text-royal-300' : 'text-blue-800'}`}>{course} {level}</span>
+                      <span className={`font-black ${isEyeCare ? 'text-royal-300' : 'text-blue-900'}`}>{course} {level}</span>
                       {attempt && <span> · {attempt}</span>}
                     </div>
                   </div>
@@ -534,13 +559,13 @@ export default function StudentProfileModal({ student, activeSession: initialAct
                       : 'bg-white border-2 border-amber-300 shadow-sm'
                   }`}>
                     <div className={`text-[10px] uppercase font-black tracking-wider ${
-                      isEyeCare ? 'text-slate-400' : 'text-amber-900'
+                      isEyeCare ? 'text-slate-400' : 'text-amber-950 font-black'
                     }`}>Total Points</div>
                     <div className={`text-lg font-black font-mono ${
-                      isEyeCare ? 'text-gold-400' : 'text-amber-700'
+                      isEyeCare ? 'text-gold-400' : 'text-amber-900 font-black'
                     }`}>
                       {points.toLocaleString()} <span className={`text-xs font-bold ${
-                        isEyeCare ? 'text-slate-400' : 'text-amber-900'
+                        isEyeCare ? 'text-slate-400' : 'text-amber-950 font-black'
                       }`}>PTS</span>
                     </div>
                   </div>
@@ -567,11 +592,11 @@ export default function StudentProfileModal({ student, activeSession: initialAct
                     )}
                     <span className="text-sm font-black tracking-wide">
                       {isCurrentlyStudying ? (
-                        <span className={isEyeCare ? 'text-emerald-400 flex items-center gap-1.5' : 'text-emerald-700 flex items-center gap-1.5 font-black'}>
+                        <span className={isEyeCare ? 'text-emerald-400 flex items-center gap-1.5' : 'text-emerald-950 flex items-center gap-1.5 font-black'}>
                           🟢 Currently Studying
                         </span>
                       ) : (
-                        <span className={isEyeCare ? 'text-slate-400' : 'text-slate-700 font-black'}>Currently Offline</span>
+                        <span className={isEyeCare ? 'text-slate-400' : 'text-slate-800 font-black'}>Currently Offline</span>
                       )}
                     </span>
                   </div>
@@ -580,7 +605,7 @@ export default function StudentProfileModal({ student, activeSession: initialAct
                     <span className={`px-3 py-1 rounded-xl text-xs font-black border ${
                       isEyeCare 
                         ? 'bg-purple-500/15 border-purple-500/30 text-purple-300' 
-                        : 'bg-purple-100 border border-purple-300 text-purple-950 shadow-xs'
+                        : 'bg-purple-100 border border-purple-300 text-purple-950 font-black shadow-xs'
                     }`}>
                       {activeSession.subject}
                     </span>
@@ -595,14 +620,14 @@ export default function StudentProfileModal({ student, activeSession: initialAct
                         ? 'bg-navy-900/60 border-white/5' 
                         : 'bg-blue-50/70 border-2 border-blue-200'
                     }`}>
-                      <div className={`text-[11px] font-bold flex items-center gap-1 ${
-                        isEyeCare ? 'text-slate-400' : 'text-blue-800 font-extrabold'
+                      <div className={`text-[11px] font-black flex items-center gap-1 ${
+                        isEyeCare ? 'text-slate-400' : 'text-blue-950 font-black'
                       }`}>
-                        <Clock className={`w-3.5 h-3.5 ${isEyeCare ? 'text-royal-400' : 'text-blue-600'}`} />
+                        <Clock className={`w-3.5 h-3.5 ${isEyeCare ? 'text-royal-400' : 'text-blue-700'}`} />
                         <span>Started</span>
                       </div>
                       <div className={`text-base font-black font-mono ${
-                        isEyeCare ? 'text-white' : 'text-slate-900'
+                        isEyeCare ? 'text-white' : 'text-slate-950 font-black'
                       }`}>
                         {formatClockTime(activeSession.startedAt)}
                       </div>
@@ -614,14 +639,14 @@ export default function StudentProfileModal({ student, activeSession: initialAct
                         ? 'bg-navy-900/60 border-emerald-500/30' 
                         : 'bg-emerald-50 border-2 border-emerald-300'
                     }`}>
-                      <div className={`text-[11px] font-bold flex items-center gap-1 ${
-                        isEyeCare ? 'text-emerald-400' : 'text-emerald-800 font-extrabold'
+                      <div className={`text-[11px] font-black flex items-center gap-1 ${
+                        isEyeCare ? 'text-emerald-400' : 'text-emerald-950 font-black'
                       }`}>
                         <Activity className="w-3.5 h-3.5 text-emerald-500 animate-pulse" />
                         <span>Current Session</span>
                       </div>
                       <div className={`text-base font-black font-mono ${
-                        isEyeCare ? 'text-emerald-300' : 'text-emerald-700'
+                        isEyeCare ? 'text-emerald-300' : 'text-emerald-900 font-black'
                       }`}>
                         {formatStudyDuration(liveDurationSecs)}
                       </div>
@@ -633,24 +658,24 @@ export default function StudentProfileModal({ student, activeSession: initialAct
                         ? 'bg-navy-900/60 border-white/5' 
                         : 'bg-amber-50 border-2 border-amber-300'
                     }`}>
-                      <div className={`text-[11px] font-bold flex items-center gap-1 ${
-                        isEyeCare ? 'text-slate-400' : 'text-amber-800 font-extrabold'
+                      <div className={`text-[11px] font-black flex items-center gap-1 ${
+                        isEyeCare ? 'text-slate-400' : 'text-amber-950 font-black'
                       }`}>
-                        <Zap className={`w-3.5 h-3.5 ${isEyeCare ? 'text-gold-400' : 'text-amber-600'}`} />
+                        <Zap className={`w-3.5 h-3.5 ${isEyeCare ? 'text-gold-400' : 'text-amber-700'}`} />
                         <span>Maximum Focus</span>
                       </div>
                       <div className={`text-base font-black font-mono ${
-                        isEyeCare ? 'text-gold-400' : 'text-amber-700'
+                        isEyeCare ? 'text-gold-400' : 'text-amber-900 font-black'
                       }`}>
                         {formatFocusDuration(currentMaxFocusSecs)}
                       </div>
                     </div>
                   </div>
                 ) : (
-                  <div className={`p-4 rounded-2xl text-center text-xs font-bold border ${
+                  <div className={`p-4 rounded-2xl text-center text-xs font-black border ${
                     isEyeCare 
                       ? 'bg-navy-900/40 border-white/5 text-slate-400' 
-                      : 'bg-slate-50 border border-slate-200 text-slate-700'
+                      : 'bg-slate-50 border border-slate-200 text-slate-800 font-bold'
                   }`}>
                     This student is not in an active timer session right now.
                   </div>
@@ -664,14 +689,14 @@ export default function StudentProfileModal({ student, activeSession: initialAct
                     ? 'bg-navy-900/60 border-white/5' 
                     : 'bg-white border-2 border-blue-200/90 shadow-sm'
                 }`}>
-                  <div className={`text-xs flex items-center gap-1.5 font-bold ${
-                    isEyeCare ? 'text-slate-400' : 'text-emerald-800 font-extrabold'
+                  <div className={`text-xs flex items-center gap-1.5 font-black ${
+                    isEyeCare ? 'text-slate-400' : 'text-emerald-950 font-black'
                   }`}>
-                    <Clock className={`w-3.5 h-3.5 ${isEyeCare ? 'text-emerald-400' : 'text-emerald-600'}`} />
+                    <Clock className={`w-3.5 h-3.5 ${isEyeCare ? 'text-emerald-400' : 'text-emerald-700'}`} />
                     <span>Total Study</span>
                   </div>
                   <div className={`text-base sm:text-lg font-black font-mono ${
-                    isEyeCare ? 'text-white' : 'text-slate-900'
+                    isEyeCare ? 'text-white' : 'text-slate-950 font-black'
                   }`}>
                     {formatStudyDuration(sessions.reduce((acc, s) => acc + (Number(s.duration) || 0), 0))}
                   </div>
@@ -682,14 +707,14 @@ export default function StudentProfileModal({ student, activeSession: initialAct
                     ? 'bg-navy-900/60 border-white/5' 
                     : 'bg-white border-2 border-blue-200/90 shadow-sm'
                 }`}>
-                  <div className={`text-xs flex items-center gap-1.5 font-bold ${
-                    isEyeCare ? 'text-slate-400' : 'text-blue-800 font-extrabold'
+                  <div className={`text-xs flex items-center gap-1.5 font-black ${
+                    isEyeCare ? 'text-slate-400' : 'text-blue-950 font-black'
                   }`}>
-                    <BookOpen className={`w-3.5 h-3.5 ${isEyeCare ? 'text-royal-400' : 'text-blue-600'}`} />
+                    <BookOpen className={`w-3.5 h-3.5 ${isEyeCare ? 'text-royal-400' : 'text-blue-700'}`} />
                     <span>Total Sessions</span>
                   </div>
                   <div className={`text-base sm:text-lg font-black font-mono ${
-                    isEyeCare ? 'text-white' : 'text-slate-900'
+                    isEyeCare ? 'text-white' : 'text-slate-950 font-black'
                   }`}>
                     {sessions.length}
                   </div>
@@ -700,14 +725,14 @@ export default function StudentProfileModal({ student, activeSession: initialAct
                     ? 'bg-navy-900/60 border-white/5' 
                     : 'bg-white border-2 border-blue-200/90 shadow-sm'
                 }`}>
-                  <div className={`text-xs flex items-center gap-1.5 font-bold ${
-                    isEyeCare ? 'text-slate-400' : 'text-amber-800 font-extrabold'
+                  <div className={`text-xs flex items-center gap-1.5 font-black ${
+                    isEyeCare ? 'text-slate-400' : 'text-amber-950 font-black'
                   }`}>
-                    <Trophy className={`w-3.5 h-3.5 ${isEyeCare ? 'text-gold-400' : 'text-amber-600'}`} />
+                    <Trophy className={`w-3.5 h-3.5 ${isEyeCare ? 'text-gold-400' : 'text-amber-700'}`} />
                     <span>Current Rank Stream</span>
                   </div>
                   <div className={`text-xs sm:text-sm font-black truncate ${
-                    isEyeCare ? 'text-gold-400' : 'text-amber-800'
+                    isEyeCare ? 'text-gold-400' : 'text-amber-900 font-black'
                   }`}>
                     {course} {level}
                   </div>
@@ -930,9 +955,9 @@ export default function StudentProfileModal({ student, activeSession: initialAct
                 }`}>
                   <div className="space-y-0.5">
                     <span className={`text-[10px] font-black uppercase tracking-wider ${
-                      isEyeCare ? 'text-gold-400' : 'text-blue-800'
+                      isEyeCare ? 'text-gold-400' : 'text-blue-950 font-black'
                     }`}>Date Breakdown</span>
-                    <h4 className={`text-base font-black ${isEyeCare ? 'text-white' : 'text-slate-900'}`}>
+                    <h4 className={`text-base font-black ${isEyeCare ? 'text-white' : 'text-slate-950 font-black'}`}>
                       {formattedSelectedDate}
                     </h4>
                   </div>
@@ -943,10 +968,10 @@ export default function StudentProfileModal({ student, activeSession: initialAct
                       : 'bg-blue-50 border-2 border-blue-200'
                   }`}>
                     <div className={`text-[10px] uppercase font-black ${
-                      isEyeCare ? 'text-slate-400' : 'text-blue-800'
+                      isEyeCare ? 'text-slate-400' : 'text-blue-950 font-black'
                     }`}>Total Time</div>
                     <div className={`text-sm font-black font-mono ${
-                      isEyeCare ? 'text-emerald-400' : 'text-emerald-700'
+                      isEyeCare ? 'text-emerald-400' : 'text-emerald-900 font-black'
                     }`}>
                       {formatStudyDuration(selectedDateData.totalSecs)}
                     </div>
@@ -958,11 +983,11 @@ export default function StudentProfileModal({ student, activeSession: initialAct
                   <div className={`p-3 rounded-2xl border space-y-1 ${
                     isEyeCare ? 'bg-navy-950/70 border-white/5' : 'bg-slate-50 border border-slate-200'
                   }`}>
-                    <span className={`text-[10px] uppercase font-bold ${
-                      isEyeCare ? 'text-slate-400' : 'text-slate-700'
+                    <span className={`text-[10px] uppercase font-black ${
+                      isEyeCare ? 'text-slate-400' : 'text-slate-800'
                     }`}>Sessions</span>
                     <div className={`text-sm font-black font-mono ${
-                      isEyeCare ? 'text-white' : 'text-slate-900'
+                      isEyeCare ? 'text-white' : 'text-slate-950'
                     }`}>
                       {selectedDateData.sessions.length}
                     </div>
@@ -971,11 +996,11 @@ export default function StudentProfileModal({ student, activeSession: initialAct
                   <div className={`p-3 rounded-2xl border space-y-1 ${
                     isEyeCare ? 'bg-navy-950/70 border-white/5' : 'bg-slate-50 border border-slate-200'
                   }`}>
-                    <span className={`text-[10px] uppercase font-bold ${
-                      isEyeCare ? 'text-slate-400' : 'text-slate-700'
+                    <span className={`text-[10px] uppercase font-black ${
+                      isEyeCare ? 'text-slate-400' : 'text-slate-800'
                     }`}>Longest Session</span>
                     <div className={`text-sm font-black font-mono ${
-                      isEyeCare ? 'text-emerald-300' : 'text-emerald-700'
+                      isEyeCare ? 'text-emerald-300' : 'text-emerald-900'
                     }`}>
                       {formatStudyDuration(selectedDateData.longestSessionSecs)}
                     </div>
@@ -984,11 +1009,11 @@ export default function StudentProfileModal({ student, activeSession: initialAct
                   <div className={`p-3 rounded-2xl border space-y-1 ${
                     isEyeCare ? 'bg-navy-950/70 border-white/5' : 'bg-slate-50 border border-slate-200'
                   }`}>
-                    <span className={`text-[10px] uppercase font-bold ${
-                      isEyeCare ? 'text-slate-400' : 'text-slate-700'
+                    <span className={`text-[10px] uppercase font-black ${
+                      isEyeCare ? 'text-slate-400' : 'text-slate-800'
                     }`}>Max Focus</span>
                     <div className={`text-sm font-black font-mono ${
-                      isEyeCare ? 'text-gold-400' : 'text-amber-700'
+                      isEyeCare ? 'text-gold-400' : 'text-amber-900'
                     }`}>
                       {formatFocusDuration(selectedDateData.maxFocusSecs)}
                     </div>
@@ -997,11 +1022,11 @@ export default function StudentProfileModal({ student, activeSession: initialAct
                   <div className={`p-3 rounded-2xl border space-y-1 ${
                     isEyeCare ? 'bg-navy-950/70 border-white/5' : 'bg-slate-50 border border-slate-200'
                   }`}>
-                    <span className={`text-[10px] uppercase font-bold ${
-                      isEyeCare ? 'text-slate-400' : 'text-slate-700'
+                    <span className={`text-[10px] uppercase font-black ${
+                      isEyeCare ? 'text-slate-400' : 'text-slate-800'
                     }`}>Points Earned</span>
                     <div className={`text-sm font-black font-mono ${
-                      isEyeCare ? 'text-gold-400' : 'text-amber-700'
+                      isEyeCare ? 'text-gold-400' : 'text-amber-900'
                     }`}>
                       {selectedDateData.pointsEarned > 0 ? `+${selectedDateData.pointsEarned}` : '0'} PTS
                     </div>

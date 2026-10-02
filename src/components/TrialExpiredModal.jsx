@@ -11,9 +11,11 @@ import {
   ShieldCheck 
 } from 'lucide-react';
 import { usePremiumAccess } from '../hooks/usePremiumAccess';
+import { useTheme } from '../contexts/ThemeContext';
 
 export default function TrialExpiredModal({ setActiveTab }) {
   const { whatsappNumber, getWhatsAppUrl, canShowTrialExpiredUI } = usePremiumAccess();
+  const { isEyeCare } = useTheme();
   const [isOpen, setIsOpen] = useState(false);
 
   useEffect(() => {
@@ -45,17 +47,25 @@ export default function TrialExpiredModal({ setActiveTab }) {
       onClick={(e) => e.stopPropagation()}
     >
       <div
-        className="w-full max-w-lg bg-gradient-to-b from-[#180f28] via-navy-900 to-navy-950 border border-amber-500/40 rounded-3xl p-6 sm:p-8 shadow-2xl relative overflow-hidden space-y-6 animate-in zoom-in-95 duration-200 text-center sm:text-left"
+        className={`w-full max-w-lg rounded-3xl p-6 sm:p-8 shadow-2xl relative overflow-hidden space-y-6 animate-in zoom-in-95 duration-200 text-center sm:text-left border ${
+          isEyeCare 
+            ? 'bg-gradient-to-b from-[#180f28] via-navy-900 to-navy-950 border-amber-500/40 text-white' 
+            : 'bg-white border-2 border-amber-400 text-slate-900'
+        }`}
         onClick={(e) => e.stopPropagation()}
       >
         {/* Amber Ambient Glow */}
-        <div className="absolute top-0 right-0 w-64 h-64 bg-amber-500/15 rounded-full blur-3xl pointer-events-none" />
+        <div className={`absolute top-0 right-0 w-64 h-64 rounded-full blur-3xl pointer-events-none ${
+          isEyeCare ? 'bg-amber-500/15' : 'bg-amber-300/20'
+        }`} />
 
         {/* Close Button */}
         <button
           type="button"
           onClick={() => setIsOpen(false)}
-          className="absolute top-5 right-5 p-2 rounded-full bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white transition-colors cursor-pointer"
+          className={`absolute top-5 right-5 p-2 rounded-full transition-colors cursor-pointer ${
+            isEyeCare ? 'bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white' : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
+          }`}
           title="Dismiss"
         >
           <X className="w-5 h-5" />
@@ -63,27 +73,45 @@ export default function TrialExpiredModal({ setActiveTab }) {
 
         {/* Header with Icon Badge */}
         <div className="flex flex-col sm:flex-row items-center gap-4">
-          <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-amber-500/20 via-amber-400/20 to-yellow-500/20 border border-amber-500/40 flex items-center justify-center shrink-0 shadow-[0_0_20px_rgba(245,158,11,0.25)]">
-            <Lock className="w-7 h-7 text-amber-400" />
+          <div className={`w-14 h-14 rounded-2xl flex items-center justify-center shrink-0 border shadow-md ${
+            isEyeCare 
+              ? 'bg-gradient-to-tr from-amber-500/20 via-amber-400/20 to-yellow-500/20 border-amber-500/40 shadow-[0_0_20px_rgba(245,158,11,0.25)]' 
+              : 'bg-amber-100 border-2 border-amber-400'
+          }`}>
+            <Lock className={`w-7 h-7 ${isEyeCare ? 'text-amber-400' : 'text-amber-800'}`} />
           </div>
 
           <div className="space-y-1">
-            <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-amber-500/15 border border-amber-500/30 text-amber-300 text-[10px] font-black uppercase tracking-wider mb-1">
-              <AlertTriangle className="w-3 h-3 text-amber-400" />
+            <div className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider mb-1 border ${
+              isEyeCare 
+                ? 'bg-amber-500/15 border-amber-500/30 text-amber-300' 
+                : 'bg-amber-100 border-amber-300 text-amber-950 font-black'
+            }`}>
+              <AlertTriangle className={`w-3 h-3 ${isEyeCare ? 'text-amber-400' : 'text-amber-800'}`} />
               <span>12-Day Trial Notice</span>
             </div>
-            <h2 className="text-xl sm:text-2xl font-extrabold text-white tracking-tight leading-tight">
+            <h2 className={`text-xl sm:text-2xl font-extrabold tracking-tight leading-tight ${
+              isEyeCare ? 'text-white' : 'text-slate-950 font-black'
+            }`}>
               Your Free Trial Has Ended
             </h2>
           </div>
         </div>
 
         {/* Message Body */}
-        <div className="space-y-3 bg-navy-950/60 p-4 rounded-2xl border border-white/5">
-          <p className="text-xs sm:text-sm text-slate-200 leading-relaxed font-medium">
+        <div className={`space-y-3 p-4 rounded-2xl border ${
+          isEyeCare 
+            ? 'bg-navy-950/60 border-white/5' 
+            : 'bg-amber-50 border-2 border-amber-200'
+        }`}>
+          <p className={`text-xs sm:text-sm leading-relaxed font-bold ${
+            isEyeCare ? 'text-slate-200' : 'text-slate-900 font-extrabold'
+          }`}>
             Your 12-day free access has now expired.
           </p>
-          <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
+          <p className={`text-xs sm:text-sm leading-relaxed ${
+            isEyeCare ? 'text-slate-300' : 'text-slate-800 font-bold'
+          }`}>
             If you want to continue using the website and access premium features, please contact the batch manager.
           </p>
         </div>
