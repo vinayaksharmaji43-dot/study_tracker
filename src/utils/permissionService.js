@@ -68,6 +68,7 @@ export const PERMISSION_CATEGORIES = [
     permissions: [
       { id: 'view_students', label: 'View Student Database', desc: 'Browse registered students list' },
       { id: 'edit_students', label: 'Edit Student Data', desc: 'Update student stream, details and study hours' },
+      { id: 'adjust_student_data', label: 'Adjust Study Hours & Points', desc: 'Manually add/edit study hours and points with audit history' },
       { id: 'delete_students', label: 'Delete Student Data', desc: 'Permanently delete student account & data' },
       { id: 'view_student_profile', label: 'View Student Profile', desc: 'View complete student analytics profile' }
     ]

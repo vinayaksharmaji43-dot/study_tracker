@@ -44,6 +44,7 @@ import AdminPremiumAccess from './tabs/AdminPremiumAccess';
 import AdminStreamRequests from './tabs/AdminStreamRequests';
 import AdminManagement from './tabs/AdminManagement';
 import AdminPushNotifications from './tabs/AdminPushNotifications';
+import AdminStudentDataAdjustment from './tabs/AdminStudentDataAdjustment';
 
 import { 
   LayoutDashboard,  
@@ -79,7 +80,8 @@ import {
   BrainCircuit,
   UserX,
   Crown,
-  Bell
+  Bell,
+  SlidersHorizontal
 } from 'lucide-react';
 
 
@@ -95,6 +97,7 @@ export default function AdminDashboard() {
     admin_management: 'manage_admins',
     doubts: 'view_doubts',
     students: 'view_students',
+    student_data_adjustment: 'edit_students',
     stream_requests: 'edit_students',
     premium_access: 'manage_premium',
     section_locks: 'manage_access_locks',
@@ -179,6 +182,7 @@ export default function AdminDashboard() {
     ...(isOwner ? [{ id: 'admin_management', label: '🛡️ Admin Management', icon: ShieldCheck }] : []),
     { id: 'doubts', label: 'Doubt Management', icon: HelpCircle, badge: pendingDoubtsCount },
     { id: 'students', label: 'Students', icon: Users },
+    { id: 'student_data_adjustment', label: '⏱️ Student Data Adjustment', icon: SlidersHorizontal },
     { id: 'stream_requests', label: '🎓 Stream Change Requests', icon: GraduationCap },
     { id: 'premium_access', label: '👑 Premium / Pro Access', icon: Crown },
     { id: 'section_locks', label: 'Section Access Control', icon: Lock },
@@ -355,6 +359,7 @@ export default function AdminDashboard() {
                 {activeTab === 'overview' && <AdminOverview setActiveTab={setActiveTab} />}
                 {activeTab === 'admin_management' && <AdminManagement />}
                 {activeTab === 'students' && <AdminStudents />}
+                {activeTab === 'student_data_adjustment' && <AdminStudentDataAdjustment />}
                 {activeTab === 'stream_requests' && <AdminStreamRequests />}
                 {activeTab === 'premium_access' && <AdminPremiumAccess />}
                 {activeTab === 'section_locks' && <AdminSectionLocks />}

@@ -76,6 +76,10 @@ service cloud.firestore {
       }
     }
 
+    match /manualAdjustments/{adjustmentId} {
+      allow read, write: if admin();
+    }
+
     match /{document=**} {
       allow read, write: if signedIn();
     }
