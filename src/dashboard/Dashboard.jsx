@@ -123,6 +123,14 @@ export default function Dashboard() {
     }
   }, [searchParams]);
 
+  // Ensure document body scroll is always unlocked when Dashboard mounts or tab changes
+  useEffect(() => {
+    document.body.style.overflow = '';
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [activeTab]);
+
   // Run the daily evaluator when Dashboard mounts
   useDailyEvaluator(currentUser);
 

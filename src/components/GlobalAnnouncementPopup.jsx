@@ -80,16 +80,23 @@ export default function GlobalAnnouncementPopup() {
                      location.pathname === '/register' || 
                      location.pathname === '/forgot-password';
 
-  // Lock body scroll when modal is active
+  // Lock body scroll when modal is active, unlock when dismissed or unmounted
   useEffect(() => {
     if (activeAnnouncement && !isAuthPage) {
-      const originalOverflow = document.body.style.overflow;
       document.body.style.overflow = 'hidden';
       return () => {
-        document.body.style.overflow = originalOverflow;
+        document.body.style.overflow = '';
       };
+    } else {
+      document.body.style.overflow = '';
     }
   }, [activeAnnouncement, isAuthPage]);
+
+  useEffect(() => {
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, []);
 
   // Listen to announcements and reads
   useEffect(() => {
@@ -121,23 +128,28 @@ export default function GlobalAnnouncementPopup() {
         return courseMatch && levelMatch && attemptMatch;
       });
 
-      // Filter unread & not locally dismissed
-      const unreadList = relevant.filter(a => !readIds.has(a.id) && !dismissedIds.has(a.id));
+      if (relevant.length === 0) {
+        setActiveAnnouncement(null);
+        return;
+      }
 
-      if (unreadList.length > 0) {
-        // Sort descending by creation date (newest first)
-        unreadList.sort((a, b) => {
-          const timeA = a.createdAt?.toMillis ? a.createdAt.toMillis() : (a.createdAt?.seconds ? a.createdAt.seconds * 1000 : new Date(a.createdAt || 0).getTime());
-          const timeB = b.createdAt?.toMillis ? b.createdAt.toMillis() : (b.createdAt?.seconds ? b.createdAt.seconds * 1000 : new Date(b.createdAt || 0).getTime());
-          return timeB - timeA;
-        });
+      // Sort descending by creation date (newest first)
+      relevant.sort((a, b) => {
+        const timeA = a.createdAt?.toMillis ? a.createdAt.toMillis() : (a.createdAt?.seconds ? a.createdAt.seconds * 1000 : new Date(a.createdAt || 0).getTime());
+        const timeB = b.createdAt?.toMillis ? b.createdAt.toMillis() : (b.createdAt?.seconds ? b.createdAt.seconds * 1000 : new Date(b.createdAt || 0).getTime());
+        return timeB - timeA;
+      });
 
-        const newest = unreadList[0];
-        setActiveAnnouncement(newest);
+      // ONLY the single latest announcement is shown as popup (prevents bombardment of historical announcements)
+      const latest = relevant[0];
+      const isLatestReadOrDismissed = readIds.has(latest.id) || dismissedIds.has(latest.id);
+
+      if (!isLatestReadOrDismissed) {
+        setActiveAnnouncement(latest);
 
         // If this is a newly arrived announcement, play chime
-        if (newest.id !== prevAnnouncementIdRef.current) {
-          prevAnnouncementIdRef.current = newest.id;
+        if (latest.id !== prevAnnouncementIdRef.current) {
+          prevAnnouncementIdRef.current = latest.id;
           playNotificationChime();
         }
       } else {
@@ -177,6 +189,7 @@ export default function GlobalAnnouncementPopup() {
     // Immediately hide locally so user has zero lag
     setDismissedIds(prev => new Set(prev).add(targetId));
     setActiveAnnouncement(null);
+    document.body.style.overflow = '';
 
     if (withLink && targetAnnouncement.link) {
       window.open(targetAnnouncement.link, '_blank', 'noopener,noreferrer');

@@ -1,5 +1,5 @@
-import React from 'react';
-import { Routes, Route, Navigate } from 'react-router-dom';
+import React, { useEffect } from 'react';
+import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
 import { ThemeProvider } from './contexts/ThemeContext';
 import ProtectedRoute from './components/ProtectedRoute';
@@ -18,11 +18,21 @@ import PrivacyShield from './components/PrivacyShield';
 import TabAwayTracker from './components/TabAwayTracker';
 import GlobalAnnouncementPopup from './components/GlobalAnnouncementPopup';
 
+function ScrollToTopAndUnlock() {
+  const { pathname } = useLocation();
+  useEffect(() => {
+    document.body.style.overflow = '';
+    window.scrollTo(0, 0);
+  }, [pathname]);
+  return null;
+}
+
 export default function App() {
   return (
     <ErrorBoundary fallbackMessage="The application encountered an unexpected error. Please refresh the page.">
       <ThemeProvider>
         <AuthProvider>
+        <ScrollToTopAndUnlock />
         <TabAwayTracker />
         <GlobalAnnouncementPopup />
         <Routes>

@@ -31,6 +31,7 @@ export default function MandatoryProfileModal() {
   const [submitting, setSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   const [validationError, setValidationError] = useState('');
+  const hasSubmittedRef = useRef(false);
 
   // Check if form is already completed (via Firestore boolean flag or localStorage)
   const isAlreadyCompleted = Boolean(
@@ -38,15 +39,16 @@ export default function MandatoryProfileModal() {
     (currentUser?.uid && localStorage.getItem(`dashboard_profile_completed_${currentUser.uid}`))
   );
 
-  const [isOpen, setIsOpen] = useState(!isAlreadyCompleted);
+  const [isOpen, setIsOpen] = useState(() => !isAlreadyCompleted && Boolean(currentUser));
 
   useEffect(() => {
-    if (isAlreadyCompleted) {
+    if (isAlreadyCompleted || !currentUser) {
       setIsOpen(false);
+      document.body.style.overflow = '';
     } else {
       setIsOpen(true);
     }
-  }, [isAlreadyCompleted]);
+  }, [isAlreadyCompleted, currentUser]);
 
   // Pre-fill name if already available from registration/auth profile
   useEffect(() => {
@@ -55,18 +57,25 @@ export default function MandatoryProfileModal() {
     } else if (currentUser?.displayName && !name) {
       setName(currentUser.displayName);
     }
-  }, [userProfile?.name, currentUser?.displayName]);
+  }, [userProfile?.name, currentUser?.displayName, name]);
 
-  // Lock document body scroll while modal is active
+  // Lock document body scroll while modal is active, reset when closed or unmounted
   useEffect(() => {
     if (isOpen) {
-      const originalOverflow = document.body.style.overflow;
       document.body.style.overflow = 'hidden';
       return () => {
-        document.body.style.overflow = originalOverflow;
+        document.body.style.overflow = '';
       };
+    } else {
+      document.body.style.overflow = '';
     }
   }, [isOpen]);
+
+  useEffect(() => {
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, []);
 
   // Prevent Escape key from dismissing modal
   useEffect(() => {
@@ -79,10 +88,6 @@ export default function MandatoryProfileModal() {
     window.addEventListener('keydown', handleKeyDown, true);
     return () => window.removeEventListener('keydown', handleKeyDown, true);
   }, [isOpen]);
-
-  if (!isOpen || !currentUser) {
-    return null;
-  }
 
   const handlePhoneChange = (e) => {
     // Only accept numeric digits, up to 10
@@ -97,8 +102,6 @@ export default function MandatoryProfileModal() {
     if (validationError) setValidationError('');
     if (errorMsg) setErrorMsg('');
   };
-
-  const hasSubmittedRef = useRef(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -166,6 +169,7 @@ export default function MandatoryProfileModal() {
 
       // 3. Immediately close modal and unlock dashboard on first attempt
       setIsOpen(false);
+      document.body.style.overflow = '';
     } catch (err) {
       console.error('Google Sheets Webhook Network Error:', err);
       hasSubmittedRef.current = false;
@@ -174,6 +178,10 @@ export default function MandatoryProfileModal() {
       setSubmitting(false);
     }
   };
+
+  if (!isOpen || !currentUser || isAlreadyCompleted) {
+    return null;
+  }
 
   return (
     <div
