@@ -330,29 +330,47 @@ export default function Revision() {
       {/* ========================================================================= */}
       {/* 🚀 TOP HERO BANNER & PROGRESS SUMMARY */}
       {/* ========================================================================= */}
-      <div className="p-6 sm:p-8 rounded-3xl glass-card border border-royal-500/30 relative overflow-hidden shadow-2xl">
-        <div className="absolute top-0 right-0 w-96 h-96 bg-royal-600/10 rounded-full blur-3xl pointer-events-none" />
-        <div className="absolute bottom-0 left-1/3 w-80 h-80 bg-indigo-600/10 rounded-full blur-3xl pointer-events-none" />
+      <div className={`p-6 sm:p-8 rounded-3xl relative overflow-hidden shadow-xl border ${
+        isEyeCare 
+          ? 'glass-card border-royal-500/30' 
+          : 'bg-white border-2 border-blue-200/90 shadow-sm'
+      }`}>
+        <div className={`absolute top-0 right-0 w-96 h-96 rounded-full blur-3xl pointer-events-none ${
+          isEyeCare ? 'bg-royal-600/10' : 'bg-blue-400/10'
+        }`} />
+        <div className={`absolute bottom-0 left-1/3 w-80 h-80 rounded-full blur-3xl pointer-events-none ${
+          isEyeCare ? 'bg-indigo-600/10' : 'bg-indigo-400/10'
+        }`} />
 
         <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
           <div className="space-y-2">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-royal-500/20 text-royal-300 text-xs font-bold border border-royal-500/30">
-              <RotateCcw className="w-4 h-4 text-royal-400" />
+            <div className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold border ${
+              isEyeCare 
+                ? 'bg-royal-500/20 text-royal-300 border-royal-500/30' 
+                : 'bg-blue-100 text-blue-900 border-blue-300 font-extrabold'
+            }`}>
+              <RotateCcw className={`w-4 h-4 ${isEyeCare ? 'text-royal-400' : 'text-blue-700'}`} />
               <span>3-Round Revision Tracker</span>
             </div>
-            <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight flex items-center gap-3">
+            <h1 className={`text-2xl sm:text-3xl font-black tracking-tight flex items-center gap-3 ${
+              isEyeCare ? 'text-white' : 'text-slate-900'
+            }`}>
               Revision Tracker
             </h1>
-            <p className="text-xs sm:text-sm text-slate-300 max-w-xl leading-relaxed">
-              Track your revision step-by-step with <strong>3 revision rounds (R1 → R2 → R3)</strong> for every section and unit, exactly aligned with the syllabus.
+            <p className={`text-xs sm:text-sm max-w-xl leading-relaxed ${
+              isEyeCare ? 'text-slate-300' : 'text-slate-700 font-semibold'
+            }`}>
+              Track your revision step-by-step with <strong className={isEyeCare ? 'text-white' : 'text-slate-950 font-black'}>3 revision rounds (R1 → R2 → R3)</strong> for every section and unit, exactly aligned with the syllabus.
             </p>
           </div>
 
           {/* Circular Progress Gauge */}
-          <div className="p-5 rounded-2xl bg-navy-900/80 border border-white/10 flex items-center gap-5 shrink-0 shadow-lg">
+          <div className={`p-5 rounded-2xl flex items-center gap-5 shrink-0 shadow-md border ${
+            isEyeCare ? 'bg-navy-900/80 border-white/10' : 'bg-blue-50/80 border-2 border-blue-200'
+          }`}>
             <div className="relative w-20 h-20 flex items-center justify-center">
               <svg className="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
-                <circle cx="50" cy="50" r="40" stroke="currentColor" strokeWidth="8" className="text-navy-950" fill="transparent" />
+                <circle cx="50" cy="50" r="40" stroke="currentColor" strokeWidth="8" className={isEyeCare ? 'text-navy-950' : 'text-blue-200'} fill="transparent" />
                 <circle 
                   cx="50" 
                   cy="50" 
@@ -367,23 +385,23 @@ export default function Revision() {
                 />
                 <defs>
                   <linearGradient id="revisionGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                    <stop offset="0%" stopColor="#3b82f6" />
+                    <stop offset="0%" stopColor="#2563eb" />
                     <stop offset="100%" stopColor="#10b981" />
                   </linearGradient>
                 </defs>
               </svg>
               <div className="absolute flex flex-col items-center justify-center">
-                <span className="text-base font-black text-white font-mono">{overallPercentage}%</span>
-                <span className="text-[8px] font-bold text-slate-400 uppercase">Revised</span>
+                <span className={`text-base font-black font-mono ${isEyeCare ? 'text-white' : 'text-slate-900'}`}>{overallPercentage}%</span>
+                <span className={`text-[8px] font-extrabold uppercase ${isEyeCare ? 'text-slate-400' : 'text-slate-700'}`}>Revised</span>
               </div>
             </div>
 
             <div className="space-y-1">
-              <div className="text-xs font-bold text-slate-400 uppercase tracking-wider">Overall Revision</div>
-              <div className="text-lg font-black text-white">
-                <span className="text-emerald-400">{fullyRevisedUnitsCount}</span> / {totalRevisionUnitsCount} <span className="text-xs font-semibold text-slate-400">Sections</span>
+              <div className={`text-xs font-bold uppercase tracking-wider ${isEyeCare ? 'text-slate-400' : 'text-blue-800 font-extrabold'}`}>Overall Revision</div>
+              <div className={`text-lg font-black ${isEyeCare ? 'text-white' : 'text-slate-900'}`}>
+                <span className={isEyeCare ? 'text-emerald-400' : 'text-emerald-700 font-black'}>{fullyRevisedUnitsCount}</span> / {totalRevisionUnitsCount} <span className={`text-xs font-bold ${isEyeCare ? 'text-slate-400' : 'text-slate-600'}`}>Sections</span>
               </div>
-              <div className="text-xs font-mono font-bold text-gold-400 flex items-center gap-1">
+              <div className={`text-xs font-mono font-bold flex items-center gap-1 ${isEyeCare ? 'text-gold-400' : 'text-amber-700 font-black'}`}>
                 <Zap className="w-3.5 h-3.5" />
                 <span>{earnedRevisionPoints} / {totalRevisionPoints} PTS</span>
               </div>
@@ -396,36 +414,52 @@ export default function Revision() {
       {/* 📊 METRICS ROW */}
       {/* ========================================================================= */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-        <div className="p-4 rounded-2xl glass-card border border-white/10 bg-navy-900/60 space-y-1">
-          <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
-            <BookOpen className="w-3.5 h-3.5 text-royal-400" />
+        <div className={`p-4 rounded-2xl space-y-1 border ${
+          isEyeCare ? 'glass-card border-white/10 bg-navy-900/60' : 'bg-white border-2 border-blue-200/90 shadow-sm'
+        }`}>
+          <div className={`text-[10px] font-bold uppercase tracking-wider flex items-center gap-1.5 ${
+            isEyeCare ? 'text-slate-400' : 'text-blue-800 font-extrabold'
+          }`}>
+            <BookOpen className="w-3.5 h-3.5 text-royal-500" />
             <span>Subjects</span>
           </div>
-          <div className="text-xl sm:text-2xl font-black text-white">{subjects.length}</div>
+          <div className={`text-xl sm:text-2xl font-black ${isEyeCare ? 'text-white' : 'text-slate-900'}`}>{subjects.length}</div>
         </div>
 
-        <div className="p-4 rounded-2xl glass-card border border-white/10 bg-navy-900/60 space-y-1">
-          <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
-            <Layers className="w-3.5 h-3.5 text-cyan-400" />
+        <div className={`p-4 rounded-2xl space-y-1 border ${
+          isEyeCare ? 'glass-card border-white/10 bg-navy-900/60' : 'bg-white border-2 border-blue-200/90 shadow-sm'
+        }`}>
+          <div className={`text-[10px] font-bold uppercase tracking-wider flex items-center gap-1.5 ${
+            isEyeCare ? 'text-slate-400' : 'text-blue-800 font-extrabold'
+          }`}>
+            <Layers className="w-3.5 h-3.5 text-cyan-600" />
             <span>Total Units & Sections</span>
           </div>
-          <div className="text-xl sm:text-2xl font-black text-white">{totalRevisionUnitsCount}</div>
+          <div className={`text-xl sm:text-2xl font-black ${isEyeCare ? 'text-white' : 'text-slate-900'}`}>{totalRevisionUnitsCount}</div>
         </div>
 
-        <div className="p-4 rounded-2xl glass-card border border-white/10 bg-navy-900/60 space-y-1">
-          <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
-            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+        <div className={`p-4 rounded-2xl space-y-1 border ${
+          isEyeCare ? 'glass-card border-white/10 bg-navy-900/60' : 'bg-white border-2 border-blue-200/90 shadow-sm'
+        }`}>
+          <div className={`text-[10px] font-bold uppercase tracking-wider flex items-center gap-1.5 ${
+            isEyeCare ? 'text-slate-400' : 'text-emerald-800 font-extrabold'
+          }`}>
+            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
             <span>Fully Revised (R3)</span>
           </div>
-          <div className="text-xl sm:text-2xl font-black text-emerald-400">{fullyRevisedUnitsCount}</div>
+          <div className={`text-xl sm:text-2xl font-black ${isEyeCare ? 'text-emerald-400' : 'text-emerald-700'}`}>{fullyRevisedUnitsCount}</div>
         </div>
 
-        <div className="p-4 rounded-2xl glass-card border border-white/10 bg-navy-900/60 space-y-1">
-          <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
-            <Flame className="w-3.5 h-3.5 text-amber-400" />
+        <div className={`p-4 rounded-2xl space-y-1 border ${
+          isEyeCare ? 'glass-card border-white/10 bg-navy-900/60' : 'bg-white border-2 border-blue-200/90 shadow-sm'
+        }`}>
+          <div className={`text-[10px] font-bold uppercase tracking-wider flex items-center gap-1.5 ${
+            isEyeCare ? 'text-slate-400' : 'text-amber-800 font-extrabold'
+          }`}>
+            <Flame className="w-3.5 h-3.5 text-amber-600" />
             <span>Pending Units</span>
           </div>
-          <div className="text-xl sm:text-2xl font-black text-amber-400">
+          <div className={`text-xl sm:text-2xl font-black ${isEyeCare ? 'text-amber-400' : 'text-amber-700'}`}>
             {Math.max(0, totalRevisionUnitsCount - fullyRevisedUnitsCount)}
           </div>
         </div>
@@ -437,13 +471,19 @@ export default function Revision() {
       <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
         {/* Search */}
         <div className="relative flex-grow max-w-md">
-          <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+          <Search className={`w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 ${
+            isEyeCare ? 'text-slate-400' : 'text-slate-500'
+          }`} />
           <input
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search chapters or revision units..."
-            className="w-full pl-10 pr-4 py-2 rounded-xl bg-navy-900/80 border border-white/10 text-white placeholder-slate-500 text-xs focus:outline-none focus:border-royal-500 font-medium"
+            className={`w-full pl-10 pr-4 py-2.5 rounded-xl text-xs font-semibold focus:outline-none border transition-all ${
+              isEyeCare
+                ? 'bg-navy-900/80 border-white/10 text-white placeholder-slate-500 focus:border-royal-500'
+                : 'bg-white border-2 border-blue-200 text-slate-900 placeholder-slate-500 focus:border-blue-500 shadow-xs'
+            }`}
           />
         </div>
 
@@ -451,10 +491,12 @@ export default function Revision() {
         <div className="flex items-center gap-2 overflow-x-auto pb-1 sm:pb-0 scrollbar-none">
           <button
             onClick={() => setSelectedSubjectFilter('all')}
-            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all shrink-0 ${
+            className={`px-3.5 py-1.5 rounded-xl text-xs font-black transition-all shrink-0 cursor-pointer ${
               selectedSubjectFilter === 'all'
-                ? 'bg-royal-600 text-white border border-royal-400/40 shadow-sm'
-                : 'bg-navy-900 border border-white/5 text-slate-400 hover:text-white'
+                ? 'bg-blue-600 text-white border border-blue-500 shadow-sm'
+                : isEyeCare
+                  ? 'bg-navy-900 border border-white/10 text-slate-400 hover:text-white'
+                  : 'bg-white border-2 border-blue-200 text-slate-700 hover:text-blue-900 hover:bg-blue-50 shadow-xs'
             }`}
           >
             All Subjects ({subjects.length})
@@ -463,10 +505,12 @@ export default function Revision() {
             <button
               key={sub.id}
               onClick={() => setSelectedSubjectFilter(sub.id)}
-              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all shrink-0 max-w-[200px] truncate ${
+              className={`px-3.5 py-1.5 rounded-xl text-xs font-black transition-all shrink-0 max-w-[200px] truncate cursor-pointer ${
                 selectedSubjectFilter === sub.id
-                  ? 'bg-royal-600 text-white border border-royal-400/40 shadow-sm'
-                  : 'bg-navy-900 border border-white/5 text-slate-400 hover:text-white'
+                  ? 'bg-blue-600 text-white border border-blue-500 shadow-sm'
+                  : isEyeCare
+                    ? 'bg-navy-900 border border-white/10 text-slate-400 hover:text-white'
+                    : 'bg-white border-2 border-blue-200 text-slate-700 hover:text-blue-900 hover:bg-blue-50 shadow-xs'
               }`}
             >
               {sub.subject}
@@ -817,23 +861,33 @@ export default function Revision() {
                   return (
                     <div
                       key={ch.id}
-                      className={`p-4 sm:px-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4 transition-all duration-200 select-none border-b border-white/5 last:border-b-0 ${
-                        isFullyRevised ? 'bg-emerald-500/10' : 'hover:bg-white/5'
+                      className={`p-4 sm:px-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4 transition-all duration-200 select-none border-b last:border-b-0 ${
+                        isEyeCare
+                          ? (isFullyRevised ? 'bg-emerald-500/10 border-white/5' : 'hover:bg-white/5 border-white/5')
+                          : (isFullyRevised ? 'bg-emerald-50/80 border-slate-200' : 'bg-white hover:bg-slate-50 border-slate-200')
                       }`}
                     >
                       <div className="flex items-center space-x-3 min-w-0">
-                        <span className="text-[11px] font-mono font-bold px-2 py-0.5 rounded bg-navy-900 border border-white/10 text-royal-300 mr-2">
+                        <span className={`text-[11px] font-mono font-black px-2 py-0.5 rounded border mr-2 shrink-0 ${
+                          isEyeCare 
+                            ? 'bg-navy-900 border-white/10 text-royal-300' 
+                            : 'bg-blue-100 border-blue-300 text-blue-900'
+                        }`}>
                           {ch.chapterNo ? `Ch ${ch.chapterNo}` : 'Ch'}
                         </span>
-                        <span className={`text-sm font-semibold transition-all ${
-                          isFullyRevised ? 'text-emerald-200 line-through decoration-emerald-500/50' : 'text-slate-200'
+                        <span className={`text-sm font-black transition-all ${
+                          isEyeCare
+                            ? (isFullyRevised ? 'text-emerald-200 line-through decoration-emerald-500/50' : 'text-slate-200')
+                            : (isFullyRevised ? 'text-emerald-950 font-black line-through decoration-emerald-700' : 'text-slate-900')
                         }`}>
                           {ch.title}
                         </span>
                       </div>
 
                       {/* 3 Revision Ticks for chapter */}
-                      <div className="flex items-center justify-between sm:justify-end gap-4 sm:gap-6 shrink-0 bg-navy-900/60 p-2 sm:p-1.5 rounded-xl border border-white/5">
+                      <div className={`flex items-center justify-between sm:justify-end gap-4 sm:gap-6 shrink-0 p-2 sm:p-1.5 rounded-xl border ${
+                        isEyeCare ? 'bg-navy-900/60 border-white/5' : 'bg-slate-100/90 border border-slate-300'
+                      }`}>
                         <div className="flex items-center gap-1 sm:gap-2">
                           {[1, 2, 3].map(revNum => {
                             const isChecked = revCount >= revNum;
@@ -846,16 +900,26 @@ export default function Revision() {
                                 disabled={!canInteract || togglingUnitId === `${ch.id}_${revNum}`}
                                 onClick={() => handleToggleRevisionTick(ch, revNum, !isChecked)}
                                 className={`focus:outline-none flex flex-col items-center gap-1 transition-all p-1.5 rounded-lg ${
-                                  !canInteract ? 'opacity-35 cursor-not-allowed' : 'hover:bg-white/10 cursor-pointer active:scale-95'
+                                  !canInteract 
+                                    ? 'opacity-35 cursor-not-allowed' 
+                                    : (isEyeCare ? 'hover:bg-white/10 cursor-pointer active:scale-95' : 'hover:bg-slate-200 cursor-pointer active:scale-95')
                                 }`}
                                 title={`Revision Round ${revNum} of 3`}
                               >
                                 {isChecked ? (
-                                  <CheckCircle2 className="w-5 h-5 sm:w-6 sm:h-6 text-emerald-400 fill-emerald-500/20 shadow-glow-emerald" />
+                                  <CheckCircle2 className={`w-5 h-5 sm:w-6 sm:h-6 ${
+                                    isEyeCare ? 'text-emerald-400 fill-emerald-500/20' : 'text-emerald-600 fill-emerald-100'
+                                  }`} />
                                 ) : (
-                                  <Circle className="w-5 h-5 sm:w-6 sm:h-6 text-slate-500 hover:text-royal-400 transition-colors" />
+                                  <Circle className={`w-5 h-5 sm:w-6 sm:h-6 ${
+                                    isEyeCare ? 'text-slate-500 hover:text-royal-400' : 'text-slate-400 hover:text-blue-600'
+                                  }`} />
                                 )}
-                                <span className={`text-[9px] font-bold ${isChecked ? 'text-emerald-400 font-extrabold' : 'text-slate-400'}`}>
+                                <span className={`text-[10px] font-black ${
+                                  isChecked 
+                                    ? (isEyeCare ? 'text-emerald-400' : 'text-emerald-800') 
+                                    : (isEyeCare ? 'text-slate-400' : 'text-slate-700')
+                                }`}>
                                   R{revNum}
                                 </span>
                               </button>
@@ -863,14 +927,20 @@ export default function Revision() {
                           })}
                         </div>
 
-                        <div className="flex flex-col items-end gap-0.5 border-l border-white/10 pl-3 sm:pl-4">
-                          <span className={`text-xs font-mono font-bold px-2 py-0.5 rounded-lg border transition-all ${
-                            isFullyRevised ? 'bg-emerald-500/20 border-emerald-500/40 text-emerald-300' : 'bg-navy-900 border-white/5 text-gold-400'
+                        <div className={`flex flex-col items-end gap-0.5 border-l pl-3 sm:pl-4 ${
+                          isEyeCare ? 'border-white/10' : 'border-slate-300'
+                        }`}>
+                          <span className={`text-xs font-mono font-black px-2 py-0.5 rounded-lg border transition-all ${
+                            isFullyRevised 
+                              ? (isEyeCare ? 'bg-emerald-500/20 border-emerald-500/40 text-emerald-300 shadow-glow-emerald' : 'bg-emerald-200 text-emerald-950 border border-emerald-400') 
+                              : (isEyeCare ? 'bg-navy-900 border-white/5 text-gold-400' : 'bg-amber-100 text-amber-950 border border-amber-300')
                           }`}>
                             {isFullyRevised ? `+${pts} PTS ✓` : `+${pts} PTS`}
                           </span>
                           {!isFullyRevised && (
-                            <span className="text-[9px] text-slate-500 font-bold uppercase tracking-wider">
+                            <span className={`text-[9px] font-black uppercase tracking-wider ${
+                              isEyeCare ? 'text-slate-500' : 'text-slate-700'
+                            }`}>
                               At R3
                             </span>
                           )}
