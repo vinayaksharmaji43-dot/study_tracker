@@ -171,7 +171,19 @@ export async function subscribeToPushNotifications(currentUser, userProfile) {
     // Non-critical, ignore
   }
 
+  notifySubscriptionChange(true);
   return { success: true, subscription: subJson };
+}
+
+/**
+ * Dispatch custom event across windows/tabs/components for subscription state change
+ */
+export function notifySubscriptionChange(isSubscribed) {
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent('push-subscription-changed', {
+      detail: { isSubscribed }
+    }));
+  }
 }
 
 /**
@@ -181,7 +193,11 @@ export async function unsubscribeFromPushNotifications(currentUser) {
   if (!isPushNotificationSupported()) return;
 
   try {
-    const registration = await navigator.serviceWorker.ready;
+    const registration = await navigator.serviceWorker.getRegistration();
+    if (!registration) {
+      notifySubscriptionChange(false);
+      return { success: true };
+    }
     const subscription = await registration.pushManager.getSubscription();
 
     if (subscription) {
@@ -202,6 +218,7 @@ export async function unsubscribeFromPushNotifications(currentUser) {
         }
       }
     }
+    notifySubscriptionChange(false);
     return { success: true };
   } catch (err) {
     console.error('Error unsubscribing from push notifications:', err);
@@ -217,7 +234,8 @@ export async function isCurrentDeviceSubscribed() {
   if (Notification.permission !== 'granted') return false;
 
   try {
-    const registration = await navigator.serviceWorker.ready;
+    const registration = await navigator.serviceWorker.getRegistration();
+    if (!registration) return false;
     const subscription = await registration.pushManager.getSubscription();
     return Boolean(subscription);
   } catch {

@@ -7,6 +7,7 @@ import { User, Mail, GraduationCap, Calendar, Award, BookOpen, LogOut, CheckCirc
 import { Gift, Lock as LockIcon, MessageCircle, ExternalLink } from 'lucide-react';
 import usePremiumAccess from '../hooks/usePremiumAccess';
 import ProBadge from '../components/ProBadge';
+import NotificationPermissionPrompt from '../components/NotificationPermissionPrompt';
 import { useLevelGifts } from '../hooks/useLevelGifts';
 import { getStreamId, getStreamDetails, STREAM_OPTIONS, STREAM_LABELS } from '../utils/levelSystem';
 
@@ -710,6 +711,11 @@ export default function Profile() {
                   )}
                 </div>
               </div>
+            </div>
+
+            {/* Web Push Notifications Management Panel */}
+            <div className="pt-4 border-t border-white/10">
+              <NotificationPermissionPrompt mode="profile" />
             </div>
 
             <div className="pt-4 border-t border-white/10">

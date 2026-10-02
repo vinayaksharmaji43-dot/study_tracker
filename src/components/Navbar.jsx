@@ -10,6 +10,7 @@ import SectionMaintenanceModal from './SectionMaintenanceModal';
 import { useSectionLocks } from '../hooks/useSectionLocks';
 import { getSectionById } from '../config/dashboardSections';
 import ProBadge from './ProBadge';
+import NotificationPermissionPrompt from './NotificationPermissionPrompt';
 
 function parseStream(userProfile) {
   if (!userProfile) return { course: 'CA', level: 'Foundation', attempt: '' };
@@ -262,6 +263,9 @@ export default function Navbar({ activeTab, setActiveTab }) {
                 </Link>
                 
                 <div className={`flex items-center space-x-2.5 pl-2 border-l ${isEyeCare ? 'border-white/10' : 'border-slate-200'}`}>
+                  {/* Enable Notifications Button (Visible if not subscribed, auto-hides once enabled) */}
+                  <NotificationPermissionPrompt mode="nav-button" />
+
                   {/* Eye Care Toggle Button */}
                   <button
                     onClick={toggleEyeCare}
@@ -392,6 +396,9 @@ export default function Navbar({ activeTab, setActiveTab }) {
                 <span className="text-[10px] font-black uppercase tracking-wider">Store</span>
               </button>
             )}
+
+            {/* Mobile Enable Notifications Button (Visible if not subscribed, auto-hides once enabled) */}
+            <NotificationPermissionPrompt mode="nav-mobile" />
 
             {/* Mobile Eye Care Toggle Button */}
             <button
