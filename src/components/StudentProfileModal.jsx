@@ -21,6 +21,7 @@ import {
   ArrowLeft
 } from 'lucide-react';
 import ProBadge from './ProBadge';
+import { useTheme } from '../contexts/ThemeContext';
 
 // Helpers
 function getBadge(durationSecs) {
@@ -68,6 +69,7 @@ function getDateKey(d) {
 }
 
 export default function StudentProfileModal({ student, activeSession: initialActiveSession, onClose }) {
+  const { isEyeCare } = useTheme();
   const [viewMode, setViewMode] = useState('profile'); // 'profile' | 'statistics'
   const [userData, setUserData] = useState(null);
   const [activeSession, setActiveSession] = useState(initialActiveSession || null);
@@ -388,36 +390,56 @@ export default function StudentProfileModal({ student, activeSession: initialAct
       onClick={onClose}
     >
       <div 
-        className="w-full sm:max-w-2xl bg-navy-950 border border-white/10 rounded-t-3xl sm:rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[92vh] sm:max-h-[88vh] text-white relative animate-in slide-in-from-bottom sm:zoom-in-95 duration-200"
+        className={`w-full sm:max-w-2xl border rounded-t-3xl sm:rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[92vh] sm:max-h-[88vh] relative animate-in slide-in-from-bottom sm:zoom-in-95 duration-200 ${
+          isEyeCare 
+            ? 'bg-navy-950 border-white/10 text-white' 
+            : 'bg-white border-2 border-blue-200 text-slate-900'
+        }`}
         onClick={(e) => e.stopPropagation()}
       >
         {/* Mobile Swipe Handle */}
         <div className="sm:hidden w-full pt-3 pb-1 flex justify-center">
-          <div className="w-12 h-1.5 rounded-full bg-white/20" />
+          <div className={`w-12 h-1.5 rounded-full ${isEyeCare ? 'bg-white/20' : 'bg-slate-300'}`} />
         </div>
 
         {/* Modal Top Bar */}
-        <div className="px-5 sm:px-6 py-4 border-b border-white/10 flex items-center justify-between gap-3 bg-navy-900/60 shrink-0">
+        <div className={`px-5 sm:px-6 py-4 border-b flex items-center justify-between gap-3 shrink-0 ${
+          isEyeCare 
+            ? 'bg-navy-900/60 border-white/10' 
+            : 'bg-blue-50/90 border-blue-200'
+        }`}>
           <div className="flex items-center gap-2.5 min-w-0">
-            <div className="w-9 h-9 rounded-full bg-gradient-to-tr from-gold-500 to-royal-600 p-0.5 shrink-0">
-              <div className="w-full h-full bg-navy-950 rounded-full flex items-center justify-center text-sm font-black text-white">
+            <div className={`w-9 h-9 rounded-full p-0.5 shrink-0 ${
+              isEyeCare 
+                ? 'bg-gradient-to-tr from-gold-500 to-royal-600' 
+                : 'bg-gradient-to-tr from-amber-400 to-blue-600'
+            }`}>
+              <div className={`w-full h-full rounded-full flex items-center justify-center text-sm font-black ${
+                isEyeCare ? 'bg-navy-950 text-white' : 'bg-blue-600 text-white'
+              }`}>
                 {displayName.charAt(0).toUpperCase()}
               </div>
             </div>
             <div className="min-w-0">
               <div className="flex items-center gap-1.5 flex-wrap">
-                <h2 className="text-base font-black text-white truncate max-w-[160px] sm:max-w-[220px]">
+                <h2 className={`text-base font-black truncate max-w-[160px] sm:max-w-[220px] ${
+                  isEyeCare ? 'text-white' : 'text-slate-900 font-black'
+                }`}>
                   {displayName}
                 </h2>
                 {Boolean(student?.isPro || student?.proAccess || userData?.isPro) && <ProBadge size="sm" />}
                 <span className="text-base">{studentLevel.badge}</span>
                 {student?.badge && (
-                  <span className="text-xs px-2 py-0.5 rounded-full bg-white/5 border border-white/10 text-slate-300">
+                  <span className={`text-xs px-2 py-0.5 rounded-full border font-bold ${
+                    isEyeCare ? 'bg-white/5 border-white/10 text-slate-300' : 'bg-blue-100 border-blue-300 text-blue-900'
+                  }`}>
                     {student.badge}
                   </span>
                 )}
               </div>
-              <div className="text-[11px] text-slate-400 truncate">
+              <div className={`text-[11px] font-bold truncate ${
+                isEyeCare ? 'text-slate-400' : 'text-slate-700'
+              }`}>
                 Level {studentLevel.currentLevelNumber} • {studentLevel.currentLevelName}
               </div>
             </div>
@@ -427,10 +449,10 @@ export default function StudentProfileModal({ student, activeSession: initialAct
           <div className="flex items-center gap-2 shrink-0">
             <button
               onClick={() => setViewMode(prev => prev === 'profile' ? 'statistics' : 'profile')}
-              className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 border shadow-sm ${
+              className={`px-3.5 py-1.5 rounded-xl text-xs font-black transition-all flex items-center gap-1.5 border shadow-sm cursor-pointer ${
                 viewMode === 'statistics'
-                  ? 'bg-gold-500 text-navy-950 border-gold-400 shadow-glow-gold'
-                  : 'bg-navy-800 text-slate-200 border-white/10 hover:bg-navy-700 hover:text-white'
+                  ? (isEyeCare ? 'bg-gold-500 text-navy-950 border-gold-400 shadow-glow-gold' : 'bg-blue-600 text-white border-blue-500 font-black')
+                  : (isEyeCare ? 'bg-navy-800 text-slate-200 border-white/10 hover:bg-navy-700 hover:text-white' : 'bg-white text-slate-700 border-2 border-blue-200 hover:bg-blue-50 hover:text-blue-900 font-black')
               }`}
             >
               {viewMode === 'statistics' ? (
@@ -440,7 +462,7 @@ export default function StudentProfileModal({ student, activeSession: initialAct
                 </>
               ) : (
                 <>
-                  <BarChart3 className="w-3.5 h-3.5 text-gold-400" />
+                  <BarChart3 className={`w-3.5 h-3.5 ${isEyeCare ? 'text-gold-400' : 'text-blue-600'}`} />
                   <span>📊 Statistics</span>
                 </>
               )}
@@ -448,7 +470,9 @@ export default function StudentProfileModal({ student, activeSession: initialAct
 
             <button
               onClick={onClose}
-              className="p-1.5 rounded-xl text-slate-400 hover:text-white hover:bg-white/10 transition-colors"
+              className={`p-1.5 rounded-xl transition-colors cursor-pointer ${
+                isEyeCare ? 'text-slate-400 hover:text-white hover:bg-white/10' : 'text-slate-500 hover:text-slate-900 hover:bg-slate-100'
+              }`}
               aria-label="Close"
             >
               <X className="w-5 h-5" />
@@ -464,13 +488,21 @@ export default function StudentProfileModal({ student, activeSession: initialAct
             <div className="space-y-5 animate-in fade-in duration-200">
               
               {/* Header Profile Identity Card */}
-              <div className="p-5 rounded-3xl glass-card border border-white/10 bg-gradient-to-br from-navy-900/90 via-navy-950 to-royal-950/40 relative overflow-hidden">
-                <div className="absolute top-0 right-0 w-48 h-48 bg-gold-500/10 rounded-full blur-3xl pointer-events-none" />
+              <div className={`p-5 rounded-3xl border relative overflow-hidden ${
+                isEyeCare 
+                  ? 'glass-card border-white/10 bg-gradient-to-br from-navy-900/90 via-navy-950 to-royal-950/40' 
+                  : 'bg-blue-50/70 border-2 border-blue-200 shadow-sm'
+              }`}>
+                <div className={`absolute top-0 right-0 w-48 h-48 rounded-full blur-3xl pointer-events-none ${
+                  isEyeCare ? 'bg-gold-500/10' : 'bg-blue-400/15'
+                }`} />
 
                 <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 relative z-10">
                   <div className="space-y-1">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <span className="text-xl sm:text-2xl font-black text-white">{displayName}</span>
+                      <span className={`text-xl sm:text-2xl font-black ${
+                        isEyeCare ? 'text-white' : 'text-slate-900'
+                      }`}>{displayName}</span>
                       <span className="text-xl">{studentLevel.badge}</span>
                       {liveBadge && (
                         <span className={`px-2.5 py-0.5 rounded-full text-xs font-black border ${liveBadge.bg} ${liveBadge.color} ${liveBadge.border}`}>
@@ -479,31 +511,51 @@ export default function StudentProfileModal({ student, activeSession: initialAct
                       )}
                     </div>
                     
-                    <div className="text-xs font-semibold text-gold-400 flex items-center gap-2">
+                    <div className={`text-xs font-black flex items-center gap-2 ${
+                      isEyeCare ? 'text-gold-400' : 'text-blue-900'
+                    }`}>
                       <span>Level {studentLevel.currentLevelNumber}</span>
                       <span>•</span>
                       <span>{studentLevel.badge} {studentLevel.currentLevelName}</span>
                     </div>
 
-                    <div className="text-xs font-medium text-slate-300 pt-0.5">
-                      <span className="text-royal-300 font-bold">{course} {level}</span>
+                    <div className={`text-xs font-bold pt-0.5 ${
+                      isEyeCare ? 'text-slate-300' : 'text-slate-700'
+                    }`}>
+                      <span className={`font-black ${isEyeCare ? 'text-royal-300' : 'text-blue-800'}`}>{course} {level}</span>
                       {attempt && <span> · {attempt}</span>}
                     </div>
                   </div>
 
                   {/* Points Badge */}
-                  <div className="px-4 py-2.5 rounded-2xl bg-navy-900/90 border border-gold-500/30 text-right shrink-0">
-                    <div className="text-[10px] uppercase font-bold text-slate-400">Total Points</div>
-                    <div className="text-lg font-black font-mono text-gold-400">
-                      {points.toLocaleString()} <span className="text-xs text-slate-400 font-normal">PTS</span>
+                  <div className={`px-4 py-2.5 rounded-2xl border text-right shrink-0 ${
+                    isEyeCare 
+                      ? 'bg-navy-900/90 border-gold-500/30' 
+                      : 'bg-white border-2 border-amber-300 shadow-sm'
+                  }`}>
+                    <div className={`text-[10px] uppercase font-black tracking-wider ${
+                      isEyeCare ? 'text-slate-400' : 'text-amber-900'
+                    }`}>Total Points</div>
+                    <div className={`text-lg font-black font-mono ${
+                      isEyeCare ? 'text-gold-400' : 'text-amber-700'
+                    }`}>
+                      {points.toLocaleString()} <span className={`text-xs font-bold ${
+                        isEyeCare ? 'text-slate-400' : 'text-amber-900'
+                      }`}>PTS</span>
                     </div>
                   </div>
                 </div>
               </div>
 
               {/* Current Study Status Section */}
-              <div className="p-5 rounded-3xl glass-card border border-white/10 space-y-4">
-                <div className="flex items-center justify-between gap-2 border-b border-white/10 pb-3">
+              <div className={`p-5 rounded-3xl border space-y-4 ${
+                isEyeCare 
+                  ? 'glass-card border-white/10' 
+                  : 'bg-white border-2 border-blue-200 shadow-sm'
+              }`}>
+                <div className={`flex items-center justify-between gap-2 border-b pb-3 ${
+                  isEyeCare ? 'border-white/10' : 'border-slate-200'
+                }`}>
                   <div className="flex items-center gap-2">
                     {isCurrentlyStudying ? (
                       <span className="relative flex h-3 w-3">
@@ -511,21 +563,25 @@ export default function StudentProfileModal({ student, activeSession: initialAct
                         <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
                       </span>
                     ) : (
-                      <span className="w-3 h-3 rounded-full bg-slate-600"></span>
+                      <span className={`w-3 h-3 rounded-full ${isEyeCare ? 'bg-slate-600' : 'bg-slate-400'}`}></span>
                     )}
-                    <span className="text-sm font-black text-white tracking-wide">
+                    <span className="text-sm font-black tracking-wide">
                       {isCurrentlyStudying ? (
-                        <span className="text-emerald-400 flex items-center gap-1.5">
+                        <span className={isEyeCare ? 'text-emerald-400 flex items-center gap-1.5' : 'text-emerald-700 flex items-center gap-1.5 font-black'}>
                           🟢 Currently Studying
                         </span>
                       ) : (
-                        <span className="text-slate-400">Currently Offline</span>
+                        <span className={isEyeCare ? 'text-slate-400' : 'text-slate-700 font-black'}>Currently Offline</span>
                       )}
                     </span>
                   </div>
 
                   {activeSession?.subject && (
-                    <span className="px-3 py-1 rounded-xl bg-purple-500/15 border border-purple-500/30 text-purple-300 text-xs font-bold">
+                    <span className={`px-3 py-1 rounded-xl text-xs font-black border ${
+                      isEyeCare 
+                        ? 'bg-purple-500/15 border-purple-500/30 text-purple-300' 
+                        : 'bg-purple-100 border border-purple-300 text-purple-950 shadow-xs'
+                    }`}>
                       {activeSession.subject}
                     </span>
                   )}
@@ -534,40 +590,68 @@ export default function StudentProfileModal({ student, activeSession: initialAct
                 {isCurrentlyStudying ? (
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                     {/* Start Time */}
-                    <div className="p-3.5 rounded-2xl bg-navy-900/60 border border-white/5 space-y-1">
-                      <div className="text-[11px] font-bold text-slate-400 flex items-center gap-1">
-                        <Clock className="w-3.5 h-3.5 text-royal-400" />
+                    <div className={`p-3.5 rounded-2xl space-y-1 border ${
+                      isEyeCare 
+                        ? 'bg-navy-900/60 border-white/5' 
+                        : 'bg-blue-50/70 border-2 border-blue-200'
+                    }`}>
+                      <div className={`text-[11px] font-bold flex items-center gap-1 ${
+                        isEyeCare ? 'text-slate-400' : 'text-blue-800 font-extrabold'
+                      }`}>
+                        <Clock className={`w-3.5 h-3.5 ${isEyeCare ? 'text-royal-400' : 'text-blue-600'}`} />
                         <span>Started</span>
                       </div>
-                      <div className="text-base font-black text-white font-mono">
+                      <div className={`text-base font-black font-mono ${
+                        isEyeCare ? 'text-white' : 'text-slate-900'
+                      }`}>
                         {formatClockTime(activeSession.startedAt)}
                       </div>
                     </div>
 
                     {/* Current Session Duration (Live Ticking) */}
-                    <div className="p-3.5 rounded-2xl bg-navy-900/60 border border-emerald-500/30 space-y-1">
-                      <div className="text-[11px] font-bold text-emerald-400 flex items-center gap-1">
-                        <Activity className="w-3.5 h-3.5 text-emerald-400 animate-pulse" />
+                    <div className={`p-3.5 rounded-2xl space-y-1 border ${
+                      isEyeCare 
+                        ? 'bg-navy-900/60 border-emerald-500/30' 
+                        : 'bg-emerald-50 border-2 border-emerald-300'
+                    }`}>
+                      <div className={`text-[11px] font-bold flex items-center gap-1 ${
+                        isEyeCare ? 'text-emerald-400' : 'text-emerald-800 font-extrabold'
+                      }`}>
+                        <Activity className="w-3.5 h-3.5 text-emerald-500 animate-pulse" />
                         <span>Current Session</span>
                       </div>
-                      <div className="text-base font-black text-emerald-300 font-mono">
+                      <div className={`text-base font-black font-mono ${
+                        isEyeCare ? 'text-emerald-300' : 'text-emerald-700'
+                      }`}>
                         {formatStudyDuration(liveDurationSecs)}
                       </div>
                     </div>
 
                     {/* Maximum Focus */}
-                    <div className="p-3.5 rounded-2xl bg-navy-900/60 border border-white/5 space-y-1">
-                      <div className="text-[11px] font-bold text-slate-400 flex items-center gap-1">
-                        <Zap className="w-3.5 h-3.5 text-gold-400" />
+                    <div className={`p-3.5 rounded-2xl space-y-1 border ${
+                      isEyeCare 
+                        ? 'bg-navy-900/60 border-white/5' 
+                        : 'bg-amber-50 border-2 border-amber-300'
+                    }`}>
+                      <div className={`text-[11px] font-bold flex items-center gap-1 ${
+                        isEyeCare ? 'text-slate-400' : 'text-amber-800 font-extrabold'
+                      }`}>
+                        <Zap className={`w-3.5 h-3.5 ${isEyeCare ? 'text-gold-400' : 'text-amber-600'}`} />
                         <span>Maximum Focus</span>
                       </div>
-                      <div className="text-base font-black text-gold-400 font-mono">
+                      <div className={`text-base font-black font-mono ${
+                        isEyeCare ? 'text-gold-400' : 'text-amber-700'
+                      }`}>
                         {formatFocusDuration(currentMaxFocusSecs)}
                       </div>
                     </div>
                   </div>
                 ) : (
-                  <div className="p-4 rounded-2xl bg-navy-900/40 border border-white/5 text-center text-xs text-slate-400">
+                  <div className={`p-4 rounded-2xl text-center text-xs font-bold border ${
+                    isEyeCare 
+                      ? 'bg-navy-900/40 border-white/5 text-slate-400' 
+                      : 'bg-slate-50 border border-slate-200 text-slate-700'
+                  }`}>
                     This student is not in an active timer session right now.
                   </div>
                 )}
@@ -575,32 +659,56 @@ export default function StudentProfileModal({ student, activeSession: initialAct
 
               {/* Quick Overall Stats */}
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                <div className="p-4 rounded-2xl bg-navy-900/60 border border-white/5 space-y-1">
-                  <div className="text-xs text-slate-400 flex items-center gap-1.5">
-                    <Clock className="w-3.5 h-3.5 text-emerald-400" />
+                <div className={`p-4 rounded-2xl space-y-1 border ${
+                  isEyeCare 
+                    ? 'bg-navy-900/60 border-white/5' 
+                    : 'bg-white border-2 border-blue-200/90 shadow-sm'
+                }`}>
+                  <div className={`text-xs flex items-center gap-1.5 font-bold ${
+                    isEyeCare ? 'text-slate-400' : 'text-emerald-800 font-extrabold'
+                  }`}>
+                    <Clock className={`w-3.5 h-3.5 ${isEyeCare ? 'text-emerald-400' : 'text-emerald-600'}`} />
                     <span>Total Study</span>
                   </div>
-                  <div className="text-base font-black text-white font-mono">
+                  <div className={`text-base sm:text-lg font-black font-mono ${
+                    isEyeCare ? 'text-white' : 'text-slate-900'
+                  }`}>
                     {formatStudyDuration(sessions.reduce((acc, s) => acc + (Number(s.duration) || 0), 0))}
                   </div>
                 </div>
 
-                <div className="p-4 rounded-2xl bg-navy-900/60 border border-white/5 space-y-1">
-                  <div className="text-xs text-slate-400 flex items-center gap-1.5">
-                    <BookOpen className="w-3.5 h-3.5 text-royal-400" />
+                <div className={`p-4 rounded-2xl space-y-1 border ${
+                  isEyeCare 
+                    ? 'bg-navy-900/60 border-white/5' 
+                    : 'bg-white border-2 border-blue-200/90 shadow-sm'
+                }`}>
+                  <div className={`text-xs flex items-center gap-1.5 font-bold ${
+                    isEyeCare ? 'text-slate-400' : 'text-blue-800 font-extrabold'
+                  }`}>
+                    <BookOpen className={`w-3.5 h-3.5 ${isEyeCare ? 'text-royal-400' : 'text-blue-600'}`} />
                     <span>Total Sessions</span>
                   </div>
-                  <div className="text-base font-black text-white font-mono">
+                  <div className={`text-base sm:text-lg font-black font-mono ${
+                    isEyeCare ? 'text-white' : 'text-slate-900'
+                  }`}>
                     {sessions.length}
                   </div>
                 </div>
 
-                <div className="col-span-2 sm:col-span-1 p-4 rounded-2xl bg-navy-900/60 border border-white/5 space-y-1">
-                  <div className="text-xs text-slate-400 flex items-center gap-1.5">
-                    <Trophy className="w-3.5 h-3.5 text-gold-400" />
+                <div className={`col-span-2 sm:col-span-1 p-4 rounded-2xl space-y-1 border ${
+                  isEyeCare 
+                    ? 'bg-navy-900/60 border-white/5' 
+                    : 'bg-white border-2 border-blue-200/90 shadow-sm'
+                }`}>
+                  <div className={`text-xs flex items-center gap-1.5 font-bold ${
+                    isEyeCare ? 'text-slate-400' : 'text-amber-800 font-extrabold'
+                  }`}>
+                    <Trophy className={`w-3.5 h-3.5 ${isEyeCare ? 'text-gold-400' : 'text-amber-600'}`} />
                     <span>Current Rank Stream</span>
                   </div>
-                  <div className="text-xs font-bold text-gold-400 truncate">
+                  <div className={`text-xs sm:text-sm font-black truncate ${
+                    isEyeCare ? 'text-gold-400' : 'text-amber-800'
+                  }`}>
                     {course} {level}
                   </div>
                 </div>
@@ -609,9 +717,13 @@ export default function StudentProfileModal({ student, activeSession: initialAct
               {/* Call-to-action to Open Study Statistics */}
               <button
                 onClick={() => setViewMode('statistics')}
-                className="w-full py-3.5 px-4 rounded-2xl bg-gradient-to-r from-royal-600 via-royal-700 to-indigo-700 hover:from-royal-500 hover:to-indigo-600 text-white font-black text-sm flex items-center justify-center gap-2 shadow-lg shadow-royal-900/40 transition-all border border-royal-400/30 group"
+                className={`w-full py-3.5 px-4 rounded-2xl font-black text-sm flex items-center justify-center gap-2 transition-all border cursor-pointer ${
+                  isEyeCare
+                    ? 'bg-gradient-to-r from-royal-600 via-royal-700 to-indigo-700 hover:from-royal-500 hover:to-indigo-600 text-white shadow-lg shadow-royal-900/40 border-royal-400/30'
+                    : 'bg-blue-600 hover:bg-blue-700 text-white shadow-md shadow-blue-500/25 border border-blue-500'
+                } group`}
               >
-                <BarChart3 className="w-4 h-4 text-gold-400 group-hover:scale-110 transition-transform" />
+                <BarChart3 className={`w-4 h-4 ${isEyeCare ? 'text-gold-400' : 'text-white'} group-hover:scale-110 transition-transform`} />
                 <span>View Full Study Statistics Calendar</span>
               </button>
             </div>
@@ -622,11 +734,15 @@ export default function StudentProfileModal({ student, activeSession: initialAct
             <div className="space-y-5 animate-in fade-in duration-200">
               
               {/* Calendar Month Navigation Header */}
-              <div className="p-4 rounded-3xl glass-card border border-white/10 bg-navy-900/60 space-y-3">
+              <div className={`p-4 rounded-3xl space-y-3 border ${
+                isEyeCare 
+                  ? 'glass-card border-white/10 bg-navy-900/60' 
+                  : 'bg-blue-50/70 border-2 border-blue-200 shadow-sm'
+              }`}>
                 <div className="flex items-center justify-between gap-2">
                   <div className="flex items-center gap-2">
-                    <CalendarIcon className="w-4 h-4 text-gold-400" />
-                    <h3 className="text-base sm:text-lg font-black text-white">
+                    <CalendarIcon className={`w-4 h-4 ${isEyeCare ? 'text-gold-400' : 'text-blue-600'}`} />
+                    <h3 className={`text-base sm:text-lg font-black ${isEyeCare ? 'text-white' : 'text-slate-900'}`}>
                       {monthTitle}
                     </h3>
                   </div>
@@ -634,20 +750,32 @@ export default function StudentProfileModal({ student, activeSession: initialAct
                   <div className="flex items-center gap-1.5">
                     <button
                       onClick={handleToday}
-                      className="px-2.5 py-1 rounded-lg bg-navy-800 border border-white/10 text-[11px] font-bold text-slate-300 hover:text-white transition-colors"
+                      className={`px-2.5 py-1 rounded-lg text-[11px] font-black border transition-colors cursor-pointer ${
+                        isEyeCare 
+                          ? 'bg-navy-800 border-white/10 text-slate-300 hover:text-white' 
+                          : 'bg-white border-2 border-blue-200 text-blue-900 hover:bg-blue-50 shadow-xs'
+                      }`}
                     >
                       Today
                     </button>
                     <button
                       onClick={handlePrevMonth}
-                      className="p-1.5 rounded-lg bg-navy-800 border border-white/10 text-slate-300 hover:text-white transition-colors"
+                      className={`p-1.5 rounded-lg border transition-colors cursor-pointer ${
+                        isEyeCare 
+                          ? 'bg-navy-800 border-white/10 text-slate-300 hover:text-white' 
+                          : 'bg-white border-2 border-blue-200 text-slate-700 hover:text-blue-900 hover:bg-blue-50 shadow-xs'
+                      }`}
                       title="Previous Month"
                     >
                       <ChevronLeft className="w-4 h-4" />
                     </button>
                     <button
                       onClick={handleNextMonth}
-                      className="p-1.5 rounded-lg bg-navy-800 border border-white/10 text-slate-300 hover:text-white transition-colors"
+                      className={`p-1.5 rounded-lg border transition-colors cursor-pointer ${
+                        isEyeCare 
+                          ? 'bg-navy-800 border-white/10 text-slate-300 hover:text-white' 
+                          : 'bg-white border-2 border-blue-200 text-slate-700 hover:text-blue-900 hover:bg-blue-50 shadow-xs'
+                      }`}
                       title="Next Month"
                     >
                       <ChevronRight className="w-4 h-4" />
@@ -656,44 +784,54 @@ export default function StudentProfileModal({ student, activeSession: initialAct
                 </div>
 
                 {/* Monthly Summary Badges */}
-                <div className="flex items-center gap-3 text-xs pt-1 border-t border-white/5 flex-wrap">
-                  <span className="text-slate-400">
-                    Monthly Recorded: <strong className="text-emerald-400 font-mono">{formatStudyDuration(monthlyTotalSecs)}</strong>
+                <div className={`flex items-center gap-3 text-xs pt-1 border-t flex-wrap ${
+                  isEyeCare ? 'border-white/5' : 'border-blue-200'
+                }`}>
+                  <span className={isEyeCare ? 'text-slate-400 font-medium' : 'text-slate-700 font-bold'}>
+                    Monthly Recorded: <strong className={`font-mono font-black ${isEyeCare ? 'text-emerald-400' : 'text-emerald-700'}`}>{formatStudyDuration(monthlyTotalSecs)}</strong>
                   </span>
-                  <span className="text-slate-500">•</span>
-                  <span className="text-slate-400">
-                    Active Days: <strong className="text-white font-mono">{monthlyActiveDays}</strong>
+                  <span className={isEyeCare ? 'text-slate-500' : 'text-slate-400'}>•</span>
+                  <span className={isEyeCare ? 'text-slate-400 font-medium' : 'text-slate-700 font-bold'}>
+                    Active Days: <strong className={`font-mono font-black ${isEyeCare ? 'text-white' : 'text-blue-900'}`}>{monthlyActiveDays}</strong>
                   </span>
                 </div>
               </div>
 
               {/* Visual Intensity Legend */}
-              <div className="flex items-center justify-between gap-2 px-2 text-[11px] text-slate-400 flex-wrap">
-                <span className="font-semibold text-slate-300">Activity Level:</span>
+              <div className={`flex items-center justify-between gap-2 px-2 text-[11px] flex-wrap ${
+                isEyeCare ? 'text-slate-400' : 'text-slate-700 font-bold'
+              }`}>
+                <span className={`font-black ${isEyeCare ? 'text-slate-300' : 'text-slate-900'}`}>Activity Level:</span>
                 <div className="flex items-center gap-3 flex-wrap">
                   <div className="flex items-center gap-1.5">
-                    <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 shadow-[0_0_6px_rgba(16,185,129,0.8)]"></span>
+                    <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 shadow-[0_0_6px_rgba(16,185,129,0.8)]"></span>
                     <span>High (≥4h)</span>
                   </div>
                   <div className="flex items-center gap-1.5">
-                    <span className="w-2.5 h-2.5 rounded-full bg-amber-400"></span>
+                    <span className="w-2.5 h-2.5 rounded-full bg-amber-500"></span>
                     <span>Moderate (1–4h)</span>
                   </div>
                   <div className="flex items-center gap-1.5">
-                    <span className="w-2.5 h-2.5 rounded-full bg-cyan-400"></span>
+                    <span className="w-2.5 h-2.5 rounded-full bg-blue-500"></span>
                     <span>Light (&lt;1h)</span>
                   </div>
                   <div className="flex items-center gap-1.5">
-                    <span className="w-2.5 h-2.5 rounded-full bg-slate-600"></span>
+                    <span className={`w-2.5 h-2.5 rounded-full ${isEyeCare ? 'bg-slate-600' : 'bg-slate-300'}`}></span>
                     <span>No study</span>
                   </div>
                 </div>
               </div>
 
               {/* Calendar Grid */}
-              <div className="p-3 sm:p-4 rounded-3xl glass-card border border-white/10 bg-navy-950/80">
+              <div className={`p-3 sm:p-4 rounded-3xl border ${
+                isEyeCare 
+                  ? 'glass-card border-white/10 bg-navy-950/80' 
+                  : 'bg-white border-2 border-blue-200 shadow-sm'
+              }`}>
                 {/* Weekday headers */}
-                <div className="grid grid-cols-7 gap-1 sm:gap-2 mb-2 text-center text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+                <div className={`grid grid-cols-7 gap-1 sm:gap-2 mb-2 text-center text-[11px] font-black uppercase tracking-wider ${
+                  isEyeCare ? 'text-slate-400' : 'text-slate-700'
+                }`}>
                   <div>Sun</div>
                   <div>Mon</div>
                   <div>Tue</div>
@@ -710,7 +848,9 @@ export default function StudentProfileModal({ student, activeSession: initialAct
                       return (
                         <div 
                           key={`pad-${idx}`} 
-                          className="h-14 sm:h-16 rounded-xl sm:rounded-2xl bg-white/[0.02] border border-transparent opacity-30" 
+                          className={`h-14 sm:h-16 rounded-xl sm:rounded-2xl border border-transparent ${
+                            isEyeCare ? 'bg-white/[0.02] opacity-30' : 'bg-slate-50/50'
+                          }`} 
                         />
                       );
                     }
@@ -722,36 +862,50 @@ export default function StudentProfileModal({ student, activeSession: initialAct
                     const isLight = hours > 0 && hours < 1;
                     const isZero = cell.totalSecs === 0;
 
-                    let intensityClasses = 'bg-navy-900/40 border-white/5 text-slate-400 hover:bg-white/5';
-                    let timeColor = 'text-slate-500';
+                    let intensityClasses = isEyeCare 
+                      ? 'bg-navy-900/40 border-white/5 text-slate-400 hover:bg-white/5' 
+                      : 'bg-slate-50 border border-slate-200 text-slate-700 hover:bg-blue-50/50';
+                    let timeColor = isEyeCare ? 'text-slate-500' : 'text-slate-500 font-medium';
 
                     if (isHigh) {
-                      intensityClasses = 'bg-emerald-500/15 border-emerald-500/40 hover:bg-emerald-500/25';
-                      timeColor = 'text-emerald-400 font-bold';
+                      intensityClasses = isEyeCare 
+                        ? 'bg-emerald-500/15 border-emerald-500/40 hover:bg-emerald-500/25' 
+                        : 'bg-emerald-50 border-2 border-emerald-300 hover:bg-emerald-100';
+                      timeColor = isEyeCare ? 'text-emerald-400 font-bold' : 'text-emerald-800 font-black';
                     } else if (isModerate) {
-                      intensityClasses = 'bg-amber-500/15 border-amber-500/40 hover:bg-amber-500/25';
-                      timeColor = 'text-amber-300 font-semibold';
+                      intensityClasses = isEyeCare 
+                        ? 'bg-amber-500/15 border-amber-500/40 hover:bg-amber-500/25' 
+                        : 'bg-amber-50 border-2 border-amber-300 hover:bg-amber-100';
+                      timeColor = isEyeCare ? 'text-amber-300 font-semibold' : 'text-amber-800 font-black';
                     } else if (isLight) {
-                      intensityClasses = 'bg-cyan-500/10 border-cyan-500/30 hover:bg-cyan-500/20';
-                      timeColor = 'text-cyan-300 font-medium';
+                      intensityClasses = isEyeCare 
+                        ? 'bg-cyan-500/10 border-cyan-500/30 hover:bg-cyan-500/20' 
+                        : 'bg-blue-50 border-2 border-blue-200 hover:bg-blue-100';
+                      timeColor = isEyeCare ? 'text-cyan-300 font-medium' : 'text-blue-800 font-black';
                     }
 
                     if (isSelected) {
-                      intensityClasses += ' ring-2 ring-gold-400 border-gold-400 bg-gold-500/20 shadow-glow-gold';
+                      intensityClasses += isEyeCare 
+                        ? ' ring-2 ring-gold-400 border-gold-400 bg-gold-500/20 shadow-glow-gold' 
+                        : ' ring-2 ring-blue-600 border-blue-600 bg-blue-100 shadow-md';
                     }
 
                     return (
                       <button
                         key={cell.dateKey}
                         onClick={() => setSelectedDateKey(cell.dateKey)}
-                        className={`h-14 sm:h-16 rounded-xl sm:rounded-2xl p-1 sm:p-1.5 border transition-all flex flex-col justify-between text-left relative overflow-hidden group ${intensityClasses}`}
+                        className={`h-14 sm:h-16 rounded-xl sm:rounded-2xl p-1 sm:p-1.5 border transition-all flex flex-col justify-between text-left relative overflow-hidden group cursor-pointer ${intensityClasses}`}
                       >
                         <div className="flex items-center justify-between w-full">
-                          <span className={`text-[11px] sm:text-xs font-black ${isSelected ? 'text-gold-400' : 'text-slate-200'}`}>
+                          <span className={`text-[11px] sm:text-xs font-black ${
+                            isEyeCare 
+                              ? (isSelected ? 'text-gold-400' : 'text-slate-200') 
+                              : (isSelected ? 'text-blue-900' : 'text-slate-900')
+                          }`}>
                             {cell.dayNum}
                           </span>
                           {isHigh && (
-                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 shadow-[0_0_4px_rgba(16,185,129,1)]" />
+                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-[0_0_4px_rgba(16,185,129,1)]" />
                           )}
                         </div>
 
@@ -766,18 +920,34 @@ export default function StudentProfileModal({ student, activeSession: initialAct
               </div>
 
               {/* ================= THAT DAY'S STUDY DETAILS ================= */}
-              <div className="p-5 rounded-3xl glass-card border border-white/10 bg-navy-900/70 space-y-4">
-                <div className="flex items-center justify-between border-b border-white/10 pb-3">
+              <div className={`p-5 rounded-3xl border space-y-4 ${
+                isEyeCare 
+                  ? 'glass-card border-white/10 bg-navy-900/70' 
+                  : 'bg-white border-2 border-blue-200 shadow-sm'
+              }`}>
+                <div className={`flex items-center justify-between border-b pb-3 ${
+                  isEyeCare ? 'border-white/10' : 'border-slate-200'
+                }`}>
                   <div className="space-y-0.5">
-                    <span className="text-[10px] font-black uppercase tracking-wider text-gold-400">Date Breakdown</span>
-                    <h4 className="text-base font-black text-white">
+                    <span className={`text-[10px] font-black uppercase tracking-wider ${
+                      isEyeCare ? 'text-gold-400' : 'text-blue-800'
+                    }`}>Date Breakdown</span>
+                    <h4 className={`text-base font-black ${isEyeCare ? 'text-white' : 'text-slate-900'}`}>
                       {formattedSelectedDate}
                     </h4>
                   </div>
 
-                  <div className="px-3.5 py-1.5 rounded-xl bg-navy-950 border border-white/10 text-right">
-                    <div className="text-[10px] text-slate-400 uppercase font-bold">Total Time</div>
-                    <div className="text-sm font-black font-mono text-emerald-400">
+                  <div className={`px-3.5 py-1.5 rounded-xl border text-right ${
+                    isEyeCare 
+                      ? 'bg-navy-950 border-white/10' 
+                      : 'bg-blue-50 border-2 border-blue-200'
+                  }`}>
+                    <div className={`text-[10px] uppercase font-black ${
+                      isEyeCare ? 'text-slate-400' : 'text-blue-800'
+                    }`}>Total Time</div>
+                    <div className={`text-sm font-black font-mono ${
+                      isEyeCare ? 'text-emerald-400' : 'text-emerald-700'
+                    }`}>
                       {formatStudyDuration(selectedDateData.totalSecs)}
                     </div>
                   </div>
@@ -785,30 +955,54 @@ export default function StudentProfileModal({ student, activeSession: initialAct
 
                 {/* Day Details Grid */}
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
-                  <div className="p-3 rounded-2xl bg-navy-950/70 border border-white/5 space-y-1">
-                    <span className="text-[10px] uppercase font-bold text-slate-400">Sessions</span>
-                    <div className="text-sm font-black text-white font-mono">
+                  <div className={`p-3 rounded-2xl border space-y-1 ${
+                    isEyeCare ? 'bg-navy-950/70 border-white/5' : 'bg-slate-50 border border-slate-200'
+                  }`}>
+                    <span className={`text-[10px] uppercase font-bold ${
+                      isEyeCare ? 'text-slate-400' : 'text-slate-700'
+                    }`}>Sessions</span>
+                    <div className={`text-sm font-black font-mono ${
+                      isEyeCare ? 'text-white' : 'text-slate-900'
+                    }`}>
                       {selectedDateData.sessions.length}
                     </div>
                   </div>
 
-                  <div className="p-3 rounded-2xl bg-navy-950/70 border border-white/5 space-y-1">
-                    <span className="text-[10px] uppercase font-bold text-slate-400">Longest Session</span>
-                    <div className="text-sm font-black text-emerald-300 font-mono">
+                  <div className={`p-3 rounded-2xl border space-y-1 ${
+                    isEyeCare ? 'bg-navy-950/70 border-white/5' : 'bg-slate-50 border border-slate-200'
+                  }`}>
+                    <span className={`text-[10px] uppercase font-bold ${
+                      isEyeCare ? 'text-slate-400' : 'text-slate-700'
+                    }`}>Longest Session</span>
+                    <div className={`text-sm font-black font-mono ${
+                      isEyeCare ? 'text-emerald-300' : 'text-emerald-700'
+                    }`}>
                       {formatStudyDuration(selectedDateData.longestSessionSecs)}
                     </div>
                   </div>
 
-                  <div className="p-3 rounded-2xl bg-navy-950/70 border border-white/5 space-y-1">
-                    <span className="text-[10px] uppercase font-bold text-slate-400">Max Focus</span>
-                    <div className="text-sm font-black text-gold-400 font-mono">
+                  <div className={`p-3 rounded-2xl border space-y-1 ${
+                    isEyeCare ? 'bg-navy-950/70 border-white/5' : 'bg-slate-50 border border-slate-200'
+                  }`}>
+                    <span className={`text-[10px] uppercase font-bold ${
+                      isEyeCare ? 'text-slate-400' : 'text-slate-700'
+                    }`}>Max Focus</span>
+                    <div className={`text-sm font-black font-mono ${
+                      isEyeCare ? 'text-gold-400' : 'text-amber-700'
+                    }`}>
                       {formatFocusDuration(selectedDateData.maxFocusSecs)}
                     </div>
                   </div>
 
-                  <div className="p-3 rounded-2xl bg-navy-950/70 border border-white/5 space-y-1">
-                    <span className="text-[10px] uppercase font-bold text-slate-400">Points Earned</span>
-                    <div className="text-sm font-black text-gold-400 font-mono">
+                  <div className={`p-3 rounded-2xl border space-y-1 ${
+                    isEyeCare ? 'bg-navy-950/70 border-white/5' : 'bg-slate-50 border border-slate-200'
+                  }`}>
+                    <span className={`text-[10px] uppercase font-bold ${
+                      isEyeCare ? 'text-slate-400' : 'text-slate-700'
+                    }`}>Points Earned</span>
+                    <div className={`text-sm font-black font-mono ${
+                      isEyeCare ? 'text-gold-400' : 'text-amber-700'
+                    }`}>
                       {selectedDateData.pointsEarned > 0 ? `+${selectedDateData.pointsEarned}` : '0'} PTS
                     </div>
                   </div>
@@ -816,23 +1010,27 @@ export default function StudentProfileModal({ student, activeSession: initialAct
 
                 {/* Subject-Wise Breakdown for That Day */}
                 {selectedDateData.subjects.length > 0 ? (
-                  <div className="space-y-2.5 pt-2 border-t border-white/5">
-                    <div className="text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
-                      <BookOpen className="w-3.5 h-3.5 text-purple-400" />
+                  <div className={`space-y-2.5 pt-2 border-t ${isEyeCare ? 'border-white/5' : 'border-slate-200'}`}>
+                    <div className={`text-xs font-black uppercase tracking-wider flex items-center gap-1.5 ${
+                      isEyeCare ? 'text-slate-300' : 'text-slate-800'
+                    }`}>
+                      <BookOpen className={`w-3.5 h-3.5 ${isEyeCare ? 'text-purple-400' : 'text-purple-600'}`} />
                       <span>Subject Breakdown</span>
                     </div>
 
                     <div className="space-y-2">
                       {selectedDateData.subjects.map(item => (
-                        <div key={item.subject} className="p-3 rounded-xl bg-navy-950/50 border border-white/5 space-y-1.5">
+                        <div key={item.subject} className={`p-3 rounded-xl border space-y-1.5 ${
+                          isEyeCare ? 'bg-navy-950/50 border-white/5' : 'bg-slate-50 border border-slate-200'
+                        }`}>
                           <div className="flex items-center justify-between text-xs">
-                            <span className="font-bold text-white">{item.subject}</span>
-                            <span className="font-mono font-bold text-emerald-400">{formatStudyDuration(item.secs)}</span>
+                            <span className={`font-black ${isEyeCare ? 'text-white' : 'text-slate-900'}`}>{item.subject}</span>
+                            <span className={`font-mono font-black ${isEyeCare ? 'text-emerald-400' : 'text-emerald-700'}`}>{formatStudyDuration(item.secs)}</span>
                           </div>
                           {/* Progress bar */}
-                          <div className="w-full h-1.5 bg-navy-900 rounded-full overflow-hidden">
+                          <div className={`w-full h-1.5 rounded-full overflow-hidden ${isEyeCare ? 'bg-navy-900' : 'bg-slate-200'}`}>
                             <div 
-                              className="h-full bg-gradient-to-r from-royal-500 to-emerald-400 rounded-full transition-all duration-300"
+                              className="h-full bg-gradient-to-r from-blue-600 to-emerald-500 rounded-full transition-all duration-300"
                               style={{ width: `${item.pct}%` }}
                             />
                           </div>
@@ -841,7 +1039,9 @@ export default function StudentProfileModal({ student, activeSession: initialAct
                     </div>
                   </div>
                 ) : (
-                  <div className="p-4 rounded-xl bg-navy-950/40 border border-white/5 text-center text-xs text-slate-400">
+                  <div className={`p-4 rounded-xl border text-center text-xs font-semibold ${
+                    isEyeCare ? 'bg-navy-950/40 border-white/5 text-slate-400' : 'bg-slate-50 border border-slate-200 text-slate-700'
+                  }`}>
                     No study sessions recorded on this day.
                   </div>
                 )}
