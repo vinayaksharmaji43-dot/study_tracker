@@ -36,7 +36,8 @@ import {
 } from 'lucide-react';
 
 export default function AdminDeleteStudent() {
-  const { currentUser, userProfile } = useAuth();
+  const { currentUser, userProfile, isOwner, hasPermission, adminDesignation } = useAuth();
+  const canDeleteStudents = isOwner || hasPermission('delete_students');
 
   const [students, setStudents] = useState([]);
   const [loadingStudents, setLoadingStudents] = useState(true);
@@ -280,6 +281,25 @@ export default function AdminDeleteStudent() {
       setIsDeleting(false);
     }
   };
+
+  if (!canDeleteStudents) {
+    return (
+      <div className="p-8 sm:p-12 rounded-3xl glass-card border border-red-500/40 text-center space-y-6 max-w-2xl mx-auto my-12 animate-in fade-in duration-300">
+        <div className="w-16 h-16 rounded-3xl bg-red-500/20 border border-red-500/40 text-red-400 mx-auto flex items-center justify-center shadow-lg shadow-red-500/10">
+          <ShieldAlert className="w-8 h-8" />
+        </div>
+        <div className="space-y-2">
+          <h2 className="text-2xl font-black text-white">Permission Denied: Delete Authorization Required</h2>
+          <p className="text-sm text-slate-300 max-w-lg mx-auto leading-relaxed">
+            You do not have the required <strong>delete_students</strong> permission to purge or permanently delete student accounts.
+          </p>
+        </div>
+        <div className="p-4 rounded-2xl bg-navy-950/80 border border-white/5 text-xs text-slate-400">
+          Your current title: <strong className="text-amber-400">{adminDesignation || 'Admin'}</strong>. Contact the Super Admin / Owner to request access.
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6 animate-in fade-in duration-200">

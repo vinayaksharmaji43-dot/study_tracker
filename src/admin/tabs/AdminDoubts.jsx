@@ -81,9 +81,13 @@ function normalizeStream(stream) {
 }
 
 export default function AdminDoubts() {
-  const { userProfile, currentUser } = useAuth();
+  const { userProfile, currentUser, isOwner, hasPermission, adminDesignation } = useAuth();
   const [doubts, setDoubts] = useState([]);
   const [loading, setLoading] = useState(true);
+
+  const canReply = isOwner || hasPermission('reply_doubts');
+  const canResolve = isOwner || hasPermission('resolve_doubts');
+  const canDelete = isOwner || hasPermission('delete_doubts');
 
   // Filters & Search
   const [statusFilter, setStatusFilter] = useState('ALL'); // 'ALL', 'New', 'In Review', 'Replied', 'Resolved', 'Unanswered'
@@ -131,6 +135,10 @@ export default function AdminDoubts() {
   }, []);
 
   const handleUpdateStatus = async (doubtId, newStatus) => {
+    if (!canResolve) {
+      alert("Permission Denied: You do not have permission to update or resolve doubts.");
+      return;
+    }
     try {
       setUpdatingStatusId(doubtId);
       const doubtRef = doc(db, 'doubts', doubtId);
@@ -149,16 +157,23 @@ export default function AdminDoubts() {
   const handlePostReply = async (doubtId, currentStatus) => {
     if (!replyText.trim()) return;
 
+    if (!canReply) {
+      alert("Permission Denied: You do not have permission to reply to doubts.");
+      return;
+    }
+
     try {
       setSubmittingReply(true);
       const doubtRef = doc(db, 'doubts', doubtId);
       
       // Auto-set status to 'Replied' unless already 'Resolved'
       const nextStatus = currentStatus === 'Resolved' ? 'Resolved' : 'Replied';
+      const desig = adminDesignation || (isOwner ? 'Super Admin' : 'Mentor');
 
       await updateDoc(doubtRef, {
         reply: replyText.trim(),
-        repliedBy: userProfile?.name || currentUser?.displayName || 'Faculty Admin',
+        repliedBy: desig ? `${userProfile?.name || 'Mentor'} (${desig})` : (userProfile?.name || currentUser?.displayName || 'Faculty Admin'),
+        repliedByDesignation: desig,
         repliedAt: serverTimestamp(),
         status: nextStatus,
         updatedAt: serverTimestamp()
@@ -176,6 +191,12 @@ export default function AdminDoubts() {
 
   const handleDeleteDoubt = async () => {
     if (!deletingId) return;
+
+    if (!canDelete) {
+      alert("Permission Denied: You do not have permission to delete doubts.");
+      setDeletingId(null);
+      return;
+    }
 
     try {
       setDeleting(true);

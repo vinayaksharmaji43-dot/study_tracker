@@ -408,7 +408,11 @@ export default function Announcements() {
                   }`}>
                     <div className="flex items-center gap-2">
                       <span className="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
-                      <span>Published by <span className={`font-semibold ${isEyeCare ? 'text-slate-300' : 'text-slate-900'}`}>{announcement.author || 'Platform Admin'}</span></span>
+                      <span className={`font-semibold ${isEyeCare ? 'text-slate-300' : 'text-slate-900'}`}>
+                        {announcement.authorDesignation 
+                          ? `Posted by ${announcement.authorDesignation}` 
+                          : (announcement.author ? (announcement.author.startsWith('Posted by') ? announcement.author : `Published by ${announcement.author}`) : 'Published by Platform Admin')}
+                      </span>
                     </div>
 
                     {announcement.imageUrl && (

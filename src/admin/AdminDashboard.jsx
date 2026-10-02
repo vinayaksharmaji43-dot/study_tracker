@@ -42,6 +42,7 @@ import AdminCoachingStudy from './tabs/AdminCoachingStudy';
 import AdminDeleteStudent from './tabs/AdminDeleteStudent';
 import AdminPremiumAccess from './tabs/AdminPremiumAccess';
 import AdminStreamRequests from './tabs/AdminStreamRequests';
+import AdminManagement from './tabs/AdminManagement';
 
 import { 
   LayoutDashboard,  
@@ -81,11 +82,60 @@ import {
 
 
 export default function AdminDashboard() {
-  const { userProfile, currentUser, logout } = useAuth();
+  const { userProfile, currentUser, logout, isOwner, hasPermission, adminDesignation } = useAuth();
   const { isEyeCare } = useTheme();
   const [searchParams, setSearchParams] = useSearchParams();
   const [activeTab, setActiveTabState] = useState(() => searchParams.get('tab') || 'overview');
   const [pendingDoubtsCount, setPendingDoubtsCount] = useState(0);
+
+  const TAB_PERMISSIONS = {
+    overview: 'view_dashboard',
+    admin_management: 'manage_admins',
+    doubts: 'view_doubts',
+    students: 'view_students',
+    stream_requests: 'edit_students',
+    premium_access: 'manage_premium',
+    section_locks: 'manage_access_locks',
+    discipline: 'manage_discipline',
+    syllabus: 'manage_syllabus',
+    syllabus_manager: 'manage_syllabus',
+    chapters_units: 'manage_units',
+    revision_manager: 'manage_revision',
+    analytics: 'view_dashboard',
+    leaderboard: 'view_dashboard',
+    targets: 'view_dashboard',
+    coaching_study: 'manage_coaching',
+    tests: 'manage_tests',
+    levels: 'manage_levels',
+    level_gifts: 'manage_levels',
+    writing_practice: 'manage_writing',
+    missions: 'view_dashboard',
+    sessions: 'view_dashboard',
+    webcam_study: 'manage_webcam',
+    mentor_sessions: 'manage_webcam',
+    timer_subjects: 'manage_courses',
+    notes: 'view_dashboard',
+    announcements: 'view_announcements',
+    motivation: 'view_dashboard',
+    feedback: 'view_dashboard',
+    study_groups: 'view_dashboard',
+    courses: 'manage_courses',
+    devices: 'view_students',
+    settings: 'manage_admins',
+    privacy: 'manage_admins',
+    quizzes: 'create_quiz',
+    delete_student: 'delete_students'
+  };
+
+  const canAccessTab = (tabId) => {
+    if (isOwner) return true;
+    if (tabId === 'admin_management' || tabId === 'settings' || tabId === 'privacy') {
+      return isOwner;
+    }
+    const reqPerm = TAB_PERMISSIONS[tabId];
+    if (!reqPerm) return true;
+    return typeof hasPermission === 'function' ? hasPermission(reqPerm) : true;
+  };
 
   const setActiveTab = (tabId) => {
     setActiveTabState(tabId);
@@ -121,8 +171,9 @@ export default function AdminDashboard() {
     return () => unsub();
   }, []);
 
-  const navItems = [
+  const rawNavItems = [
     { id: 'overview', label: 'Dashboard', icon: LayoutDashboard },
+    ...(isOwner ? [{ id: 'admin_management', label: '🛡️ Admin Management', icon: ShieldCheck }] : []),
     { id: 'doubts', label: 'Doubt Management', icon: HelpCircle, badge: pendingDoubtsCount },
     { id: 'students', label: 'Students', icon: Users },
     { id: 'stream_requests', label: '🎓 Stream Change Requests', icon: GraduationCap },
@@ -159,6 +210,8 @@ export default function AdminDashboard() {
     { id: 'delete_student', label: 'Delete Student Database', icon: UserX },
   ];
 
+  const navItems = rawNavItems.filter(item => canAccessTab(item.id));
+
   return (
     <div className={`min-h-screen lg:h-screen lg:overflow-hidden flex flex-col selection:bg-emerald-500 selection:text-white ${isEyeCare ? 'bg-navy-950 text-slate-100' : 'bg-[#f0f7ff] text-slate-900 dashboard-theme-light'}`}>
       <Navbar />
@@ -180,8 +233,8 @@ export default function AdminDashboard() {
               {/* Admin Snapshot Header */}
               <div className={`p-4 rounded-2xl border space-y-1 mb-2 shrink-0 ${isEyeCare ? 'bg-navy-900/80 border-white/5' : 'bg-blue-50/80 border-blue-100'}`}>
                 <div className={`text-xs font-black uppercase tracking-wider flex items-center gap-1.5 ${isEyeCare ? 'text-emerald-400' : 'text-blue-700'}`}>
-                  <ShieldCheck className="w-4 h-4 text-gold-400" />
-                  <span>Admin Panel</span>
+                  {isOwner ? <Crown className="w-4 h-4 text-gold-400" /> : <ShieldCheck className="w-4 h-4 text-emerald-400" />}
+                  <span>{isOwner ? 'Super Admin / Owner' : (adminDesignation || 'Admin')}</span>
                 </div>
                 <div className={`text-sm font-extrabold truncate ${isEyeCare ? 'text-white' : 'text-slate-900'}`}>
                   {userProfile?.name || currentUser?.email}
@@ -271,41 +324,68 @@ export default function AdminDashboard() {
             className="col-span-1 lg:col-span-9 lg:h-full lg:min-h-0 lg:overflow-y-auto lg:overscroll-contain custom-scrollbar space-y-6 lg:pr-2"
             style={{ overscrollBehavior: 'contain', WebkitOverflowScrolling: 'touch' }}
           >
-            {activeTab === 'overview' && <AdminOverview setActiveTab={setActiveTab} />}
-            {activeTab === 'students' && <AdminStudents />}
-            {activeTab === 'stream_requests' && <AdminStreamRequests />}
-            {activeTab === 'premium_access' && <AdminPremiumAccess />}
-            {activeTab === 'section_locks' && <AdminSectionLocks />}
-            {activeTab === 'discipline' && <AdminDiscipline />}
-            {activeTab === 'syllabus' && <AdminSyllabus />}
-            {activeTab === 'syllabus_manager' && <AdminSyllabusManager />}
-            {activeTab === 'chapters_units' && <AdminChaptersUnits />}
-            {activeTab === 'revision_manager' && <AdminRevisionManager />}
-            {activeTab === 'analytics' && <AdminAnalytics />}
-            {activeTab === 'leaderboard' && <AdminLeaderboard />}
-            {activeTab === 'targets' && <AdminTargets />}
-            {activeTab === 'coaching_study' && <AdminCoachingStudy />}
-            {activeTab === 'tests' && <AdminTests />}
-            {activeTab === 'levels' && <AdminLevels />}
-            {activeTab === 'level_gifts' && <AdminLevelGifts />}
-            {activeTab === 'writing_practice' && <AdminWritingPractice />}
-            { activeTab === 'missions' && <AdminWeeklyMissions /> }
-            { activeTab === 'sessions' && <AdminSessions /> }
-            { activeTab === 'webcam_study' && <AdminWebcamStudy /> }
-            { activeTab === 'mentor_sessions' && <AdminMentorSessions /> }
-            { activeTab === 'timer_subjects' && <AdminTimerSubjects /> }
-            { activeTab === 'notes' && <AdminNotes /> }
-            {activeTab === 'doubts' && <AdminDoubts />}
-            {activeTab === 'announcements' && <AdminAnnouncements />}
-            {activeTab === 'motivation' && <AdminMotivation />}
-            {activeTab === 'feedback' && <AdminFeedback />}
-            {activeTab === 'study_groups' && <AdminStudyGroups />}
-            {activeTab === 'courses' && <AdminCourses />}
-            {activeTab === 'devices' && <AdminDevices />}
-            {activeTab === 'settings' && <AdminSettings />}
-            {activeTab === 'privacy' && <AdminPrivacySecurity />}
-            {activeTab === 'quizzes' && <AdminQuizzes />}
-            {activeTab === 'delete_student' && <AdminDeleteStudent />}
+            {!canAccessTab(activeTab) ? (
+              <div className="p-8 sm:p-12 rounded-3xl glass-card border border-red-500/40 text-center space-y-6 max-w-2xl mx-auto my-12 animate-in fade-in duration-300">
+                <div className="w-16 h-16 rounded-3xl bg-red-500/20 border border-red-500/40 text-red-400 mx-auto flex items-center justify-center shadow-lg shadow-red-500/10">
+                  <ShieldAlert className="w-8 h-8" />
+                </div>
+                <div className="space-y-2">
+                  <h2 className="text-2xl font-black text-white">Access Denied: Permission Required</h2>
+                  <p className="text-sm text-slate-300 max-w-lg mx-auto leading-relaxed">
+                    You do not have the required permission to access the <strong>{rawNavItems.find(n => n.id === activeTab)?.label || activeTab}</strong> section.
+                  </p>
+                </div>
+                <div className="p-4 rounded-2xl bg-navy-950/80 border border-white/5 text-xs text-slate-400 space-y-1 max-w-md mx-auto">
+                  <div>Required Permission: <code className="text-amber-400 font-bold">{TAB_PERMISSIONS[activeTab] || 'Super Admin / Owner'}</code></div>
+                  <div>Your Assigned Title: <strong className="text-sky-300">{adminDesignation || 'Admin'}</strong></div>
+                </div>
+                <button
+                  onClick={() => setActiveTab('overview')}
+                  className="px-6 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs transition-all cursor-pointer shadow-lg"
+                >
+                  Return to Dashboard Overview
+                </button>
+              </div>
+            ) : (
+              <>
+                {activeTab === 'overview' && <AdminOverview setActiveTab={setActiveTab} />}
+                {activeTab === 'admin_management' && <AdminManagement />}
+                {activeTab === 'students' && <AdminStudents />}
+                {activeTab === 'stream_requests' && <AdminStreamRequests />}
+                {activeTab === 'premium_access' && <AdminPremiumAccess />}
+                {activeTab === 'section_locks' && <AdminSectionLocks />}
+                {activeTab === 'discipline' && <AdminDiscipline />}
+                {activeTab === 'syllabus' && <AdminSyllabus />}
+                {activeTab === 'syllabus_manager' && <AdminSyllabusManager />}
+                {activeTab === 'chapters_units' && <AdminChaptersUnits />}
+                {activeTab === 'revision_manager' && <AdminRevisionManager />}
+                {activeTab === 'analytics' && <AdminAnalytics />}
+                {activeTab === 'leaderboard' && <AdminLeaderboard />}
+                {activeTab === 'targets' && <AdminTargets />}
+                {activeTab === 'coaching_study' && <AdminCoachingStudy />}
+                {activeTab === 'tests' && <AdminTests />}
+                {activeTab === 'levels' && <AdminLevels />}
+                {activeTab === 'level_gifts' && <AdminLevelGifts />}
+                {activeTab === 'writing_practice' && <AdminWritingPractice />}
+                { activeTab === 'missions' && <AdminWeeklyMissions /> }
+                { activeTab === 'sessions' && <AdminSessions /> }
+                { activeTab === 'webcam_study' && <AdminWebcamStudy /> }
+                { activeTab === 'mentor_sessions' && <AdminMentorSessions /> }
+                { activeTab === 'timer_subjects' && <AdminTimerSubjects /> }
+                { activeTab === 'notes' && <AdminNotes /> }
+                {activeTab === 'doubts' && <AdminDoubts />}
+                {activeTab === 'announcements' && <AdminAnnouncements />}
+                {activeTab === 'motivation' && <AdminMotivation />}
+                {activeTab === 'feedback' && <AdminFeedback />}
+                {activeTab === 'study_groups' && <AdminStudyGroups />}
+                {activeTab === 'courses' && <AdminCourses />}
+                {activeTab === 'devices' && <AdminDevices />}
+                {activeTab === 'settings' && <AdminSettings />}
+                {activeTab === 'privacy' && <AdminPrivacySecurity />}
+                {activeTab === 'quizzes' && <AdminQuizzes />}
+                {activeTab === 'delete_student' && <AdminDeleteStudent />}
+              </>
+            )}
 
             {/* Footer */}
             <Footer />

@@ -13,10 +13,15 @@ const DEFAULT_CA_ATTEMPTS = ['January 2027', 'May 2027', 'September 2027'];
 const DEFAULT_CMA_ATTEMPTS = ['June 2027', 'December 2027'];
 
 export default function AdminAnnouncements() {
-  const { userProfile } = useAuth();
+  const { userProfile, currentUser, isOwner, hasPermission, adminDesignation } = useAuth();
   const [announcements, setAnnouncements] = useState([]);
   const [coursesConfig, setCoursesConfig] = useState(null);
   const [loading, setLoading] = useState(true);
+
+  const canCreate = isOwner || hasPermission('create_announcement');
+  const canEdit = isOwner || hasPermission('edit_announcement');
+  const canDelete = isOwner || hasPermission('delete_announcement');
+  const canPublish = isOwner || hasPermission('publish_announcement');
 
   function getAttempts(courseName, levelName = 'Foundation') {
     const cKey = (courseName || 'CA').toLowerCase();
@@ -149,6 +154,16 @@ export default function AdminAnnouncements() {
     e.preventDefault();
     if (!title.trim() || !message.trim()) return;
 
+    if (editingItem && !canEdit) {
+      toast.error("Permission Denied: You do not have permission to edit announcements.");
+      return;
+    }
+
+    if (!editingItem && !canCreate) {
+      toast.error("Permission Denied: You do not have permission to create announcements.");
+      return;
+    }
+
     try {
       setSubmitting(true);
       const payload = {
@@ -161,10 +176,14 @@ export default function AdminAnnouncements() {
         ...(audienceType === 'specific' && { course, level, attempt }),
       };
 
+      const currentDesignation = adminDesignation || (isOwner ? 'Super Admin' : 'Admin');
+
       if (editingItem) {
         await updateDoc(doc(db, 'announcements', editingItem.id), {
           ...payload,
-          updatedAt: serverTimestamp()
+          updatedAt: serverTimestamp(),
+          updatedBy: userProfile?.name || currentUser?.displayName || 'Admin',
+          updatedByDesignation: currentDesignation
         });
         toast.success("Announcement updated successfully!");
       } else {
@@ -172,7 +191,11 @@ export default function AdminAnnouncements() {
           ...payload,
           published: true,
           createdAt: serverTimestamp(),
-          author: userProfile?.name || 'Platform Admin'
+          authorId: currentUser?.uid || '',
+          authorEmail: currentUser?.email || '',
+          authorName: userProfile?.name || currentUser?.displayName || 'Admin',
+          authorDesignation: currentDesignation,
+          author: `Posted by ${currentDesignation}`
         });
         toast.success("Announcement broadcasted! Popup alert triggered.");
       }
@@ -187,25 +210,36 @@ export default function AdminAnnouncements() {
   };
 
   const togglePublishStatus = async (item) => {
+    if (!canPublish) {
+      toast.error("Permission Denied: You do not have permission to publish/unpublish announcements.");
+      return;
+    }
     try {
       const newStatus = item.published === false ? true : false;
       await updateDoc(doc(db, 'announcements', item.id), {
         published: newStatus
       });
+      toast.success(newStatus ? "Announcement published." : "Announcement archived.");
     } catch (err) {
       console.error("Error toggling publish status:", err);
-      alert(`Failed to update status: ${err.message || err.code}`);
+      toast.error(`Failed to update status: ${err.message || err.code}`);
     }
   };
 
   const confirmDeleteAnnouncement = async () => {
     if (!deletingId) return;
+    if (!canDelete) {
+      toast.error("Permission Denied: You do not have permission to delete announcements.");
+      setDeletingId(null);
+      return;
+    }
     try {
       await deleteDoc(doc(db, 'announcements', deletingId));
+      toast.success("Announcement deleted.");
       setDeletingId(null);
     } catch (err) {
       console.error("Error deleting announcement:", err);
-      alert(`Failed to delete announcement: ${err.message || err.code}`);
+      toast.error(`Failed to delete announcement: ${err.message || err.code}`);
     }
   };
 
@@ -229,13 +263,15 @@ export default function AdminAnnouncements() {
             </p>
           </div>
 
-          <button
-            onClick={handleOpenAddModal}
-            className="px-6 py-3.5 rounded-2xl bg-gradient-to-r from-rose-600 to-rose-500 hover:from-rose-500 hover:to-rose-600 text-white font-bold text-sm shadow-lg flex items-center gap-2 transition-all hover:scale-105"
-          >
-            <Plus className="w-5 h-5" />
-            <span>Create Announcement</span>
-          </button>
+          {canCreate && (
+            <button
+              onClick={handleOpenAddModal}
+              className="px-6 py-3.5 rounded-2xl bg-gradient-to-r from-rose-600 to-rose-500 hover:from-rose-500 hover:to-rose-600 text-white font-bold text-sm shadow-lg flex items-center gap-2 transition-all hover:scale-105 cursor-pointer"
+            >
+              <Plus className="w-5 h-5" />
+              <span>Create Announcement</span>
+            </button>
+          )}
         </div>
       </div>
 
@@ -245,8 +281,8 @@ export default function AdminAnnouncements() {
           icon={Megaphone}
           title="No announcements published yet"
           description="Create your first platform announcement to broadcast important exam dates and alerts."
-          actionText="Create Announcement"
-          onAction={handleOpenAddModal}
+          actionText={canCreate ? "Create Announcement" : undefined}
+          onAction={canCreate ? handleOpenAddModal : undefined}
         />
       ) : (
         <div className="space-y-4">
@@ -269,17 +305,20 @@ export default function AdminAnnouncements() {
                     )}
                   </div>
                   <div className="flex items-center gap-2 mt-1">
-                    <div className="text-xs text-slate-400">By {item.author || 'Admin'} • {formatDate(item.createdAt)}</div>
+                    <div className="text-xs text-slate-400">
+                      {item.authorDesignation ? `Posted by ${item.authorDesignation}` : (item.author || 'Admin')} • {formatDate(item.createdAt)}
+                    </div>
                     <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-navy-900 border border-white/10 text-slate-300">
                       {item.audienceType === 'specific' ? `${item.course} ${item.level} • ${item.attempt}` : 'All Streams'}
                     </span>
                   </div>
                 </div>
 
-                  <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2">
+                  {canPublish && (
                     <button
                       onClick={() => togglePublishStatus(item)}
-                      className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
+                      className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
                         item.published !== false 
                           ? 'bg-amber-500/20 text-amber-300 hover:bg-amber-500/30' 
                           : 'bg-emerald-500/20 text-emerald-300 hover:bg-emerald-500/30'
@@ -287,20 +326,27 @@ export default function AdminAnnouncements() {
                     >
                       {item.published !== false ? 'Archive' : 'Publish'}
                     </button>
+                  )}
 
-                  <button
-                    onClick={() => handleOpenEditModal(item)}
-                    className="p-2 rounded-xl bg-navy-900 border border-white/10 text-slate-300 hover:text-white"
-                  >
-                    <Edit2 className="w-4 h-4" />
-                  </button>
+                  {canEdit && (
+                    <button
+                      onClick={() => handleOpenEditModal(item)}
+                      className="p-2 rounded-xl bg-navy-900 border border-white/10 text-slate-300 hover:text-white cursor-pointer"
+                      title="Edit Announcement"
+                    >
+                      <Edit2 className="w-4 h-4" />
+                    </button>
+                  )}
 
-                  <button
-                    onClick={() => setDeletingId(item.id)}
-                    className="p-2 rounded-xl bg-red-500/10 text-red-400 border border-red-500/20 hover:bg-red-500/20"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
+                  {canDelete && (
+                    <button
+                      onClick={() => setDeletingId(item.id)}
+                      className="p-2 rounded-xl bg-red-500/10 text-red-400 border border-red-500/20 hover:bg-red-500/20 cursor-pointer"
+                      title="Delete Announcement"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  )}
                 </div>
               </div>
 

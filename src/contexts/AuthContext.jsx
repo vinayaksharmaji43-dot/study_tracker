@@ -14,6 +14,7 @@ import { auth, db } from '../config/firebase';
 import { generateRollNumber } from '../utils/rollNumberGenerator';
 import LoadingSpinner from '../components/LoadingSpinner';
 import { calculateStudentLevel, getDefaultStreamLevels, getStreamId, getStreamDetails, normalizeLevelConfig } from '../utils/levelSystem';
+import { isOwnerAccount, hasAdminPermission, ALL_PERMISSIONS } from '../utils/permissionService';
 
 const AuthContext = createContext();
 
@@ -376,15 +377,26 @@ export function AuthProvider({ children }) {
     return sendPasswordResetEmail(auth, email);
   }
 
+  const isOwner = isOwnerAccount(currentUser, userProfile);
   const isCurrentAdmin = 
-    userProfile?.role === 'admin' || 
-    currentUser?.email?.toLowerCase() === 'vaultstore27@gmail.com' ||
-    currentUser?.email?.toLowerCase() === 'thunderworld766@gmail.com';
+    isOwner || 
+    (userProfile?.role === 'admin' && userProfile?.adminStatus !== 'inactive');
+
+  const adminPermissions = isOwner ? ALL_PERMISSIONS : (Array.isArray(userProfile?.permissions) ? userProfile.permissions : []);
+  const adminDesignation = isOwner ? (userProfile?.adminDesignation || 'Super Admin') : (userProfile?.adminDesignation || 'Admin');
+
+  const hasPermission = (permissionId) => {
+    return hasAdminPermission(currentUser, userProfile, permissionId);
+  };
 
   const value = {
     currentUser,
     userProfile,
     isAdmin: isCurrentAdmin,
+    isOwner,
+    adminPermissions,
+    adminDesignation,
+    hasPermission,
     loading,
     login,
     register,

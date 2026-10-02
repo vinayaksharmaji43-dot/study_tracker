@@ -28,8 +28,13 @@ import {
 } from 'lucide-react';
 import ProBadge from '../../components/ProBadge';
 import { getStreamId, getStreamDetails, STREAM_OPTIONS, STREAM_LABELS } from '../../utils/levelSystem';
+import { useAuth } from '../../contexts/AuthContext';
 
 export default function AdminStudents() {
+  const { userProfile, currentUser, isOwner, hasPermission } = useAuth();
+  const canEdit = isOwner || hasPermission('edit_students');
+  const canViewProfile = isOwner || hasPermission('view_student_profile');
+
   const [students, setStudents] = useState([]);
   const [sessions, setSessions] = useState([]);
   const [targets, setTargets] = useState([]);

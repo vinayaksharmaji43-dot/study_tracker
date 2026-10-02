@@ -279,14 +279,22 @@ export default function GlobalAnnouncementPopup() {
             {activeAnnouncement.message || activeAnnouncement.description}
           </div>
 
-          {/* Audience Badge */}
-          <div className="flex items-center gap-2 pt-1 text-[11px] text-slate-400">
-            <Bell className="w-3.5 h-3.5 text-amber-400" />
-            <span>Target: </span>
-            <span className="font-bold text-amber-300">
-              {activeAnnouncement.audienceType === 'specific' 
-                ? `${activeAnnouncement.course || 'All'} ${activeAnnouncement.level || ''} ${activeAnnouncement.attempt ? `• ${activeAnnouncement.attempt}` : ''}`
-                : 'All Students & Batches'}
+          {/* Audience & Author Badge */}
+          <div className="flex items-center justify-between gap-2 pt-1 text-[11px] text-slate-400 flex-wrap">
+            <div className="flex items-center gap-1.5">
+              <Bell className="w-3.5 h-3.5 text-amber-400" />
+              <span>Target: </span>
+              <span className="font-bold text-amber-300">
+                {activeAnnouncement.audienceType === 'specific' 
+                  ? `${activeAnnouncement.course || 'All'} ${activeAnnouncement.level || ''} ${activeAnnouncement.attempt ? `• ${activeAnnouncement.attempt}` : ''}`
+                  : 'All Students & Batches'}
+              </span>
+            </div>
+
+            <span className="text-[10px] font-bold text-amber-300/90 bg-white/5 px-2 py-0.5 rounded-md border border-white/5">
+              {activeAnnouncement.authorDesignation 
+                ? `Posted by ${activeAnnouncement.authorDesignation}` 
+                : (activeAnnouncement.author || 'Platform Notice')}
             </span>
           </div>
 
