@@ -78,7 +78,8 @@ import {
   RotateCcw,
   BrainCircuit,
   UserX,
-  Crown
+  Crown,
+  Bell
 } from 'lucide-react';
 
 
