@@ -43,6 +43,7 @@ import AdminDeleteStudent from './tabs/AdminDeleteStudent';
 import AdminPremiumAccess from './tabs/AdminPremiumAccess';
 import AdminStreamRequests from './tabs/AdminStreamRequests';
 import AdminManagement from './tabs/AdminManagement';
+import AdminPushNotifications from './tabs/AdminPushNotifications';
 
 import { 
   LayoutDashboard,  
@@ -116,6 +117,7 @@ export default function AdminDashboard() {
     timer_subjects: 'manage_courses',
     notes: 'view_dashboard',
     announcements: 'view_announcements',
+    push_notifications: 'view_announcements',
     motivation: 'view_dashboard',
     feedback: 'view_dashboard',
     study_groups: 'view_dashboard',
@@ -199,6 +201,7 @@ export default function AdminDashboard() {
     { id: 'timer_subjects', label: 'Timer Subjects', icon: Clock },
     { id: 'notes', label: 'Notes', icon: FileText },
     { id: 'announcements', label: 'Announcements', icon: Megaphone },
+    { id: 'push_notifications', label: '🔔 Push Notifications', icon: Bell },
     { id: 'motivation', label: 'Motivation', icon: Sparkles },
     { id: 'feedback', label: 'Student Feedback', icon: MessageSquare },
     { id: 'study_groups', label: 'Study Groups', icon: Users },
@@ -375,6 +378,7 @@ export default function AdminDashboard() {
                 { activeTab === 'notes' && <AdminNotes /> }
                 {activeTab === 'doubts' && <AdminDoubts />}
                 {activeTab === 'announcements' && <AdminAnnouncements />}
+                {activeTab === 'push_notifications' && <AdminPushNotifications />}
                 {activeTab === 'motivation' && <AdminMotivation />}
                 {activeTab === 'feedback' && <AdminFeedback />}
                 {activeTab === 'study_groups' && <AdminStudyGroups />}

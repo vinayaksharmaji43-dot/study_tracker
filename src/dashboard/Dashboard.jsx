@@ -64,6 +64,7 @@ import ProBadge from '../components/ProBadge';
 import PremiumLockScreen from '../components/PremiumLockScreen';
 import TrialExpiredBanner from '../components/TrialExpiredBanner';
 import TrialExpiredModal from '../components/TrialExpiredModal';
+import NotificationPermissionPrompt from '../components/NotificationPermissionPrompt';
 import { useTheme } from '../contexts/ThemeContext';
 
 export default function Dashboard() {
@@ -424,6 +425,9 @@ export default function Dashboard() {
           >
             {/* Exam Countdown Banner */}
             <CountdownWidget setActiveTab={setActiveTab} />
+
+            {/* Instant Web Push Notifications Permission Banner */}
+            <NotificationPermissionPrompt mode="banner" />
 
             {/* 12-Day Trial Expired Banner (Shown only after Name+Phone form is complete) */}
             <TrialExpiredBanner setActiveTab={setActiveTab} />
