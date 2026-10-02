@@ -160,20 +160,25 @@ export default function AdminDashboard() {
   ];
 
   return (
-    <div className={`min-h-screen flex flex-col selection:bg-emerald-500 selection:text-white ${isEyeCare ? 'bg-navy-950 text-slate-100' : 'bg-[#f0f7ff] text-slate-900 dashboard-theme-light'}`}>
+    <div className={`min-h-screen lg:h-screen lg:overflow-hidden flex flex-col selection:bg-emerald-500 selection:text-white ${isEyeCare ? 'bg-navy-950 text-slate-100' : 'bg-[#f0f7ff] text-slate-900 dashboard-theme-light'}`}>
       <Navbar />
 
-      <div className="flex-grow max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="flex-grow max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-4 lg:py-6 lg:flex-1 lg:min-h-0 lg:overflow-hidden">
         
         {/* Main Admin Layout: Sidebar + Workspace Content */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start lg:items-stretch lg:h-full lg:min-h-0">
           
-          {/* Admin Sidebar Navigation (Desktop) */}
-          <aside className="hidden lg:block lg:col-span-3 sticky top-28 space-y-4">
-            <div className={`p-4 rounded-3xl space-y-2 shadow-xl border ${isEyeCare ? 'glass-card border-emerald-500/30' : 'bg-white border-2 border-blue-200/90'}`}>
+          {/* Admin Sidebar Navigation (Desktop - Independent Scroll Container) */}
+          <aside className="hidden lg:flex lg:flex-col lg:col-span-3 lg:h-full lg:min-h-0 lg:overflow-hidden">
+            <div 
+              className={`p-4 rounded-3xl space-y-2 shadow-xl border flex flex-col h-full min-h-0 overflow-y-auto overscroll-contain custom-scrollbar ${
+                isEyeCare ? 'glass-card border-emerald-500/30' : 'bg-white border-2 border-blue-200/90'
+              }`}
+              style={{ overscrollBehavior: 'contain', WebkitOverflowScrolling: 'touch' }}
+            >
               
               {/* Admin Snapshot Header */}
-              <div className={`p-4 rounded-2xl border space-y-1 mb-2 ${isEyeCare ? 'bg-navy-900/80 border-white/5' : 'bg-blue-50/80 border-blue-100'}`}>
+              <div className={`p-4 rounded-2xl border space-y-1 mb-2 shrink-0 ${isEyeCare ? 'bg-navy-900/80 border-white/5' : 'bg-blue-50/80 border-blue-100'}`}>
                 <div className={`text-xs font-black uppercase tracking-wider flex items-center gap-1.5 ${isEyeCare ? 'text-emerald-400' : 'text-blue-700'}`}>
                   <ShieldCheck className="w-4 h-4 text-gold-400" />
                   <span>Admin Panel</span>
@@ -261,8 +266,11 @@ export default function AdminDashboard() {
             })}
           </div>
 
-          {/* Workspace Tab Rendering */}
-          <main className="col-span-1 lg:col-span-9 space-y-6">
+          {/* Workspace Tab Rendering - Independent Scroll Container */}
+          <main 
+            className="col-span-1 lg:col-span-9 lg:h-full lg:min-h-0 lg:overflow-y-auto lg:overscroll-contain custom-scrollbar space-y-6 lg:pr-2"
+            style={{ overscrollBehavior: 'contain', WebkitOverflowScrolling: 'touch' }}
+          >
             {activeTab === 'overview' && <AdminOverview setActiveTab={setActiveTab} />}
             {activeTab === 'students' && <AdminStudents />}
             {activeTab === 'stream_requests' && <AdminStreamRequests />}
@@ -298,13 +306,15 @@ export default function AdminDashboard() {
             {activeTab === 'privacy' && <AdminPrivacySecurity />}
             {activeTab === 'quizzes' && <AdminQuizzes />}
             {activeTab === 'delete_student' && <AdminDeleteStudent />}
+
+            {/* Footer */}
+            <Footer />
           </main>
 
         </div>
 
       </div>
 
-      <Footer />
     </div>
   );
 }

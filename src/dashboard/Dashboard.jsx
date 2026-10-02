@@ -147,34 +147,31 @@ export default function Dashboard() {
   ];
 
   return (
-    <div className={`min-h-screen flex flex-col relative transition-colors duration-300 ${
+    <div className={`min-h-screen lg:h-screen lg:overflow-hidden flex flex-col relative transition-colors duration-300 ${
       isEyeCare 
         ? 'bg-[#000000] text-slate-100 selection:bg-emerald-500 selection:text-white' 
         : 'bg-[#f0f7ff] text-slate-900 selection:bg-blue-600 selection:text-white dashboard-theme-light'
     }`}>
-      <div className={`flex flex-col min-h-screen transition-all duration-300 ${
+      <div className={`flex flex-col min-h-screen lg:h-screen lg:overflow-hidden transition-all duration-300 ${
         !isProfileCompleted ? 'pointer-events-none select-none filter blur-sm opacity-40' : ''
       }`}>
         <Navbar activeTab={activeTab} setActiveTab={setActiveTab} />
 
-        <div className="flex-grow max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
+        <div className="flex-grow max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-4 lg:py-6 lg:flex-1 lg:min-h-0 lg:overflow-hidden">
         
-        {/* Exam Countdown Banner */}
-        <CountdownWidget setActiveTab={setActiveTab} />
-
-        {/* 12-Day Trial Expired Banner (Shown only after Name+Phone form is complete) */}
-        <TrialExpiredBanner setActiveTab={setActiveTab} />
-
-        {/* Main Dashboard Layout: Sidebar + View Content */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-          
-          {/* Sidebar Navigation (Desktop) */}
-          <aside className="hidden lg:block lg:col-span-3 sticky top-28 space-y-4">
-            <div className={`p-4 rounded-3xl space-y-2 shadow-xl border transition-colors ${
-              isEyeCare 
-                ? 'glass-card border-white/10' 
-                : 'bg-white border-blue-200/80 shadow-[0_4px_25px_-5px_rgba(37,99,235,0.08)]'
-            }`}>
+          {/* Main Dashboard Layout: Sidebar (Quick Access) + View Content */}
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start lg:items-stretch lg:h-full lg:min-h-0">
+            
+            {/* Sidebar Navigation (Desktop Quick Access - Independent Scroll Container) */}
+            <aside className="hidden lg:flex lg:flex-col lg:col-span-3 lg:h-full lg:min-h-0 lg:overflow-hidden">
+              <div 
+                className={`p-4 rounded-3xl space-y-2 shadow-xl border transition-colors flex flex-col h-full min-h-0 overflow-y-auto overscroll-contain custom-scrollbar ${
+                  isEyeCare 
+                    ? 'glass-card border-white/10' 
+                    : 'bg-white border-blue-200/80 shadow-[0_4px_25px_-5px_rgba(37,99,235,0.08)]'
+                }`}
+                style={{ overscrollBehavior: 'contain', WebkitOverflowScrolling: 'touch' }}
+              >
               
               {/* User Snapshot Header */}
               <div className={`p-4 rounded-2xl border space-y-1.5 mb-2 transition-colors ${
@@ -420,8 +417,17 @@ export default function Dashboard() {
             </div>
           </div>
 
-          {/* Main Dashboard Workspace View */}
-          <main className="col-span-1 lg:col-span-9 space-y-6">
+          {/* Main Dashboard Workspace View - Independent Scroll Container */}
+          <main 
+            className="col-span-1 lg:col-span-9 lg:h-full lg:min-h-0 lg:overflow-y-auto lg:overscroll-contain custom-scrollbar space-y-6 lg:pr-2"
+            style={{ overscrollBehavior: 'contain', WebkitOverflowScrolling: 'touch' }}
+          >
+            {/* Exam Countdown Banner */}
+            <CountdownWidget setActiveTab={setActiveTab} />
+
+            {/* 12-Day Trial Expired Banner (Shown only after Name+Phone form is complete) */}
+            <TrialExpiredBanner setActiveTab={setActiveTab} />
+
             {/* 12-Day Trial Expired Lock Screen Guard */}
             {canShowTrialExpiredUI && !isSectionAccessible(activeTab) ? (
               <PremiumLockScreen
@@ -459,13 +465,15 @@ export default function Dashboard() {
                 {activeTab === 'support' && <Support setActiveTab={setActiveTab} />}
               </ErrorBoundary>
             )}
+
+            {/* Footer */}
+            <Footer />
           </main>
 
         </div>
 
       </div>
 
-      <Footer />
       </div>
 
       {/* Global Section Maintenance Modal */}
