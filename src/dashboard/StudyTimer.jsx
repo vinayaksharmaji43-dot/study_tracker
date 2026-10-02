@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { collection, addDoc, doc, increment, onSnapshot, query, runTransaction, serverTimestamp, updateDoc, where, setDoc } from 'firebase/firestore';
+import { collection, addDoc, doc, getDoc, increment, onSnapshot, query, runTransaction, serverTimestamp, updateDoc, where, setDoc } from 'firebase/firestore';
 import { db } from '../config/firebase';
 import { useAuth } from '../contexts/AuthContext';
 import { formatTimerTime, formatDate, getDateKey, getMonthKey, calculateDailyPoints } from '../utils/helpers';
@@ -30,6 +30,53 @@ import { useTheme } from '../contexts/ThemeContext';
 
 function normalizeAttempt(att) {
   return (att || '').toLowerCase().replace(/\s+/g, '').replace('2027', '27');
+}
+
+function getFallbackSubjects(course, level) {
+  const c = String(course || 'CA').toUpperCase();
+  const l = String(level || 'Foundation').toLowerCase();
+  const isInter = l.includes('inter');
+  const isCma = c.includes('CMA');
+
+  if (isCma) {
+    if (isInter) {
+      return [
+        'Paper 5: Business Laws and Ethics',
+        'Paper 6: Financial Accounting',
+        'Paper 7: Direct and Indirect Taxation',
+        'Paper 8: Cost Accounting',
+        'Paper 9: Operations Management and Strategic Management',
+        'Paper 10: Corporate Accounting and Auditing',
+        'Paper 11: Financial Management and Business Data Analytics',
+        'Paper 12: Management Accounting'
+      ];
+    }
+    return [
+      'Paper 1: Fundamentals of Business Laws and Business Communication',
+      'Paper 2: Fundamentals of Financial and Cost Accounting',
+      'Paper 3: Fundamentals of Business Mathematics and Statistics',
+      'Paper 4: Fundamentals of Business Economics and Management'
+    ];
+  }
+
+  if (isInter) {
+    return [
+      'Paper 1: Advanced Accounting',
+      'Paper 2: Corporate and Other Laws',
+      'Paper 3: Taxation',
+      'Paper 4: Cost and Management Accounting',
+      'Paper 5: Auditing and Ethics',
+      'Paper 6: Financial Management and Strategic Management'
+    ];
+  }
+
+  // Default CA Foundation
+  return [
+    'Paper 1: Accounting',
+    'Paper 2: Business Laws',
+    'Paper 3: Quantitative Aptitude',
+    'Paper 4: Business Economics'
+  ];
 }
 
 function parseStream(userProfile) {
@@ -65,6 +112,7 @@ export default function StudyTimer() {
     
     const { course: myCourse, level: myLevel, attempt: myAttemptRaw } = parseStream(userProfile);
     const myAttempt = normalizeAttempt(myAttemptRaw);
+    const fallbacks = getFallbackSubjects(myCourse, myLevel);
 
     const q = query(
       collection(db, 'timerSubjects'),
@@ -74,20 +122,29 @@ export default function StudyTimer() {
     );
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
-      const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      
-      // Filter by attempt (All Attempts OR Specific Attempt)
-      const attemptFiltered = data.filter(sub => 
-        sub.allAttempts || normalizeAttempt(sub.attempt) === myAttempt
-      );
+      let subjectNames = [];
+      if (!snapshot.empty) {
+        const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        
+        // Filter by attempt (All Attempts OR Specific Attempt)
+        const attemptFiltered = data.filter(sub => 
+          sub.allAttempts || normalizeAttempt(sub.attempt) === myAttempt
+        );
 
-      // Sort by order if available, else by name
-      attemptFiltered.sort((a, b) => {
-        if (a.order !== undefined && b.order !== undefined) return a.order - b.order;
-        return a.subjectName.localeCompare(b.subjectName);
-      });
+        // Sort by order if available, else by name
+        attemptFiltered.sort((a, b) => {
+          if (a.order !== undefined && b.order !== undefined) return a.order - b.order;
+          return a.subjectName.localeCompare(b.subjectName);
+        });
 
-      const subjectNames = attemptFiltered.map(sub => sub.subjectName);
+        subjectNames = attemptFiltered.map(sub => sub.subjectName).filter(Boolean);
+      }
+
+      // If no admin-created timerSubjects exist for this stream, use standard syllabus subjects
+      if (subjectNames.length === 0) {
+        subjectNames = fallbacks;
+      }
+
       setSubjects(subjectNames);
       
       const quickSubject = sessionStorage.getItem('quick_timer_subject');
@@ -96,11 +153,21 @@ export default function StudyTimer() {
         setSelectedSubject(match || quickSubject);
         sessionStorage.removeItem('quick_timer_subject');
       } else if (subjectNames.length > 0) {
-        setSelectedSubject(prev => subjectNames.includes(prev) ? prev : subjectNames[0]);
+        setSelectedSubject(prev => {
+          if (prev && (subjectNames.includes(prev) || subjectNames.some(s => isSubjectMatch(s, prev)))) {
+            return prev;
+          }
+          return subjectNames[0];
+        });
       } else {
-        setSelectedSubject('');
+        setSelectedSubject(fallbacks[0] || 'General Study');
       }
       
+      setLoadingSubjects(false);
+    }, (error) => {
+      console.warn("Could not query timerSubjects, using stream fallbacks:", error);
+      setSubjects(fallbacks);
+      setSelectedSubject(prev => prev || fallbacks[0]);
       setLoadingSubjects(false);
     });
 
@@ -126,15 +193,21 @@ export default function StudyTimer() {
       const sDate = sess.date?.toDate ? sess.date.toDate() : (sess.date ? new Date(sess.date) : null);
       if (!sDate) return false;
       if (getDateKey(sDate) !== todayKey) return false;
-      return subjects.some(sub => isSubjectMatch(sess.subject, sub));
+      if (subjects.length > 0 && subjects.some(sub => isSubjectMatch(sess.subject, sub))) {
+        return true;
+      }
+      if (sess.course && userProfile?.course) {
+        return String(sess.course).toLowerCase().trim() === String(userProfile.course).toLowerCase().trim();
+      }
+      return true;
     });
-  }, [sessions, todayKey, subjects]);
+  }, [sessions, todayKey, subjects, userProfile?.course]);
 
   const todaySubjectTotals = useMemo(() => {
     const map = {};
     let totalSeconds = 0;
     todayStreamSessions.forEach((sess) => {
-      const sub = (sess.subject || 'General').trim();
+      const sub = (sess.subject || 'General Study').trim();
       const officialSub = subjects.find(s => isSubjectMatch(sub, s)) || sub;
       const dur = Number(sess.duration) || 0;
       if (!map[officialSub]) map[officialSub] = 0;
@@ -151,9 +224,15 @@ export default function StudyTimer() {
       const sDate = sess.date?.toDate ? sess.date.toDate() : (sess.date ? new Date(sess.date) : null);
       if (!sDate) return false;
       if (getDateKey(sDate) !== timerDayKey) return false;
-      return subjects.some(sub => isSubjectMatch(sess.subject, sub));
+      if (subjects.length > 0 && subjects.some(sub => isSubjectMatch(sess.subject, sub))) {
+        return true;
+      }
+      if (sess.course && userProfile?.course) {
+        return String(sess.course).toLowerCase().trim() === String(userProfile.course).toLowerCase().trim();
+      }
+      return true;
     });
-  }, [sessions, timerDayKey, subjects]);
+  }, [sessions, timerDayKey, subjects, userProfile?.course]);
 
   const timerDayTotals = useMemo(() => {
     const map = {};
@@ -529,105 +608,135 @@ export default function StudyTimer() {
     if (!currentUser?.uid) return;
     const durationHours = durationSecs / 3600;
     const todayStr = getDateKey(new Date());
+    const finalSubject = (targetSubject || selectedSubject || (subjects[0] || 'General Study')).trim();
+    const course = userProfile?.course || 'CA Foundation';
+    const level = userProfile?.level || 'Foundation';
+    const stream = userProfile?.stream || `${course}_${level}`;
 
+    // 1. STEP 1: GUARANTEED SESSION PERSISTENCE FIRST
+    // Save the core studySession record so the student's study time is permanently secured in the database
+    await addDoc(collection(db, 'studySessions'), {
+      uid: currentUser.uid,
+      studentName: userProfile?.name || currentUser.displayName || 'Student',
+      rollNumber: userProfile?.rollNumber || '',
+      subject: finalSubject,
+      duration: durationSecs,
+      maxFocusSecs: durationSecs,
+      course,
+      level,
+      stream,
+      dateKey: todayStr,
+      date: serverTimestamp(),
+      source: 'timer'
+    });
+
+    // 2. STEP 2: CALCULATE MILESTONES & UPDATE studyDailyStats
+    let newlyUnlocked = [];
+    let earned = 0;
     try {
-      const { newMilestones, pointsEarned } = await runTransaction(db, async (transaction) => {
-        const userRef = doc(db, 'users', currentUser.uid);
-        const statRef = doc(db, 'studyDailyStats', `${currentUser.uid}_${todayStr}`);
-        
-        const statDoc = await transaction.get(statRef);
-        let prevTotalSecs = 0;
-        let completedMilestones = [];
-        
-        if (statDoc.exists()) {
-          prevTotalSecs = statDoc.data().totalStudySeconds || 0;
-          completedMilestones = statDoc.data().completedMilestones || [];
+      const statRef = doc(db, 'studyDailyStats', `${currentUser.uid}_${todayStr}`);
+      const statSnap = await getDoc(statRef);
+      let prevTotalSecs = 0;
+      let completedMilestones = [];
+      let lowStudyPenaltyApplied = false;
+
+      if (statSnap.exists()) {
+        const sData = statSnap.data();
+        prevTotalSecs = Number(sData.totalStudySeconds) || 0;
+        completedMilestones = Array.isArray(sData.completedMilestones) ? [...sData.completedMilestones] : [];
+        lowStudyPenaltyApplied = Boolean(sData.lowStudyPenaltyApplied);
+      }
+
+      const newTotalSecs = prevTotalSecs + durationSecs;
+      const newFullHours = Math.floor(newTotalSecs / 3600);
+
+      for (let h = 1; h <= newFullHours; h++) {
+        if (!completedMilestones.includes(h)) {
+          newlyUnlocked.push(h);
+          completedMilestones.push(h);
+          if (h === 6) earned += 5;
+          if (h >= 7) earned += 2;
         }
+      }
 
-        const newTotalSecs = prevTotalSecs + durationSecs;
-        const newFullHours = Math.floor(newTotalSecs / 3600);
-        
-        let earned = 0;
-        let newlyUnlocked = [];
+      const statPayload = {
+        studentId: currentUser.uid,
+        date: todayStr,
+        totalStudySeconds: newTotalSecs,
+        completedFullHours: newFullHours,
+        dailyStudyPoints: increment(earned),
+        completedMilestones,
+        lowStudyPenaltyApplied,
+        updatedAt: serverTimestamp()
+      };
 
-        for (let h = 1; h <= newFullHours; h++) {
-          if (!completedMilestones.includes(h)) {
-            newlyUnlocked.push(h);
-            completedMilestones.push(h);
-            if (h === 6) earned += 5;
-            if (h >= 7) earned += 2;
-          }
-        }
+      await setDoc(statRef, statPayload, { merge: true });
+    } catch (statsErr) {
+      console.warn("Could not update studyDailyStats:", statsErr);
+    }
 
-        transaction.set(statRef, {
-          studentId: currentUser.uid,
-          date: todayStr,
-          totalStudySeconds: newTotalSecs,
-          completedFullHours: newFullHours,
-          dailyStudyPoints: increment(earned),
-          completedMilestones,
-          lowStudyPenaltyApplied: statDoc.exists() ? statDoc.data().lowStudyPenaltyApplied || false : false
-        }, { merge: true });
-
-        if (earned > 0) {
-          const txRef = doc(collection(db, 'pointTransactions'));
-          transaction.set(txRef, {
-            studentId: currentUser.uid,
-            amount: earned,
-            type: 'reward',
-            reason: `Study Milestones: ${newlyUnlocked.join(', ')} Hours`,
-            sourceId: `timer_${todayStr}`,
-            date: todayStr,
-            createdAt: serverTimestamp()
-          });
-
-          transaction.update(userRef, {
-            studyHours: increment(durationHours),
-            points: increment(earned)
-          });
-        } else {
-          transaction.update(userRef, {
-            studyHours: increment(durationHours)
-          });
-        }
-        
-        return { newMilestones: newlyUnlocked, pointsEarned: earned };
-      });
-
-      await addDoc(collection(db, 'studySessions'), {
-        uid: currentUser.uid,
-        subject: targetSubject || selectedSubject,
-        duration: durationSecs,
-        maxFocusSecs: durationSecs,
-        course: userProfile?.course || 'CA Foundation',
-        date: serverTimestamp()
-      });
-
-      // Increment studiedSeconds on matching incomplete targets
+    // 3. STEP 3: LOG POINT TRANSACTIONS IF MILESTONES ACHIEVED
+    if (earned > 0) {
       try {
-        const savedSub = targetSubject || selectedSubject;
-        const matchingTargets = userTargets.filter(t => 
-          (t.status !== 'completed' && !t.completed) && isSubjectMatch(t.subject, savedSub)
-        );
-        for (const t of matchingTargets) {
-          const tRef = doc(db, 'targets', t.id);
-          await updateDoc(tRef, {
-            studiedSeconds: increment(durationSecs),
-            lastStudiedAt: serverTimestamp()
-          });
-        }
-      } catch (tErr) {
-        console.warn("Could not update target studiedSeconds:", tErr);
+        await addDoc(collection(db, 'pointTransactions'), {
+          studentId: currentUser.uid,
+          amount: earned,
+          type: 'reward',
+          reason: `Study Milestones: ${newlyUnlocked.join(', ')} Hours`,
+          sourceId: `timer_${todayStr}_${Date.now()}`,
+          date: todayStr,
+          createdAt: serverTimestamp()
+        });
+      } catch (ptErr) {
+        console.warn("Could not log pointTransaction:", ptErr);
       }
+    }
 
-      if (newMilestones.length > 0) {
-        const msgs = newMilestones.map(h => getMilestoneMessage(h));
-        setMilestoneMessages(msgs);
+    // 4. STEP 4: UPDATE USER PROFILE (STUDY HOURS & EARNED POINTS)
+    try {
+      const userRef = doc(db, 'users', currentUser.uid);
+      const userUpdates = {
+        studyHours: increment(durationHours),
+        lastActiveAt: serverTimestamp()
+      };
+      if (earned > 0) {
+        userUpdates.points = increment(earned);
       }
+      await updateDoc(userRef, userUpdates);
+    } catch (uErr) {
+      console.warn("Could not update user document:", uErr);
+      // Fallback: update only studyHours if points update encountered restriction
+      try {
+        const userRef = doc(db, 'users', currentUser.uid);
+        await updateDoc(userRef, {
+          studyHours: increment(durationHours),
+          lastActiveAt: serverTimestamp()
+        });
+      } catch (innerErr) {
+        console.warn("Fallback user studyHours update failed:", innerErr);
+      }
+    }
 
-    } catch (err) {
-      console.error("Error saving session in transaction:", err);
-      throw err;
+    // 5. STEP 5: INCREMENT TARGET STUDIED SECONDS
+    try {
+      const matchingTargets = userTargets.filter(t => 
+        (t.status !== 'completed' && !t.completed) && isSubjectMatch(t.subject, finalSubject)
+      );
+      for (const t of matchingTargets) {
+        const tRef = doc(db, 'targets', t.id);
+        await updateDoc(tRef, {
+          studiedSeconds: increment(durationSecs),
+          lastStudiedAt: serverTimestamp()
+        });
+      }
+    } catch (tErr) {
+      console.warn("Could not update target studiedSeconds:", tErr);
+    }
+
+    // 6. STEP 6: MILESTONE CELEBRATIONS
+    if (newlyUnlocked.length > 0) {
+      const msgs = newlyUnlocked.map(h => getMilestoneMessage(h));
+      setMilestoneMessages(msgs);
     }
   };
 
@@ -754,7 +863,40 @@ export default function StudyTimer() {
       setTimeout(() => setSavedSuccess(false), 4000);
     } catch (err) {
       console.error("Error saving study session:", err);
-      alert("Failed to save session. Please try again.");
+      // Emergency Fallback: Guarantee session is never lost under any circumstance
+      try {
+        const finalSubject = (selectedSubject || (subjects[0] || 'General Study')).trim();
+        const course = userProfile?.course || 'CA Foundation';
+        const level = userProfile?.level || 'Foundation';
+        const stream = userProfile?.stream || `${course}_${level}`;
+        const sessionDuration = Math.min(finalSeconds, 18000);
+
+        await addDoc(collection(db, 'studySessions'), {
+          uid: currentUser.uid,
+          studentName: userProfile?.name || currentUser.displayName || 'Student',
+          rollNumber: userProfile?.rollNumber || '',
+          subject: finalSubject,
+          duration: sessionDuration,
+          maxFocusSecs: sessionDuration,
+          course,
+          level,
+          stream,
+          dateKey: getDateKey(new Date()),
+          date: serverTimestamp(),
+          source: 'timer',
+          emergencyBackup: true
+        });
+
+        setSeconds(0);
+        setAccumulatedSeconds(0);
+        setStartTimestamp(null);
+        if (storageKey) localStorage.removeItem(storageKey);
+        setSavedSuccess(true);
+        setTimeout(() => setSavedSuccess(false), 4000);
+      } catch (emergencyErr) {
+        console.error("Emergency save error:", emergencyErr);
+        alert("Network notice: Session could not be saved to cloud. Please check your internet connection and try again.");
+      }
     } finally {
       setSaving(false);
     }

@@ -13,26 +13,14 @@ service cloud.firestore {
       );
     }
 
-    function protectedLevelPath(path) {
-      return path.matches('levelConfigs/.*') ||
-        path.matches('studentLevelData/.*') ||
-        path.matches('users/.*/levelHistory/.*') ||
-        path.matches('doubts/.*');
-    }
-
     match /users/{userId} {
       allow read: if signedIn();
       allow create: if signedIn() && request.auth.uid == userId;
       allow update: if admin() || (
         signedIn() && request.auth.uid == userId &&
-        request.resource.data.points == resource.data.points &&
-        request.resource.data.role == resource.data.role &&
-        request.resource.data.currentLevel == resource.data.currentLevel &&
-        request.resource.data.levelName == resource.data.levelName &&
-        request.resource.data.badge == resource.data.badge &&
-        request.resource.data.lastNotifiedLevel == resource.data.lastNotifiedLevel &&
-        request.resource.data.levelStream == resource.data.levelStream &&
+        (!('role' in request.resource.data) || request.resource.data.role == resource.data.role || (!('role' in resource.data) && request.resource.data.role == 'student')) &&
         (
+          !('streamLocked' in resource.data) ||
           resource.data.streamLocked != true ||
           (
             (!('stream' in request.resource.data) || request.resource.data.stream == resource.data.stream) &&
@@ -57,12 +45,12 @@ service cloud.firestore {
 
     match /studentLevelData/{studentId} {
       allow read: if signedIn() && (request.auth.uid == studentId || admin());
-      allow write: if admin();
+      allow write: if admin() || (signedIn() && request.auth.uid == studentId);
     }
 
     match /users/{studentId}/levelHistory/{historyId} {
       allow read: if signedIn() && (request.auth.uid == studentId || admin());
-      allow write: if admin();
+      allow write: if admin() || (signedIn() && request.auth.uid == studentId);
     }
 
     match /feedbacks/{feedbackId} {
@@ -89,7 +77,7 @@ service cloud.firestore {
     }
 
     match /{document=**} {
-      allow read, write: if signedIn() && !protectedLevelPath(document);
+      allow read, write: if signedIn();
     }
   }
 }

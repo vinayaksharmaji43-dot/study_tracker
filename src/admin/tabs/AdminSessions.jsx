@@ -39,15 +39,31 @@ export default function AdminSessions() {
     return found ? found.name : 'Student';
   };
 
+  const [streamFilter, setStreamFilter] = useState('all');
+
+  const getStudentInfo = (uid, session) => {
+    const found = students.find(s => (s.id || s.uid) === uid);
+    const name = session.studentName || (found ? found.name : 'Student');
+    const course = session.course || (found ? found.course : 'CA Foundation');
+    const rollNumber = session.rollNumber || (found ? found.rollNumber : '');
+    return { name, course, rollNumber };
+  };
+
   const uniqueSubjects = Array.from(new Set(sessions.map(s => s.subject).filter(Boolean)));
+  const uniqueStreams = Array.from(new Set(sessions.map(s => s.course).filter(Boolean)));
 
   const filteredSessions = sessions.filter(session => {
-    const name = getStudentName(session.uid).toLowerCase();
-    const matchesSearch = name.includes(searchQuery.toLowerCase()) || (session.subject || '').toLowerCase().includes(searchQuery.toLowerCase());
+    const info = getStudentInfo(session.uid, session);
+    const matchesSearch = info.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+      (session.subject || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+      info.rollNumber.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesStudent = studentFilter === 'all' || session.uid === studentFilter;
     const matchesSubject = subjectFilter === 'all' || session.subject === subjectFilter;
+    const matchesStream = streamFilter === 'all' || 
+      (session.course && session.course.toLowerCase() === streamFilter.toLowerCase()) ||
+      (info.course && info.course.toLowerCase() === streamFilter.toLowerCase());
 
-    return matchesSearch && matchesStudent && matchesSubject;
+    return matchesSearch && matchesStudent && matchesSubject && matchesStream;
   });
 
   return (
@@ -65,7 +81,7 @@ export default function AdminSessions() {
             Genuine Study <span className="gold-gradient-text">Sessions Monitor</span>
           </h1>
           <p className="text-slate-300 text-sm max-w-xl">
-            Monitor real-time recorded timer sessions across CA Foundation & CMA subjects.
+            Monitor real-time recorded timer sessions across CA Foundation, CA Intermediate, CMA Foundation & CMA Intermediate subjects.
           </p>
         </div>
       </div>
@@ -76,7 +92,7 @@ export default function AdminSessions() {
           <Search className="w-5 h-5 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
           <input
             type="text"
-            placeholder="Search by student name or subject..."
+            placeholder="Search by student name, roll number, or subject..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full pl-11 pr-4 py-3 rounded-2xl bg-navy-900 border border-white/10 text-white text-sm focus:outline-none focus:border-emerald-500"
@@ -84,6 +100,21 @@ export default function AdminSessions() {
         </div>
 
         <div className="flex flex-wrap items-center gap-3">
+          <select
+            value={streamFilter}
+            onChange={(e) => setStreamFilter(e.target.value)}
+            className="px-4 py-3 rounded-2xl bg-navy-900 border border-white/10 text-white text-xs font-bold focus:outline-none focus:border-emerald-500"
+          >
+            <option value="all">All Streams</option>
+            <option value="CA Foundation">CA Foundation</option>
+            <option value="CA Intermediate">CA Intermediate</option>
+            <option value="CMA Foundation">CMA Foundation</option>
+            <option value="CMA Intermediate">CMA Intermediate</option>
+            {uniqueStreams.filter(st => !['ca foundation', 'ca intermediate', 'cma foundation', 'cma intermediate'].includes(st.toLowerCase())).map(st => (
+              <option key={st} value={st}>{st}</option>
+            ))}
+          </select>
+
           <select
             value={studentFilter}
             onChange={(e) => setStudentFilter(e.target.value)}
@@ -122,6 +153,7 @@ export default function AdminSessions() {
               <thead>
                 <tr className="bg-navy-900/80 border-b border-white/10 text-xs font-bold text-slate-400 uppercase tracking-wider">
                   <th className="px-6 py-4">Student</th>
+                  <th className="px-6 py-4">Stream</th>
                   <th className="px-6 py-4">Subject</th>
                   <th className="px-6 py-4">Date & Time</th>
                   <th className="px-6 py-4 text-center">Duration</th>
@@ -129,33 +161,45 @@ export default function AdminSessions() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-white/5 text-sm">
-                {filteredSessions.map((sess) => (
-                  <tr key={sess.id} className="hover:bg-white/5 transition-colors">
-                    
-                    <td className="px-6 py-4 font-bold text-white">
-                      {getStudentName(sess.uid)}
-                    </td>
+                {filteredSessions.map((sess) => {
+                  const info = getStudentInfo(sess.uid, sess);
+                  return (
+                    <tr key={sess.id} className="hover:bg-white/5 transition-colors">
+                      
+                      <td className="px-6 py-4">
+                        <div className="font-bold text-white">{info.name}</div>
+                        {info.rollNumber && (
+                          <div className="text-[11px] font-mono text-slate-400">{info.rollNumber}</div>
+                        )}
+                      </td>
 
-                    <td className="px-6 py-4 text-xs font-semibold text-emerald-400">
-                      <span className="px-2.5 py-1 rounded-lg bg-emerald-500/10 border border-emerald-500/20">
-                        {sess.subject}
-                      </span>
-                    </td>
+                      <td className="px-6 py-4">
+                        <span className="px-2.5 py-1 rounded-lg text-xs font-bold bg-royal-500/10 text-royal-300 border border-royal-500/20">
+                          {info.course}
+                        </span>
+                      </td>
 
-                    <td className="px-6 py-4 text-xs text-slate-300">
-                      {formatDate(sess.date)}
-                    </td>
+                      <td className="px-6 py-4 text-xs font-semibold text-emerald-400">
+                        <span className="px-2.5 py-1 rounded-lg bg-emerald-500/10 border border-emerald-500/20">
+                          {sess.subject}
+                        </span>
+                      </td>
 
-                    <td className="px-6 py-4 text-center font-mono font-bold text-white">
-                      {formatTimerTime(sess.duration)}
-                    </td>
+                      <td className="px-6 py-4 text-xs text-slate-300">
+                        {formatDate(sess.date)}
+                      </td>
 
-                    <td className="px-6 py-4 text-right font-black text-gold-400 font-mono">
-                      +{(sess.duration / 3600 * 10).toFixed(0)} PTS
-                    </td>
+                      <td className="px-6 py-4 text-center font-mono font-bold text-white">
+                        {formatTimerTime(sess.duration)}
+                      </td>
 
-                  </tr>
-                ))}
+                      <td className="px-6 py-4 text-right font-black text-gold-400 font-mono">
+                        +{(sess.duration / 3600 * 10).toFixed(0)} PTS
+                      </td>
+
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
