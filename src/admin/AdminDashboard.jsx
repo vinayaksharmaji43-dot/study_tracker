@@ -151,7 +151,7 @@ export default function AdminDashboard() {
     { id: 'motivation', label: 'Motivation', icon: Sparkles },
     { id: 'feedback', label: 'Student Feedback', icon: MessageSquare },
     { id: 'study_groups', label: 'Study Groups', icon: Users },
-    { id: 'courses', label: 'Courses & Attempts', icon: Calendar },
+    { id: 'courses', label: '🎯 Exam Dates & Courses', icon: Calendar },
     { id: 'devices', label: 'Device Activity', icon: MonitorSmartphone },
     { id: 'settings', label: 'Settings', icon: Settings },
     { id: 'privacy', label: 'Privacy & Security', icon: Shield },

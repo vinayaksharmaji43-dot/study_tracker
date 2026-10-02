@@ -3,98 +3,67 @@ import { Calendar, Clock, Video } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
 import WebcamStudyModal from './WebcamStudyModal';
+import { getStreamId } from '../utils/levelSystem';
+import { subscribeExamDates, calculateDaysLeft } from '../utils/examDateService';
 
 export default function CountdownWidget({ setActiveTab }) {
   const { userProfile } = useAuth();
   const { isEyeCare } = useTheme();
+  const [examDatesMap, setExamDatesMap] = useState(null);
   const [daysLeft, setDaysLeft] = useState(null);
-  const [targetDateStr, setTargetDateStr] = useState('');
   const [displayTitle, setDisplayTitle] = useState('');
   const [hasPassed, setHasPassed] = useState(false);
+  const [isToday, setIsToday] = useState(false);
   const [showWebcamModal, setShowWebcamModal] = useState(false);
 
+  // 1. Subscribe to realtime exam dates from Firestore settings/examDates
   useEffect(() => {
-    if (!userProfile) return;
+    const unsub = subscribeExamDates((data) => {
+      setExamDatesMap(data || {});
+    });
+    return () => unsub();
+  }, []);
 
-    // Normalize course and attempt
-    const course = (userProfile.course || '').toUpperCase();
-    let level = userProfile.level || '';
-    if (course.includes('FOUNDATION')) {
-        level = 'Foundation';
-    } else if (course.includes('INTERMEDIATE')) {
-        level = 'Intermediate';
-    }
-    const isCA = course.includes('CA') && !course.includes('CMA');
-    const isCMA = course.includes('CMA');
-    const attempt = (userProfile.attempt || '').toLowerCase(); // e.g. "jan 2027", "jan 27", "may 2027"
+  // 2. Compute dynamic Days Left based on student stream & current date
+  useEffect(() => {
+    if (!userProfile || !examDatesMap) return;
 
-    let targetDate = null;
-    let attemptDisplay = userProfile.attempt;
+    // Resolve student stream (CA_Foundation, CA_Intermediate, CMA_Foundation, CMA_Intermediate, etc.)
+    const streamId = getStreamId(userProfile.course, userProfile.level);
+    const streamData = examDatesMap[streamId] || 
+      Object.values(examDatesMap).find(s => s.streamId?.toLowerCase() === streamId.toLowerCase()) || 
+      null;
 
-    // Helper to check if attempt string contains a month
-    const hasMonth = (month) => attempt.includes(month);
-    
-    // CA Logic
-    if (isCA) {
-      if (hasMonth('jan')) targetDate = new Date('2027-01-01T00:00:00');
-      else if (hasMonth('may')) targetDate = new Date('2027-04-30T00:00:00');
-      else if (hasMonth('sep')) targetDate = new Date('2027-08-31T00:00:00');
-    } 
-    // CMA Logic
-    else if (isCMA) {
-      if (hasMonth('jun')) targetDate = new Date('2027-05-01T00:00:00');
-      else if (hasMonth('dec')) {
-        if (attempt.includes('26')) {
-          targetDate = new Date('2026-11-30T00:00:00');
-        } else {
-          targetDate = new Date('2027-11-30T00:00:00');
-        }
-      }
+    let targetDateStr = streamData?.examDate || '';
+    let streamLabel = streamData?.streamName || '';
+
+    if (!streamLabel) {
+      const isCMA = String(userProfile.course || '').toUpperCase().includes('CMA');
+      const isInter = String(userProfile.level || userProfile.course || '').toUpperCase().includes('INTER');
+      streamLabel = isCMA ? (isInter ? 'CMA Intermediate' : 'CMA Foundation') : (isInter ? 'CA Intermediate' : 'CA Foundation');
     }
 
-    if (targetDate) {
-      // Calculate Days Left
-      const today = new Date();
-      // Reset hours to purely compare dates
-      today.setHours(0, 0, 0, 0);
-      targetDate.setHours(0, 0, 0, 0);
-
-      const diffTime = targetDate - today;
-      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-
-      if (diffDays < 0) {
-        setHasPassed(true);
-        setDaysLeft(0);
-      } else {
-        setHasPassed(false);
-        setDaysLeft(diffDays);
-      }
-
-      // Format display string e.g. CA Foundation • Jan 2027, CMA Intermediate • Dec 2026
-      const formatAttempt = (att) => {
-          if(!att) return '';
-          let a = att;
-          if (a.includes('26')) {
-            a = a.replace('26', '2026');
-          } else if (a.includes('27')) {
-            a = a.replace('27', '2027');
-          } else if (!a.includes('2026') && !a.includes('2027')) {
-            a += ' 2027';
-          }
-          return a.charAt(0).toUpperCase() + a.slice(1);
-      };
-      
-      const cleanCourse = isCMA ? `CMA ${level}` : `CA ${level}`;
-      setDisplayTitle(`${cleanCourse} • ${formatAttempt(userProfile.attempt)}`);
-      
-      // Keep track of the actual target date for tooltips or logs
-      setTargetDateStr(targetDate.toDateString());
-    } else {
+    if (!targetDateStr) {
       setDaysLeft(null);
+      return;
     }
-  }, [userProfile]);
 
-  if (daysLeft === null) return null; // Do not render if unable to map
+    const calc = calculateDaysLeft(targetDateStr);
+
+    if (calc.daysLeft === null) {
+      setDaysLeft(null);
+      return;
+    }
+
+    setDaysLeft(calc.daysLeft);
+    setHasPassed(calc.isPassed);
+    setIsToday(calc.isToday);
+
+    const cycleInfo = streamData?.examCycle ? ` • ${streamData.examCycle}` : (calc.formattedDate ? ` • ${calc.formattedDate}` : '');
+    setDisplayTitle(`${streamLabel}${cycleInfo}`);
+  }, [userProfile, examDatesMap]);
+
+  if (daysLeft === null && !hasPassed) return null; // Do not render if unable to map
 
   return (
     <>
@@ -146,7 +115,22 @@ export default function CountdownWidget({ setActiveTab }) {
             <Clock className={`w-4 h-4 ${hasPassed ? 'text-slate-400' : isEyeCare ? 'text-gold-400 animate-pulse' : 'text-blue-700 animate-pulse'}`} />
             <div className="flex items-baseline gap-1.5">
               {hasPassed ? (
-                <span className={`text-sm font-bold ${isEyeCare ? 'text-slate-400' : 'text-slate-700'}`}>Exam Date Passed</span>
+                <span className={`text-sm font-bold ${isEyeCare ? 'text-slate-400' : 'text-slate-700'}`}>Exam Completed</span>
+              ) : isToday ? (
+                <>
+                  <span className={`text-2xl font-black font-mono ${
+                    isEyeCare 
+                      ? 'text-transparent bg-clip-text bg-gradient-to-r from-amber-400 to-emerald-400' 
+                      : 'text-emerald-700'
+                  }`}>
+                    0
+                  </span>
+                  <span className={`text-xs font-black uppercase tracking-wider ${
+                    isEyeCare ? 'text-emerald-400' : 'text-emerald-800'
+                  }`}>
+                    Days Left (Today!)
+                  </span>
+                </>
               ) : (
                 <>
                   <span className={`text-2xl font-black font-mono ${

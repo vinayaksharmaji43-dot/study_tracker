@@ -93,11 +93,17 @@ export function getStreamDetails(streamId) {
 }
 
 export function getStreamId(userCourse, userLevel) {
-  if (userCourse && (userCourse === 'CA_Foundation' || userCourse === 'CA_Intermediate' || userCourse === 'CMA_Foundation' || userCourse === 'CMA_Intermediate')) {
+  if (userCourse && (userCourse === 'CA_Foundation' || userCourse === 'CA_Intermediate' || userCourse === 'CA_Final' || userCourse === 'CMA_Foundation' || userCourse === 'CMA_Intermediate' || userCourse === 'CMA_Final')) {
     return userCourse;
   }
   const c = (userCourse || 'CA').toUpperCase().includes('CMA') ? 'CMA' : 'CA';
-  const l = (userLevel || 'Foundation').toLowerCase().includes('intermediate') ? 'Intermediate' : 'Foundation';
+  const lvlLower = `${userLevel || ''} ${userCourse || ''}`.toLowerCase();
+  let l = 'Foundation';
+  if (lvlLower.includes('final')) {
+    l = 'Final';
+  } else if (lvlLower.includes('inter')) {
+    l = 'Intermediate';
+  }
   return `${c}_${l}`;
 }
 
