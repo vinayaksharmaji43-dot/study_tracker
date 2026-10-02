@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { doc, setDoc } from 'firebase/firestore';
+import React, { useState, useEffect, useRef } from 'react';
+import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../config/firebase';
 import { useAuth } from '../contexts/AuthContext';
 import { ShieldCheck, AlertCircle, Loader2 } from 'lucide-react';
@@ -98,9 +98,11 @@ export default function MandatoryProfileModal() {
     if (errorMsg) setErrorMsg('');
   };
 
+  const hasSubmittedRef = useRef(false);
+
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (submitting) return;
+    if (submitting || hasSubmittedRef.current) return;
 
     setErrorMsg('');
     setValidationError('');
@@ -120,86 +122,54 @@ export default function MandatoryProfileModal() {
       return;
     }
 
+    // Lock submission immediately to prevent any duplicate POST to Google Sheets
+    hasSubmittedRef.current = true;
     setSubmitting(true);
 
     const payload = {
       name: trimmedName,
       phone: cleanPhone,
-      email: currentUser?.email || userProfile?.email || ''
+      email: currentUser?.email || userProfile?.email || '',
+      uid: currentUser?.uid || '',
+      timestamp: new Date().toISOString()
     };
 
     try {
-      // Send JSON payload to Google Sheets webhook via POST
-      // text/plain;charset=utf-8 allows clean CORS processing in Google Apps Script
-      const response = await fetch(WEBHOOK_URL, {
+      // Send directly with mode: 'no-cors'
+      // Google Apps Script always issues a 302 redirect without CORS headers.
+      // With mode: 'no-cors', the browser delivers the POST cleanly without failing on the redirect.
+      await fetch(WEBHOOK_URL, {
         method: 'POST',
+        mode: 'no-cors',
         headers: {
           'Content-Type': 'text/plain;charset=utf-8'
         },
         body: JSON.stringify(payload)
       });
 
-      let isSuccess = false;
+      // 1. Mark completion immediately in localStorage
+      if (currentUser?.uid) {
+        localStorage.setItem(`dashboard_profile_completed_${currentUser.uid}`, 'true');
 
-      if (response.ok) {
+        // 2. Mark completion flag in Firestore
         try {
-          const resData = await response.json();
-          isSuccess = resData && resData.success !== false;
-        } catch {
-          isSuccess = true;
+          await setDoc(doc(db, 'users', currentUser.uid), {
+            dashboardProfileCompleted: true,
+            phone: cleanPhone,
+            phoneVerified: true,
+            profileCompletedAt: serverTimestamp()
+          }, { merge: true });
+        } catch (dbErr) {
+          console.warn('Could not set dashboardProfileCompleted in Firestore:', dbErr);
         }
-      } else if (response.type === 'opaque') {
-        isSuccess = true;
       }
 
-      if (isSuccess) {
-        // Mark completion in localStorage (NO Name or Phone Number stored)
-        if (currentUser?.uid) {
-          localStorage.setItem(`dashboard_profile_completed_${currentUser.uid}`, 'true');
-
-          // Mark only the simple boolean completion flag in Firestore (NO Name or Phone Number stored)
-          try {
-            await setDoc(doc(db, 'users', currentUser.uid), {
-              dashboardProfileCompleted: true
-            }, { merge: true });
-          } catch (dbErr) {
-            console.warn('Could not set dashboardProfileCompleted in Firestore:', dbErr);
-          }
-        }
-
-        // Close modal and unlock dashboard
-        setIsOpen(false);
-      } else {
-        setErrorMsg('Something went wrong. Please try again.');
-      }
+      // 3. Immediately close modal and unlock dashboard on first attempt
+      setIsOpen(false);
     } catch (err) {
-      console.error('Google Sheets Webhook Error:', err);
-      // Fallback attempt with mode: 'no-cors' in case of browser-specific redirect/CORS quirk
-      try {
-        await fetch(WEBHOOK_URL, {
-          method: 'POST',
-          mode: 'no-cors',
-          headers: {
-            'Content-Type': 'text/plain;charset=utf-8'
-          },
-          body: JSON.stringify(payload)
-        });
-
-        if (currentUser?.uid) {
-          localStorage.setItem(`dashboard_profile_completed_${currentUser.uid}`, 'true');
-          try {
-            await setDoc(doc(db, 'users', currentUser.uid), {
-              dashboardProfileCompleted: true
-            }, { merge: true });
-          } catch (dbErr) {
-            console.warn('Could not set dashboardProfileCompleted in Firestore:', dbErr);
-          }
-        }
-
-        setIsOpen(false);
-      } catch (fallbackErr) {
-        setErrorMsg('Something went wrong. Please try again.');
-      }
+      console.error('Google Sheets Webhook Network Error:', err);
+      hasSubmittedRef.current = false;
+      setErrorMsg('Network error. Please check your internet connection and try again.');
     } finally {
       setSubmitting(false);
     }

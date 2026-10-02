@@ -12,8 +12,32 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
-    <script type="module" crossorigin src="/assets/index-B6GjKN6p.js"></script>
-    <link rel="stylesheet" crossorigin href="/assets/index-2lGf2KvY.css">
+    <!-- Immediate Theme Initialization Script (Prevents flash and guarantees Black/White theme persistence on reload) -->
+    <script>
+      (function() {
+        try {
+          var saved = localStorage.getItem('study_tracker_eye_care');
+          if (!saved) {
+            var m = document.cookie.match(/(?:^|; )study_tracker_eye_care=([^;]*)/);
+            if (m) saved = m[1];
+          }
+          if (!saved) {
+            var t = localStorage.getItem('study_tracker_theme');
+            if (t === 'black' || t === 'dark') saved = 'true';
+            else if (t === 'white' || t === 'light') saved = 'false';
+          }
+          if (saved === 'true') {
+            document.documentElement.classList.add('eye-care-black');
+            document.documentElement.classList.remove('theme-light-blue');
+          } else if (saved === 'false') {
+            document.documentElement.classList.add('theme-light-blue');
+            document.documentElement.classList.remove('eye-care-black');
+          }
+        } catch (e) {}
+      })();
+    </script>
+    <script type="module" crossorigin src="/assets/index-Cq05MEbJ.js"></script>
+    <link rel="stylesheet" crossorigin href="/assets/index-Cyid53Xv.css">
   </head>
   <body class="bg-navy-950 text-slate-100 antialiased selection:bg-royal-500 selection:text-white min-h-screen">
     <div id="root"></div>
