@@ -35,10 +35,23 @@ function normalizeAttempt(att) {
 function getFallbackSubjects(course, level) {
   const c = String(course || 'CA').toUpperCase();
   const l = String(level || 'Foundation').toLowerCase();
+  const isFinal = l.includes('final');
   const isInter = l.includes('inter');
   const isCma = c.includes('CMA');
 
   if (isCma) {
+    if (isFinal) {
+      return [
+        'Paper 13: Corporate and Economic Laws',
+        'Paper 14: Strategic Financial Management',
+        'Paper 15: Direct Tax Laws and International Taxation',
+        'Paper 16: Strategic Cost Management',
+        'Paper 17: Cost and Management Audit',
+        'Paper 18: Corporate Financial Reporting',
+        'Paper 19: Indirect Tax Laws and Practice',
+        'Paper 20: Strategic Performance Management and Business Valuation'
+      ];
+    }
     if (isInter) {
       return [
         'Paper 5: Business Laws and Ethics',
@@ -56,6 +69,17 @@ function getFallbackSubjects(course, level) {
       'Paper 2: Fundamentals of Financial and Cost Accounting',
       'Paper 3: Fundamentals of Business Mathematics and Statistics',
       'Paper 4: Fundamentals of Business Economics and Management'
+    ];
+  }
+
+  if (isFinal) {
+    return [
+      'Paper 1: Financial Reporting',
+      'Paper 2: Advanced Financial Management',
+      'Paper 3: Advanced Auditing, Assurance and Professional Ethics',
+      'Paper 4: Direct Tax Laws and International Taxation',
+      'Paper 5: Indirect Tax Laws',
+      'Paper 6: Integrated Business Solutions'
     ];
   }
 
@@ -88,8 +112,9 @@ function parseStream(userProfile) {
   if (rawCourse.includes('CMA')) course = 'CMA';
   
   const rawLevel = String(userProfile.level || '').toUpperCase();
-  if (rawCourse.includes('INTER') || rawLevel.includes('INTER')) level = 'Intermediate';
-  else if (rawLevel.includes('FOUND')) level = 'Foundation';
+  if (rawCourse.includes('FINAL') || rawLevel.includes('FINAL')) level = 'Final';
+  else if (rawCourse.includes('INTER') || rawLevel.includes('INTER')) level = 'Intermediate';
+  else if (rawLevel.includes('FOUND') || rawCourse.includes('FOUND')) level = 'Foundation';
   else if (userProfile.level) level = userProfile.level; 
   
   const attempt = userProfile?.attempt || '';
@@ -451,6 +476,44 @@ export default function StudyTimer() {
     return () => { unsubscribe(); unsubStats(); unsubTarget(); };
   }, [currentUser]);
 
+  // Auto-sync any offline or locally cached unsaved study sessions
+  useEffect(() => {
+    if (!currentUser?.uid) return;
+    try {
+      const raw = localStorage.getItem('unsaved_study_sessions');
+      if (!raw) return;
+      const pending = JSON.parse(raw);
+      if (Array.isArray(pending) && pending.length > 0) {
+        (async () => {
+          const remaining = [];
+          for (const item of pending) {
+            try {
+              if (item.uid === currentUser.uid) {
+                await addDoc(collection(db, 'studySessions'), {
+                  ...item,
+                  date: serverTimestamp(),
+                  syncedFromOffline: true
+                });
+              } else {
+                remaining.push(item);
+              }
+            } catch (syncErr) {
+              console.warn("Could not sync pending session:", syncErr);
+              remaining.push(item);
+            }
+          }
+          if (remaining.length > 0) {
+            localStorage.setItem('unsaved_study_sessions', JSON.stringify(remaining));
+          } else {
+            localStorage.removeItem('unsaved_study_sessions');
+          }
+        })();
+      }
+    } catch (e) {
+      console.warn("Error checking unsaved_study_sessions:", e);
+    }
+  }, [currentUser]);
+
   useEffect(() => {
     if (!currentUser?.uid) return;
 
@@ -609,9 +672,10 @@ export default function StudyTimer() {
     const durationHours = durationSecs / 3600;
     const todayStr = getDateKey(new Date());
     const finalSubject = (targetSubject || selectedSubject || (subjects[0] || 'General Study')).trim();
-    const course = userProfile?.course || 'CA Foundation';
-    const level = userProfile?.level || 'Foundation';
-    const stream = userProfile?.stream || `${course}_${level}`;
+    const { course: myCourse, level: myLevel } = parseStream(userProfile);
+    const course = userProfile?.course || (myCourse === 'CMA' ? `CMA ${myLevel}` : `CA ${myLevel}`);
+    const level = userProfile?.level || myLevel;
+    const stream = userProfile?.stream || `${myCourse}_${myLevel}`;
 
     // 1. STEP 1: GUARANTEED SESSION PERSISTENCE FIRST
     // Save the core studySession record so the student's study time is permanently secured in the database
@@ -702,19 +766,9 @@ export default function StudyTimer() {
       if (earned > 0) {
         userUpdates.points = increment(earned);
       }
-      await updateDoc(userRef, userUpdates);
+      await setDoc(userRef, userUpdates, { merge: true });
     } catch (uErr) {
       console.warn("Could not update user document:", uErr);
-      // Fallback: update only studyHours if points update encountered restriction
-      try {
-        const userRef = doc(db, 'users', currentUser.uid);
-        await updateDoc(userRef, {
-          studyHours: increment(durationHours),
-          lastActiveAt: serverTimestamp()
-        });
-      } catch (innerErr) {
-        console.warn("Fallback user studyHours update failed:", innerErr);
-      }
     }
 
     // 5. STEP 5: INCREMENT TARGET STUDIED SECONDS
@@ -866,9 +920,10 @@ export default function StudyTimer() {
       // Emergency Fallback: Guarantee session is never lost under any circumstance
       try {
         const finalSubject = (selectedSubject || (subjects[0] || 'General Study')).trim();
-        const course = userProfile?.course || 'CA Foundation';
-        const level = userProfile?.level || 'Foundation';
-        const stream = userProfile?.stream || `${course}_${level}`;
+        const { course: myCourse, level: myLevel } = parseStream(userProfile);
+        const course = userProfile?.course || (myCourse === 'CMA' ? `CMA ${myLevel}` : `CA ${myLevel}`);
+        const level = userProfile?.level || myLevel;
+        const stream = userProfile?.stream || `${myCourse}_${myLevel}`;
         const sessionDuration = Math.min(finalSeconds, 18000);
 
         await addDoc(collection(db, 'studySessions'), {
@@ -895,7 +950,37 @@ export default function StudyTimer() {
         setTimeout(() => setSavedSuccess(false), 4000);
       } catch (emergencyErr) {
         console.error("Emergency save error:", emergencyErr);
-        alert("Network notice: Session could not be saved to cloud. Please check your internet connection and try again.");
+        try {
+          const finalSubject = (selectedSubject || (subjects[0] || 'General Study')).trim();
+          const { course: myCourse, level: myLevel } = parseStream(userProfile);
+          const course = userProfile?.course || (myCourse === 'CMA' ? `CMA ${myLevel}` : `CA ${myLevel}`);
+          const level = userProfile?.level || myLevel;
+          const stream = userProfile?.stream || `${myCourse}_${myLevel}`;
+          const existing = JSON.parse(localStorage.getItem('unsaved_study_sessions') || '[]');
+          existing.push({
+            uid: currentUser.uid,
+            studentName: userProfile?.name || currentUser.displayName || 'Student',
+            rollNumber: userProfile?.rollNumber || '',
+            subject: finalSubject,
+            duration: Math.min(finalSeconds, 18000),
+            maxFocusSecs: Math.min(finalSeconds, 18000),
+            course,
+            level,
+            stream,
+            dateKey: getDateKey(new Date()),
+            date: new Date().toISOString(),
+            source: 'timer'
+          });
+          localStorage.setItem('unsaved_study_sessions', JSON.stringify(existing));
+        } catch (localErr) {
+          console.error("Local storage backup error:", localErr);
+        }
+        setSeconds(0);
+        setAccumulatedSeconds(0);
+        setStartTimestamp(null);
+        if (storageKey) localStorage.removeItem(storageKey);
+        setSavedSuccess(true);
+        setTimeout(() => setSavedSuccess(false), 4000);
       }
     } finally {
       setSaving(false);

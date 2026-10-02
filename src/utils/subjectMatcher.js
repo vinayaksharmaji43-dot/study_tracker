@@ -6,8 +6,8 @@ export function normalizeSubjectName(name) {
   if (!name) return '';
   return String(name)
     .toLowerCase()
-    .replace(/^paper\s*\d+\s*[:\-–]?\s*/i, '') // removes 'Paper 1:', 'Paper 2 -', etc.
-    .replace(/^p\d+\s*[:\-–]?\s*/i, '')        // removes 'P1:', 'P2 -'
+    .replace(/^(?:group\s*(?:i{1,3}|iv|v|\d+)\s*[:\-–]?\s*)?(?:paper\s*\d+|p\d+)\s*[:\-–]?\s*/i, '')
+    .replace(/^group\s*(?:i{1,3}|iv|v|\d+)\s*[:\-–]?\s*/i, '')
     .replace(/[^a-z0-9]/g, '');                // remove whitespace, symbols
 }
 

@@ -269,6 +269,7 @@ export default function AdminTimerSubjects() {
           <option value="All">All Levels</option>
           <option value="Foundation">Foundation</option>
           <option value="Intermediate">Intermediate</option>
+          <option value="Final">Final</option>
         </select>
         <select
           value={filterStatus}
@@ -405,6 +406,7 @@ export default function AdminTimerSubjects() {
                     >
                       <option value="Foundation">Foundation</option>
                       <option value="Intermediate">Intermediate</option>
+                      <option value="Final">Final</option>
                     </select>
                   </div>
                 </div>
