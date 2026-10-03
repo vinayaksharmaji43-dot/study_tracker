@@ -22,7 +22,8 @@ import {
   ChevronUp, 
   Layers,
   GraduationCap,
-  Lock
+  Lock,
+  Sparkles
 } from 'lucide-react';
 import CoachingStudyModal from '../components/CoachingStudyModal';
 import { isSubjectMatch, calculateTargetProgress } from '../utils/subjectMatcher';
