@@ -47,6 +47,7 @@ import {
   ArrowDown,
   GraduationCap
 } from 'lucide-react';
+import { uploadPdfFile } from '../../utils/fileUploadHelper';
 import toast from 'react-hot-toast';
 
 const BUCKET_NAME = 'study-material';
@@ -54,8 +55,10 @@ const BUCKET_NAME = 'study-material';
 export const DEFAULT_STREAMS = [
   'CA Foundation',
   'CA Intermediate',
+  'CA Final',
   'CMA Foundation',
-  'CMA Intermediate'
+  'CMA Intermediate',
+  'CMA Final'
 ];
 
 export const DEFAULT_NOTES_TYPES = [
@@ -89,6 +92,16 @@ export const CA_INTERMEDIATE_SUBJECTS = [
   'General / Common'
 ];
 
+export const CA_FINAL_SUBJECTS = [
+  'Paper 1: Financial Reporting',
+  'Paper 2: Advanced Financial Management',
+  'Paper 3: Advanced Auditing, Assurance and Professional Ethics',
+  'Paper 4: Direct Tax Laws & International Taxation',
+  'Paper 5: Indirect Tax Laws',
+  'Paper 6: Integrated Business Solutions',
+  'General / Common'
+];
+
 export const CMA_FOUNDATION_SUBJECTS = [
   'Paper 1 — Fundamentals of Business Laws and Business Communication',
   'Paper 2 — Fundamentals of Financial and Cost Accounting',
@@ -109,16 +122,32 @@ export const CMA_INTERMEDIATE_SUBJECTS = [
   'General / Common'
 ];
 
+export const CMA_FINAL_SUBJECTS = [
+  'Paper 13: Corporate and Economic Laws',
+  'Paper 14: Strategic Financial Management',
+  'Paper 15: Direct Tax Laws and International Taxation',
+  'Paper 16: Strategic Cost Management',
+  'Paper 17: Cost and Management Audit',
+  'Paper 18: Corporate Financial Reporting',
+  'Paper 19: Indirect Tax Laws and Practice',
+  'Paper 20: Strategic Performance Management and Business Valuation',
+  'General / Common'
+];
+
 export function getSubjectsForStream(stream) {
   switch (stream) {
     case 'CA Foundation':
       return CA_FOUNDATION_SUBJECTS;
     case 'CA Intermediate':
       return CA_INTERMEDIATE_SUBJECTS;
+    case 'CA Final':
+      return CA_FINAL_SUBJECTS;
     case 'CMA Foundation':
       return CMA_FOUNDATION_SUBJECTS;
     case 'CMA Intermediate':
       return CMA_INTERMEDIATE_SUBJECTS;
+    case 'CMA Final':
+      return CMA_FINAL_SUBJECTS;
     default:
       return ['General / Common'];
   }
@@ -627,28 +656,13 @@ export default function AdminNotes() {
       let fileName = editingMaterial?.fileName || materialFile?.name || 'Document';
       let filePath = editingMaterial?.filePath || null;
 
-      // Handle PDF Upload to Supabase Storage if a new file is chosen
+      // Handle PDF Upload to Storage with Dual-Cloud Fallback (Supabase + Firebase)
       if (materialUploadMode === 'pdf' && materialFile) {
-        if (!isSupabaseConfigured()) {
-          throw new Error("Supabase Storage credentials are not configured in .env");
-        }
         setUploadProgress("Uploading PDF to storage...");
-        const cleanCourse = materialStream.toLowerCase().replace(/[^a-z0-9]/g, '_');
-        const sanitized = `${Date.now()}_${materialFile.name.replace(/[^a-zA-Z0-9._-]/g, '_')}`;
-        filePath = `notes/${cleanCourse}/${sanitized}`;
-        fileName = materialFile.name;
-
-        const { error: uploadError } = await supabase.storage
-          .from(BUCKET_NAME)
-          .upload(filePath, materialFile, { contentType: 'application/pdf', upsert: false });
-
-        if (uploadError) throw uploadError;
-
-        const { data: publicUrlData } = supabase.storage
-          .from(BUCKET_NAME)
-          .getPublicUrl(filePath);
-
-        fileUrl = publicUrlData.publicUrl;
+        const uploadResult = await uploadPdfFile(materialFile, 'notes', materialStream);
+        fileUrl = uploadResult.url;
+        fileName = uploadResult.fileName || materialFile.name;
+        filePath = uploadResult.storagePath || null;
       }
 
       const chosenTypeObj = notesTypes.find(t => t.id === materialNotesType) || activeTypeObj;

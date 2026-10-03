@@ -11,39 +11,83 @@ import {
   ShieldCheck, AlertCircle, CheckCircle2, Clock, Globe, Filter
 } from 'lucide-react';
 
-const IMGBB_KEY = 'f43ca36cbb4a3e5de80d145fb53cbfff';
-
-async function uploadToImgBB(file) {
-  const formData = new FormData();
-  formData.append('key', IMGBB_KEY);
-  formData.append('image', file);
-  const res = await fetch('https://api.imgbb.com/1/upload', { method: 'POST', body: formData });
-  const data = await res.json();
-  if (data.success) return data.data.url;
-  throw new Error('File upload failed');
-}
+import { uploadPdfFile } from '../../utils/fileUploadHelper';
+import toast from 'react-hot-toast';
 
 const COURSES = ['CA', 'CMA'];
-const LEVELS = ['Foundation', 'Intermediate'];
+const LEVELS = ['Foundation', 'Intermediate', 'Final'];
 const CA_ATTEMPTS = ['All Attempts', 'May 27', 'Jan 27', 'Sep 27', 'May 2027', 'Jan 2027', 'Sep 2027'];
 const CMA_ATTEMPTS = ['All Attempts', 'Dec 26', 'June 27', 'Dec 27', 'Dec 2026', 'June 2027', 'December 2027'];
 
-const ALL_SUBJECTS = [
-  'Paper 1: Accounting',
-  'Paper 2: Business Laws',
-  'Paper 3: Quantitative Aptitude',
-  'Paper 4: Business Economics',
-  'Paper 1 — Advanced Accounting',
-  'Paper 2 — Corporate and Other Laws',
-  'Paper 3 — Taxation',
-  'Paper 4 — Cost and Management Accounting',
-  'Paper 5 — Auditing and Ethics',
-  'Paper 6 — Financial Management and Strategic Management',
-  'Financial Accounting',
-  'Cost Accounting',
-  'Laws & Ethics',
-  'Direct & Indirect Taxation'
-];
+export function getStreamSubjects(course, level) {
+  const c = String(course || 'CA').toUpperCase();
+  const l = String(level || 'Foundation').toLowerCase();
+  const isFinal = l.includes('final');
+  const isInter = l.includes('inter');
+  const isCma = c.includes('CMA');
+
+  if (isCma) {
+    if (isFinal) {
+      return [
+        'Paper 13: Corporate and Economic Laws',
+        'Paper 14: Strategic Financial Management',
+        'Paper 15: Direct Tax Laws and International Taxation',
+        'Paper 16: Strategic Cost Management',
+        'Paper 17: Cost and Management Audit',
+        'Paper 18: Corporate Financial Reporting',
+        'Paper 19: Indirect Tax Laws and Practice',
+        'Paper 20: Strategic Performance Management and Business Valuation'
+      ];
+    }
+    if (isInter) {
+      return [
+        'Paper 5 — Business Laws and Ethics',
+        'Paper 6 — Financial Accounting',
+        'Paper 7 — Direct and Indirect Taxation',
+        'Paper 8 — Cost Accounting',
+        'Paper 9 — Operations Management and Strategic Management',
+        'Paper 10 — Corporate Accounting and Auditing',
+        'Paper 11 — Financial Management and Business Data Analytics',
+        'Paper 12 — Management Accounting'
+      ];
+    }
+    return [
+      'Paper 1 — Fundamentals of Business Laws and Business Communication',
+      'Paper 2 — Fundamentals of Financial and Cost Accounting',
+      'Paper 3 — Fundamentals of Business Mathematics and Statistics',
+      'Paper 4 — Fundamentals of Business Economics and Management'
+    ];
+  }
+
+  if (isFinal) {
+    return [
+      'Paper 1: Financial Reporting',
+      'Paper 2: Advanced Financial Management',
+      'Paper 3: Advanced Auditing, Assurance and Professional Ethics',
+      'Paper 4: Direct Tax Laws and International Taxation',
+      'Paper 5: Indirect Tax Laws',
+      'Paper 6: Integrated Business Solutions'
+    ];
+  }
+
+  if (isInter) {
+    return [
+      'Paper 1 — Advanced Accounting',
+      'Paper 2 — Corporate and Other Laws',
+      'Paper 3 — Taxation',
+      'Paper 4 — Cost and Management Accounting',
+      'Paper 5 — Auditing and Ethics',
+      'Paper 6 — Financial Management and Strategic Management'
+    ];
+  }
+
+  return [
+    'Paper 1: Accounting',
+    'Paper 2: Business Laws',
+    'Paper 3: Quantitative Aptitude',
+    'Paper 4: Business Economics'
+  ];
+}
 
 export default function AdminTests() {
   const { currentUser } = useAuth();
@@ -116,7 +160,8 @@ export default function AdminTests() {
   const resetForm = () => {
     setEditItem(null);
     setTitle('');
-    setSubject(ALL_SUBJECTS[0]);
+    const defaultSubs = getStreamSubjects('CA', 'Foundation');
+    setSubject(defaultSubs[0]);
     setChapter('');
     setDescription('');
     setAudienceType('specific');
@@ -132,7 +177,8 @@ export default function AdminTests() {
   const openEdit = (t) => {
     setEditItem(t);
     setTitle(t.title || '');
-    setSubject(t.subject || ALL_SUBJECTS[0]);
+    const editSubs = getStreamSubjects(t.course || 'CA', t.level || 'Foundation');
+    setSubject(t.subject || editSubs[0]);
     setChapter(t.chapter || '');
     setDescription(t.description || '');
     setAudienceType(t.audienceType || 'specific');
@@ -150,11 +196,12 @@ export default function AdminTests() {
     if (!file) return;
     try {
       setUploadingPdf(true);
-      const url = await uploadToImgBB(file);
-      setPdfUrl(url);
+      const res = await uploadPdfFile(file, 'tests', `${course}_${level}`);
+      setPdfUrl(res.url);
+      toast.success("PDF uploaded successfully!");
     } catch (err) {
       console.error(err);
-      alert("Failed to upload PDF file.");
+      alert("Failed to upload PDF file: " + err.message);
     } finally {
       setUploadingPdf(false);
     }
@@ -430,7 +477,7 @@ export default function AdminTests() {
                   onChange={e => setSubject(e.target.value)}
                   className="w-full px-3 py-2.5 rounded-xl bg-navy-900 border border-white/10 text-white text-xs font-bold focus:outline-none focus:border-emerald-500"
                 >
-                  {ALL_SUBJECTS.map(s => <option key={s} value={s}>{s}</option>)}
+                  {getStreamSubjects(course, level).map(s => <option key={s} value={s}>{s}</option>)}
                 </select>
               </div>
 
@@ -480,7 +527,12 @@ export default function AdminTests() {
                       <label className="block text-[9px] font-bold text-slate-400 uppercase mb-1">Course</label>
                       <select
                         value={course}
-                        onChange={e => setCourse(e.target.value)}
+                        onChange={e => {
+                          const newCourse = e.target.value;
+                          setCourse(newCourse);
+                          const newSubs = getStreamSubjects(newCourse, level);
+                          if (!newSubs.includes(subject)) setSubject(newSubs[0]);
+                        }}
                         className="w-full px-2 py-2 rounded-xl bg-navy-950 border border-white/10 text-white text-xs font-bold focus:outline-none focus:border-emerald-500"
                       >
                         {COURSES.map(c => <option key={c} value={c}>{c}</option>)}
@@ -491,7 +543,12 @@ export default function AdminTests() {
                       <label className="block text-[9px] font-bold text-slate-400 uppercase mb-1">Level</label>
                       <select
                         value={level}
-                        onChange={e => setLevel(e.target.value)}
+                        onChange={e => {
+                          const newLevel = e.target.value;
+                          setLevel(newLevel);
+                          const newSubs = getStreamSubjects(course, newLevel);
+                          if (!newSubs.includes(subject)) setSubject(newSubs[0]);
+                        }}
                         className="w-full px-2 py-2 rounded-xl bg-navy-950 border border-white/10 text-white text-xs font-bold focus:outline-none focus:border-emerald-500"
                       >
                         {LEVELS.map(l => <option key={l} value={l}>{l}</option>)}

@@ -213,21 +213,51 @@ export default function StudyTimer() {
 
   const todayKey = getDateKey(new Date());
 
+  // Helper: check if session belongs to user stream without case/naming mismatch
+  const isSessionMatchForStream = (sess) => {
+    if (!sess) return false;
+    // 1. Direct match with current subjects
+    if (subjects.length > 0 && sess.subject) {
+      if (subjects.some(sub => isSubjectMatch(sess.subject, sub))) return true;
+    }
+    // 2. Stream ID or course matching
+    const { course: myCourse, level: myLevel } = parseStream(userProfile);
+    const myStreamKey = `${myCourse}_${myLevel}`.toLowerCase();
+    if (sess.stream && String(sess.stream).toLowerCase() === myStreamKey) return true;
+
+    if (sess.course) {
+      const c = String(sess.course).toLowerCase();
+      const l = String(sess.level || '').toLowerCase();
+      if (myCourse === 'CMA' && c.includes('cma')) {
+        if (myLevel.toLowerCase().includes('inter') && (c.includes('inter') || l.includes('inter'))) return true;
+        if (myLevel.toLowerCase().includes('found') && (c.includes('found') || l.includes('found'))) return true;
+        if (myLevel.toLowerCase().includes('final') && (c.includes('final') || l.includes('final'))) return true;
+      } else if (myCourse === 'CA' && !c.includes('cma')) {
+        if (myLevel.toLowerCase().includes('inter') && (c.includes('inter') || l.includes('inter'))) return true;
+        if (myLevel.toLowerCase().includes('found') && (c.includes('found') || l.includes('found') || (!c.includes('inter') && !c.includes('final')))) return true;
+        if (myLevel.toLowerCase().includes('final') && (c.includes('final') || l.includes('final'))) return true;
+      }
+    }
+    return true; // Default fallback: do not drop student's recorded study session
+  };
+
+  // Helper: check if session matches date even with pending Firestore serverTimestamp
+  const isSessionForDate = (sess, targetKey) => {
+    if (sess.dateKey && sess.dateKey === targetKey) return true;
+    const sDate = sess.date?.toDate ? sess.date.toDate() : (sess.date ? new Date(sess.date) : null);
+    if (sDate && getDateKey(sDate) === targetKey) return true;
+    // Optimistic fallback for newly added session with pending serverTimestamp
+    if (!sDate && !sess.dateKey && targetKey === todayKey) return true;
+    return false;
+  };
+
   // Only sessions for current stream (using subjects list) and for today
   const todayStreamSessions = useMemo(() => {
     return sessions.filter((sess) => {
-      const sDate = sess.date?.toDate ? sess.date.toDate() : (sess.date ? new Date(sess.date) : null);
-      if (!sDate) return false;
-      if (getDateKey(sDate) !== todayKey) return false;
-      if (subjects.length > 0 && subjects.some(sub => isSubjectMatch(sess.subject, sub))) {
-        return true;
-      }
-      if (sess.course && userProfile?.course) {
-        return String(sess.course).toLowerCase().trim() === String(userProfile.course).toLowerCase().trim();
-      }
-      return true;
+      if (!isSessionForDate(sess, todayKey)) return false;
+      return isSessionMatchForStream(sess);
     });
-  }, [sessions, todayKey, subjects, userProfile?.course]);
+  }, [sessions, todayKey, subjects, userProfile?.course, userProfile?.level]);
 
   const todaySubjectTotals = useMemo(() => {
     const map = {};
@@ -247,18 +277,10 @@ export default function StudyTimer() {
   const timerDayKey = getDateKey(timerDayDate);
   const timerDaySessions = useMemo(() => {
     return sessions.filter((sess) => {
-      const sDate = sess.date?.toDate ? sess.date.toDate() : (sess.date ? new Date(sess.date) : null);
-      if (!sDate) return false;
-      if (getDateKey(sDate) !== timerDayKey) return false;
-      if (subjects.length > 0 && subjects.some(sub => isSubjectMatch(sess.subject, sub))) {
-        return true;
-      }
-      if (sess.course && userProfile?.course) {
-        return String(sess.course).toLowerCase().trim() === String(userProfile.course).toLowerCase().trim();
-      }
-      return true;
+      if (!isSessionForDate(sess, timerDayKey)) return false;
+      return isSessionMatchForStream(sess);
     });
-  }, [sessions, timerDayKey, subjects, userProfile?.course]);
+  }, [sessions, timerDayKey, subjects, userProfile?.course, userProfile?.level]);
 
   const timerDayTotals = useMemo(() => {
     const map = {};
@@ -314,6 +336,7 @@ export default function StudyTimer() {
         if (saved.isActive && saved.startTimestamp) {
           const now = Date.now();
           const elapsed = savedAccumulated + Math.floor((now - saved.startTimestamp) / 1000);
+          const originalDateKey = saved.startDateKey || getDateKey(new Date(saved.startTimestamp));
 
           if (elapsed >= 18000) {
             setSeconds(0);
@@ -321,7 +344,7 @@ export default function StudyTimer() {
             setStartTimestamp(null);
             setIsActive(false);
             localStorage.removeItem(storageKey);
-            triggerAutoStop5Hours(18000, saved.selectedSubject);
+            triggerAutoStop5Hours(18000, saved.selectedSubject, originalDateKey);
           } else {
             setAccumulatedSeconds(savedAccumulated);
             setStartTimestamp(saved.startTimestamp);
@@ -347,6 +370,7 @@ export default function StudyTimer() {
       intervalRef.current = setInterval(() => {
         const now = Date.now();
         const currentElapsed = accumulatedSeconds + Math.floor((now - startTimestamp) / 1000);
+        const originalDateKey = getDateKey(new Date(startTimestamp));
 
         if (currentElapsed >= 18000) {
           clearInterval(intervalRef.current);
@@ -355,7 +379,7 @@ export default function StudyTimer() {
           setStartTimestamp(null);
           setAccumulatedSeconds(0);
           if (storageKey) localStorage.removeItem(storageKey);
-          triggerAutoStop5Hours(18000, selectedSubject);
+          triggerAutoStop5Hours(18000, selectedSubject, originalDateKey);
         } else {
           setSeconds(currentElapsed);
           // Persist running state continuously to localStorage
@@ -364,7 +388,9 @@ export default function StudyTimer() {
               selectedSubject,
               isActive: true,
               accumulatedSeconds,
-              startTimestamp
+              startTimestamp,
+              startDateKey: originalDateKey,
+              lastTickTimestamp: now
             }));
           }
         }
@@ -375,6 +401,44 @@ export default function StudyTimer() {
 
     return () => clearInterval(intervalRef.current);
   }, [isActive, startTimestamp, accumulatedSeconds, selectedSubject, storageKey]);
+
+  // 3. Flush timer state immediately on page hide, tab switch, or navigation away
+  useEffect(() => {
+    if (!storageKey) return;
+
+    const flushTimerState = () => {
+      if (isActive && startTimestamp) {
+        localStorage.setItem(storageKey, JSON.stringify({
+          selectedSubject,
+          isActive: true,
+          accumulatedSeconds,
+          startTimestamp,
+          startDateKey: getDateKey(new Date(startTimestamp)),
+          lastTickTimestamp: Date.now()
+        }));
+      } else if (accumulatedSeconds > 0) {
+        localStorage.setItem(storageKey, JSON.stringify({
+          selectedSubject,
+          isActive: false,
+          accumulatedSeconds,
+          startTimestamp: null,
+          startDateKey: todayKey,
+          lastTickTimestamp: Date.now()
+        }));
+      }
+    };
+
+    window.addEventListener('beforeunload', flushTimerState);
+    window.addEventListener('pagehide', flushTimerState);
+    document.addEventListener('visibilitychange', flushTimerState);
+
+    return () => {
+      flushTimerState();
+      window.removeEventListener('beforeunload', flushTimerState);
+      window.removeEventListener('pagehide', flushTimerState);
+      document.removeEventListener('visibilitychange', flushTimerState);
+    };
+  }, [storageKey, isActive, startTimestamp, accumulatedSeconds, selectedSubject, todayKey]);
 
   // Listen for programmatic start commands (e.g. from Webcam Study)
   useEffect(() => {
@@ -668,10 +732,10 @@ export default function StudyTimer() {
     }
   };
 
-  const saveSessionToFirestore = async (durationSecs, targetSubject) => {
+  const saveSessionToFirestore = async (durationSecs, targetSubject, customDateKey = null) => {
     if (!currentUser?.uid) return;
     const durationHours = durationSecs / 3600;
-    const todayStr = getDateKey(new Date());
+    const todayStr = customDateKey || getDateKey(new Date());
     const finalSubject = (targetSubject || selectedSubject || (subjects[0] || 'General Study')).trim();
     const { course: myCourse, level: myLevel } = parseStream(userProfile);
     const course = userProfile?.course || (myCourse === 'CMA' ? `CMA ${myLevel}` : `CA ${myLevel}`);
@@ -796,12 +860,12 @@ export default function StudyTimer() {
   };
 
   // Auto-stop 5-hour limit handler
-  const triggerAutoStop5Hours = async (durationSecs, subjectToSave) => {
+  const triggerAutoStop5Hours = async (durationSecs, subjectToSave, specificDateKey = null) => {
     if (isAutoSavingRef.current) return;
     isAutoSavingRef.current = true;
 
     try {
-      await saveSessionToFirestore(durationSecs, subjectToSave || selectedSubject);
+      await saveSessionToFirestore(durationSecs, subjectToSave || selectedSubject, specificDateKey);
       setAutoStoppedAlert(true);
       alert("5 hours completed! Timer automatically stopped. Press Start to continue studying.");
     } catch (e) {

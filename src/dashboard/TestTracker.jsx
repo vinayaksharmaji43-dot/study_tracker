@@ -12,24 +12,20 @@ import {
   Trash2, Edit3, ExternalLink, Eye, Upload, X, ShieldCheck, 
   BookOpen, HelpCircle, Award, AlertCircle, Sparkles, Filter, ChevronDown, ChevronUp
 } from 'lucide-react';
-
-const IMGBB_KEY = 'f43ca36cbb4a3e5de80d145fb53cbfff';
-
-async function uploadToImgBB(file) {
-  const formData = new FormData();
-  formData.append('key', IMGBB_KEY);
-  formData.append('image', file);
-  const res = await fetch('https://api.imgbb.com/1/upload', { method: 'POST', body: formData });
-  const data = await res.json();
-  if (data.success) return data.data.url;
-  throw new Error('Image upload failed');
-}
+import { uploadImageOrDoc } from '../utils/fileUploadHelper';
 
 function parseStream(userProfile) {
-  const raw = (userProfile?.course || '').toUpperCase();
+  const raw = ((userProfile?.course || '') + ' ' + (userProfile?.level || '')).toUpperCase();
   const isCMA = raw.includes('CMA');
   const course = isCMA ? 'CMA' : 'CA';
-  const level = raw.includes('FOUNDATION') ? 'Foundation' : 'Intermediate';
+  let level = 'Intermediate';
+  if (raw.includes('FINAL')) {
+    level = 'Final';
+  } else if (raw.includes('FOUNDATION')) {
+    level = 'Foundation';
+  } else if (userProfile?.level) {
+    level = userProfile.level;
+  }
   const attempt = userProfile?.attempt || 'Jan 2027';
   return { course, level, attempt };
 }
@@ -212,9 +208,13 @@ export default function TestTracker() {
     const file = e.target.files[0];
     if (!file) return;
     setAttachmentFile(file);
-    const reader = new FileReader();
-    reader.onloadend = () => setAttachmentPreview(reader.result);
-    reader.readAsDataURL(file);
+    if (file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf')) {
+      setAttachmentPreview('pdf');
+    } else {
+      const reader = new FileReader();
+      reader.onloadend = () => setAttachmentPreview(reader.result);
+      reader.readAsDataURL(file);
+    }
   };
 
   // Save / Update Student Test
@@ -231,7 +231,7 @@ export default function TestTracker() {
 
       let attachmentUrl = existingAttachment;
       if (attachmentFile) {
-        attachmentUrl = await uploadToImgBB(attachmentFile);
+        attachmentUrl = await uploadImageOrDoc(attachmentFile, 'student_tests', `${course}_${level}`);
       }
 
       const finalChapter = chapter === 'custom' ? customTopic.trim() : chapter;
@@ -620,7 +620,14 @@ export default function TestTracker() {
                     {item.attachmentUrl && (
                       <div className="pt-2 border-t border-white/5">
                         <button
-                          onClick={() => setViewImageModal(item.attachmentUrl)}
+                          onClick={() => {
+                            const isPdf = item.attachmentUrl?.toLowerCase().includes('.pdf') || item.attachmentUrl?.includes('application/pdf');
+                            if (isPdf) {
+                              setViewPdfModal(item.attachmentUrl);
+                            } else {
+                              setViewImageModal(item.attachmentUrl);
+                            }
+                          }}
                           className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-purple-500/15 text-purple-300 border border-purple-500/30 hover:bg-purple-500/25 text-xs font-bold transition-colors"
                         >
                           <Eye className="w-3.5 h-3.5" />
@@ -886,26 +893,35 @@ export default function TestTracker() {
 
               {/* Optional Attachment Upload */}
               <div>
-                <label className="block text-[10px] font-bold text-slate-300 uppercase tracking-wider mb-1.5">Attach Test Photo / Proof (Optional)</label>
+                <label className="block text-[10px] font-bold text-slate-300 uppercase tracking-wider mb-1.5">Attach Test PDF / Photo / Proof (Optional)</label>
                 <button
                   type="button"
                   onClick={() => fileInputRef.current?.click()}
                   className="w-full py-2.5 rounded-xl border border-dashed border-purple-500/40 text-purple-300 hover:bg-purple-500/10 text-xs font-bold flex items-center justify-center gap-2"
                 >
-                  <Upload className="w-4 h-4" /> Select Test Photo / Proof
+                  <Upload className="w-4 h-4" /> Select Test PDF / Photo Proof
                 </button>
                 <input
                   ref={fileInputRef}
                   type="file"
-                  accept="image/*"
+                  accept="image/*,.pdf,application/pdf"
                   onChange={handleFileSelect}
                   className="hidden"
                 />
                 {attachmentPreview && (
-                  <div className="mt-2 relative w-20 h-20">
-                    <img src={attachmentPreview} alt="Preview" className="w-full h-full object-cover rounded-xl border border-white/10" />
-                    <button type="button" onClick={() => { setAttachmentFile(null); setAttachmentPreview(''); }} className="absolute -top-1 -right-1 bg-rose-600 text-white rounded-full p-0.5">
-                      <X className="w-3 h-3" />
+                  <div className="mt-2 relative inline-flex items-center gap-2 p-2 bg-navy-950/80 rounded-xl border border-white/10">
+                    {attachmentPreview === 'pdf' ? (
+                      <div className="flex items-center gap-2 text-xs text-rose-300 font-bold px-2 py-1 bg-rose-500/10 rounded-lg">
+                        <FileText className="w-5 h-5 text-rose-400" />
+                        <span className="truncate max-w-[200px]">{attachmentFile?.name || 'Selected PDF'}</span>
+                      </div>
+                    ) : (
+                      <div className="relative w-16 h-16">
+                        <img src={attachmentPreview} alt="Preview" className="w-full h-full object-cover rounded-xl border border-white/10" />
+                      </div>
+                    )}
+                    <button type="button" onClick={() => { setAttachmentFile(null); setAttachmentPreview(''); }} className="bg-rose-600 text-white rounded-full p-1 hover:bg-rose-500">
+                      <X className="w-3.5 h-3.5" />
                     </button>
                   </div>
                 )}

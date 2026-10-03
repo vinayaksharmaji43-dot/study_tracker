@@ -29,8 +29,10 @@ import toast from 'react-hot-toast';
 export const DEFAULT_STREAMS = [
   'CA Foundation',
   'CA Intermediate',
+  'CA Final',
   'CMA Foundation',
-  'CMA Intermediate'
+  'CMA Intermediate',
+  'CMA Final'
 ];
 
 export const DEFAULT_NOTES_TYPES = [
@@ -55,7 +57,9 @@ function parseStudentStream(userProfile) {
   const course = isCMA ? 'CMA' : 'CA';
 
   let level = 'Foundation';
-  if (rawCourse.toUpperCase().includes('INTER') || rawLevel.toUpperCase().includes('INTER')) {
+  if (rawCourse.toUpperCase().includes('FINAL') || rawLevel.toUpperCase().includes('FINAL')) {
+    level = 'Final';
+  } else if (rawCourse.toUpperCase().includes('INTER') || rawLevel.toUpperCase().includes('INTER')) {
     level = 'Intermediate';
   } else if (rawLevel.toUpperCase().includes('FOUND') || rawCourse.toUpperCase().includes('FOUND')) {
     level = 'Foundation';

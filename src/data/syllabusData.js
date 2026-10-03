@@ -820,6 +820,128 @@ export const SYLLABUS_DATA = {
           }
         ]
       }
+    ],
+    Final: [
+      {
+        subject: 'Paper 1: Financial Reporting',
+        chapters: [
+          { id: 'ca_fin_p1_ch1', title: 'Chapter 1: Framework for Financial Reporting using Ind AS' },
+          { id: 'ca_fin_p1_ch2', title: 'Chapter 2: Application of Ind AS (Presentation and Disclosures)' },
+          { id: 'ca_fin_p1_ch3', title: 'Chapter 3: Ind AS on Assets of the Financial Statements' },
+          { id: 'ca_fin_p1_ch4', title: 'Chapter 4: Ind AS on Liabilities of the Financial Statements' },
+          { id: 'ca_fin_p1_ch5', title: 'Chapter 5: Ind AS on Items impacting Financial Statements' },
+          { id: 'ca_fin_p1_ch6', title: 'Chapter 6: Ind AS on Revenue' },
+          { id: 'ca_fin_p1_ch7', title: 'Chapter 7: Ind AS on Financial Instruments' },
+          { id: 'ca_fin_p1_ch8', title: 'Chapter 8: Business Combinations & Corporate Restructuring' },
+          { id: 'ca_fin_p1_ch9', title: 'Chapter 9: Consolidated Financial Statements' },
+          { id: 'ca_fin_p1_ch10', title: 'Chapter 10: Accounting and Reporting of Financial Instruments' }
+        ]
+      },
+      {
+        subject: 'Paper 2: Advanced Financial Management',
+        chapters: [
+          { id: 'ca_fin_p2_ch1', title: 'Chapter 1: Financial Policy and Corporate Strategy' },
+          { id: 'ca_fin_p2_ch2', title: 'Chapter 2: Risk Management' },
+          { id: 'ca_fin_p2_ch3', title: 'Chapter 3: Advanced Capital Budgeting Decisions' },
+          { id: 'ca_fin_p2_ch4', title: 'Chapter 4: Security Analysis' },
+          { id: 'ca_fin_p2_ch5', title: 'Chapter 5: Security Valuation' },
+          { id: 'ca_fin_p2_ch6', title: 'Chapter 6: Portfolio Management' },
+          { id: 'ca_fin_p2_ch7', title: 'Chapter 7: Securitization' },
+          { id: 'ca_fin_p2_ch8', title: 'Chapter 8: Mutual Funds' },
+          { id: 'ca_fin_p2_ch9', title: 'Chapter 9: Derivatives Analysis and Valuation' },
+          { id: 'ca_fin_p2_ch10', title: 'Chapter 10: Foreign Exchange Exposure and Risk Management' },
+          { id: 'ca_fin_p2_ch11', title: 'Chapter 11: International Financial Management' },
+          { id: 'ca_fin_p2_ch12', title: 'Chapter 12: Interest Rate Risk Management' },
+          { id: 'ca_fin_p2_ch13', title: 'Chapter 13: Business Valuation' },
+          { id: 'ca_fin_p2_ch14', title: 'Chapter 14: Mergers, Acquisitions and Corporate Restructuring' },
+          { id: 'ca_fin_p2_ch15', title: 'Chapter 15: Startup Finance' }
+        ]
+      },
+      {
+        subject: 'Paper 3: Advanced Auditing, Assurance and Professional Ethics',
+        chapters: [
+          { id: 'ca_fin_p3_ch1', title: 'Chapter 1: Quality Management' },
+          { id: 'ca_fin_p3_ch2', title: 'Chapter 2: General Auditing Principles and Auditors Responsibilities' },
+          { id: 'ca_fin_p3_ch3', title: 'Chapter 3: Audit Planning, Strategy and Execution' },
+          { id: 'ca_fin_p3_ch4', title: 'Chapter 4: Materiality, Risk Assessment and Internal Control' },
+          { id: 'ca_fin_p3_ch5', title: 'Chapter 5: Audit Evidence' },
+          { id: 'ca_fin_p3_ch6', title: 'Chapter 6: Completion and Review' },
+          { id: 'ca_fin_p3_ch7', title: 'Chapter 7: Reporting' },
+          { id: 'ca_fin_p3_ch8', title: 'Chapter 8: Specialised Areas' },
+          { id: 'ca_fin_p3_ch9', title: 'Chapter 9: Audit-Related Services' },
+          { id: 'ca_fin_p3_ch10', title: 'Chapter 10: Review of Financial Information' },
+          { id: 'ca_fin_p3_ch11', title: 'Chapter 11: Prospective Financial Information and Other Assurance Services' },
+          { id: 'ca_fin_p3_ch12', title: 'Chapter 12: Digital Auditing and Assurance' },
+          { id: 'ca_fin_p3_ch13', title: 'Chapter 13: Group Audits' },
+          { id: 'ca_fin_p3_ch14', title: 'Chapter 14: Special Features of Audit of Banks & Non-Banking Financial Entities' },
+          { id: 'ca_fin_p3_ch15', title: 'Chapter 15: Overview of Audit of Public Sector Undertakings' },
+          { id: 'ca_fin_p3_ch16', title: 'Chapter 16: Internal Audit' },
+          { id: 'ca_fin_p3_ch17', title: 'Chapter 17: Due Diligence, Investigation and Forensic Accounting' },
+          { id: 'ca_fin_p3_ch18', title: 'Chapter 18: Emerging Areas: Sustainable Development Goals (SDG) & ESG Assurance' },
+          { id: 'ca_fin_p3_ch19', title: 'Chapter 19: Professional Ethics and Liabilities of Auditors' }
+        ]
+      },
+      {
+        subject: 'Paper 4: Direct Tax Laws & International Taxation',
+        chapters: [
+          { id: 'ca_fin_p4_ch1', title: 'Chapter 1: Basic Concepts & Residence and Scope of Total Income' },
+          { id: 'ca_fin_p4_ch2', title: 'Chapter 2: Incomes which do not form part of Total Income' },
+          { id: 'ca_fin_p4_ch3', title: 'Chapter 3: Profits and Gains of Business or Profession' },
+          { id: 'ca_fin_p4_ch4', title: 'Chapter 4: Capital Gains' },
+          { id: 'ca_fin_p4_ch5', title: 'Chapter 5: Income from Other Sources' },
+          { id: 'ca_fin_p4_ch6', title: 'Chapter 6: Income of Other Persons included in Assessees Total Income' },
+          { id: 'ca_fin_p4_ch7', title: 'Chapter 7: Aggregation of Income, Set-Off and Carry Forward of Losses' },
+          { id: 'ca_fin_p4_ch8', title: 'Chapter 8: Deductions from Gross Total Income' },
+          { id: 'ca_fin_p4_ch9', title: 'Chapter 9: Assessment of Various Entities' },
+          { id: 'ca_fin_p4_ch10', title: 'Chapter 10: Assessment of Trusts and Charitable Institutions' },
+          { id: 'ca_fin_p4_ch11', title: 'Chapter 11: Tax Planning, Tax Avoidance & Tax Evasion' },
+          { id: 'ca_fin_p4_ch12', title: 'Chapter 12: Deduction, Collection and Recovery of Tax' },
+          { id: 'ca_fin_p4_ch13', title: 'Chapter 13: Income-tax Authorities' },
+          { id: 'ca_fin_p4_ch14', title: 'Chapter 14: Assessment Procedure' },
+          { id: 'ca_fin_p4_ch15', title: 'Chapter 15: Appeals and Revision' },
+          { id: 'ca_fin_p4_ch16', title: 'Chapter 16: Dispute Resolution & Miscellaneous Provisions' },
+          { id: 'ca_fin_p4_ch17', title: 'Chapter 17: Transfer Pricing and Other Anti-Avoidance Measures' },
+          { id: 'ca_fin_p4_ch18', title: 'Chapter 18: Non-Resident Taxation' },
+          { id: 'ca_fin_p4_ch19', title: 'Chapter 19: Double Taxation Relief (DTAA)' },
+          { id: 'ca_fin_p4_ch20', title: 'Chapter 20: Advance Rulings & Model Tax Conventions' }
+        ]
+      },
+      {
+        subject: 'Paper 5: Indirect Tax Laws',
+        chapters: [
+          { id: 'ca_fin_p5_ch1', title: 'Chapter 1: Supply under GST' },
+          { id: 'ca_fin_p5_ch2', title: 'Chapter 2: Charge of GST' },
+          { id: 'ca_fin_p5_ch3', title: 'Chapter 3: Place of Supply' },
+          { id: 'ca_fin_p5_ch4', title: 'Chapter 4: Exemptions from GST' },
+          { id: 'ca_fin_p5_ch5', title: 'Chapter 5: Time of Supply' },
+          { id: 'ca_fin_p5_ch6', title: 'Chapter 6: Value of Supply' },
+          { id: 'ca_fin_p5_ch7', title: 'Chapter 7: Input Tax Credit' },
+          { id: 'ca_fin_p5_ch8', title: 'Chapter 8: Registration' },
+          { id: 'ca_fin_p5_ch9', title: 'Chapter 9: Tax Invoice, Credit and Debit Notes' },
+          { id: 'ca_fin_p5_ch10', title: 'Chapter 10: Accounts and Records; E-way Bill' },
+          { id: 'ca_fin_p5_ch11', title: 'Chapter 11: Payment of Tax' },
+          { id: 'ca_fin_p5_ch12', title: 'Chapter 12: Electronic Commerce Transactions' },
+          { id: 'ca_fin_p5_ch13', title: 'Chapter 13: Returns' },
+          { id: 'ca_fin_p5_ch14', title: 'Chapter 14: Import and Export Under GST' },
+          { id: 'ca_fin_p5_ch15', title: 'Chapter 15: Refunds' },
+          { id: 'ca_fin_p5_ch16', title: 'Chapter 16: Job Work' },
+          { id: 'ca_fin_p5_ch17', title: 'Chapter 17: Assessment and Audit' },
+          { id: 'ca_fin_p5_ch18', title: 'Chapter 18: Inspection, Search, Seizure and Arrest' },
+          { id: 'ca_fin_p5_ch19', title: 'Chapter 19: Demands and Recovery' },
+          { id: 'ca_fin_p5_ch20', title: 'Chapter 20: Appeals and Revision' },
+          { id: 'ca_fin_p5_ch21', title: 'Chapter 21: Customs Law & Foreign Trade Policy' }
+        ]
+      },
+      {
+        subject: 'Paper 6: Integrated Business Solutions',
+        chapters: [
+          { id: 'ca_fin_p6_ch1', title: 'Chapter 1: Multi-Disciplinary Case Study Analysis' },
+          { id: 'ca_fin_p6_ch2', title: 'Chapter 2: Financial Management and Strategic Decision Making' },
+          { id: 'ca_fin_p6_ch3', title: 'Chapter 3: Corporate Governance and Ethics in Practice' },
+          { id: 'ca_fin_p6_ch4', title: 'Chapter 4: Integrated Direct and Indirect Tax Structuring' },
+          { id: 'ca_fin_p6_ch5', title: 'Chapter 5: Business Valuation and Restructuring Solutions' }
+        ]
+      }
     ]
   },
   CMA: {
@@ -1449,7 +1571,93 @@ Intermediate: [
       }
     ]
   }
-]
+],
+    Final: [
+      {
+        subject: 'Paper 13: Corporate and Economic Laws',
+        chapters: [
+          { id: 'cma_fin_p13_ch1', title: 'Chapter 1: Companies Act: Management and Administration' },
+          { id: 'cma_fin_p13_ch2', title: 'Chapter 2: Corporate Governance and Social Responsibility' },
+          { id: 'cma_fin_p13_ch3', title: 'Chapter 3: Insolvency and Bankruptcy Code (IBC), 2016' },
+          { id: 'cma_fin_p13_ch4', title: 'Chapter 4: SEBI Laws and Regulations' },
+          { id: 'cma_fin_p13_ch5', title: 'Chapter 5: Competition Act, 2002' },
+          { id: 'cma_fin_p13_ch6', title: 'Chapter 6: Foreign Exchange Management Act (FEMA), 1999' },
+          { id: 'cma_fin_p13_ch7', title: 'Chapter 7: Prevention of Money Laundering Act, 2002' }
+        ]
+      },
+      {
+        subject: 'Paper 14: Strategic Financial Management',
+        chapters: [
+          { id: 'cma_fin_p14_ch1', title: 'Chapter 1: Investment Decisions & Project Planning' },
+          { id: 'cma_fin_p14_ch2', title: 'Chapter 2: Financial Markets and Institutions' },
+          { id: 'cma_fin_p14_ch3', title: 'Chapter 3: Security Analysis & Portfolio Management' },
+          { id: 'cma_fin_p14_ch4', title: 'Chapter 4: Financial Risk Management (Derivatives, Swaps, Futures)' },
+          { id: 'cma_fin_p14_ch5', title: 'Chapter 5: International Financial Management' },
+          { id: 'cma_fin_p14_ch6', title: 'Chapter 6: Digital Finance & FinTech in CMA' }
+        ]
+      },
+      {
+        subject: 'Paper 15: Direct Tax Laws and International Taxation',
+        chapters: [
+          { id: 'cma_fin_p15_ch1', title: 'Chapter 1: Assessment of Companies & Non-Corporate Entities' },
+          { id: 'cma_fin_p15_ch2', title: 'Chapter 2: Tax Planning and Business Reorganization' },
+          { id: 'cma_fin_p15_ch3', title: 'Chapter 3: Dispute Resolution, Appeals and Revisions' },
+          { id: 'cma_fin_p15_ch4', title: 'Chapter 4: International Taxation & Transfer Pricing' },
+          { id: 'cma_fin_p15_ch5', title: 'Chapter 5: GAAR & Model Tax Conventions (DTAA)' }
+        ]
+      },
+      {
+        subject: 'Paper 16: Strategic Cost Management',
+        chapters: [
+          { id: 'cma_fin_p16_ch1', title: 'Chapter 1: Strategic Cost Management in Decision Making' },
+          { id: 'cma_fin_p16_ch2', title: 'Chapter 2: Activity-Based Cost Management (ABM)' },
+          { id: 'cma_fin_p16_ch3', title: 'Chapter 3: Target Costing, Life Cycle Costing & Kaizen' },
+          { id: 'cma_fin_p16_ch4', title: 'Chapter 4: Pricing Strategies and Cost Control' },
+          { id: 'cma_fin_p16_ch5', title: 'Chapter 5: Transfer Pricing in Multinational Companies' },
+          { id: 'cma_fin_p16_ch6', title: 'Chapter 6: Performance Measurement & Balanced Scorecard' }
+        ]
+      },
+      {
+        subject: 'Paper 17: Cost and Management Audit',
+        chapters: [
+          { id: 'cma_fin_p17_ch1', title: 'Chapter 1: Cost Accounting Standards (CAS)' },
+          { id: 'cma_fin_p17_ch2', title: 'Chapter 2: Cost Audit: Legal Framework and Companies Rules' },
+          { id: 'cma_fin_p17_ch3', title: 'Chapter 3: Cost Audit Documentation and Audit Program' },
+          { id: 'cma_fin_p17_ch4', title: 'Chapter 4: Management Audit & Operational Auditing' },
+          { id: 'cma_fin_p17_ch5', title: 'Chapter 5: Internal Control and Internal Audit' }
+        ]
+      },
+      {
+        subject: 'Paper 18: Corporate Financial Reporting',
+        chapters: [
+          { id: 'cma_fin_p18_ch1', title: 'Chapter 1: Ind AS / IFRS Comprehensive Framework' },
+          { id: 'cma_fin_p18_ch2', title: 'Chapter 2: Consolidated Financial Statements' },
+          { id: 'cma_fin_p18_ch3', title: 'Chapter 3: Accounting for Financial Instruments' },
+          { id: 'cma_fin_p18_ch4', title: 'Chapter 4: Valuation of Shares and Business' },
+          { id: 'cma_fin_p18_ch5', title: 'Chapter 5: Reporting on Sustainability & Triple Bottom Line' }
+        ]
+      },
+      {
+        subject: 'Paper 19: Indirect Tax Laws and Practice',
+        chapters: [
+          { id: 'cma_fin_p19_ch1', title: 'Chapter 1: Advanced GST Law, Rules & Compliance' },
+          { id: 'cma_fin_p19_ch2', title: 'Chapter 2: Valuation, Time and Place of Supply under GST' },
+          { id: 'cma_fin_p19_ch3', title: 'Chapter 3: Input Tax Credit Restrictions & Reversals' },
+          { id: 'cma_fin_p19_ch4', title: 'Chapter 4: Customs Law & Valuation of Imported Goods' },
+          { id: 'cma_fin_p19_ch5', title: 'Chapter 5: Foreign Trade Policy & SEZ Regulations' }
+        ]
+      },
+      {
+        subject: 'Paper 20: Strategic Performance Management and Business Valuation',
+        chapters: [
+          { id: 'cma_fin_p20_ch1', title: 'Chapter 1: Performance Management Concepts and Tools' },
+          { id: 'cma_fin_p20_ch2', title: 'Chapter 2: Economic Efficiency of the Firm' },
+          { id: 'cma_fin_p20_ch3', title: 'Chapter 3: Enterprise Risk Management (ERM)' },
+          { id: 'cma_fin_p20_ch4', title: 'Chapter 4: Business Valuation Models & Methods' },
+          { id: 'cma_fin_p20_ch5', title: 'Chapter 5: Valuation of Intangible Assets and Brands' }
+        ]
+      }
+    ]
   }
 };
 
@@ -1464,7 +1672,10 @@ export function getStudentSyllabus(userCourse, userLevel) {
     courseKey = 'CA';
   }
 
-  if (userLevel === 'Intermediate' || userCourse?.includes('Intermediate')) {
+  const combined = `${userCourse || ''} ${userLevel || ''}`.toUpperCase();
+  if (combined.includes('FINAL')) {
+    levelKey = 'Final';
+  } else if (combined.includes('INTER')) {
     levelKey = 'Intermediate';
   } else {
     levelKey = 'Foundation';
