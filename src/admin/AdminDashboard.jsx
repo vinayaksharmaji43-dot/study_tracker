@@ -45,6 +45,7 @@ import AdminStreamRequests from './tabs/AdminStreamRequests';
 import AdminManagement from './tabs/AdminManagement';
 import AdminPushNotifications from './tabs/AdminPushNotifications';
 import AdminStudentDataAdjustment from './tabs/AdminStudentDataAdjustment';
+import AdminTargetStrikeManagement from './tabs/AdminTargetStrikeManagement';
 
 import { 
   LayoutDashboard,  
@@ -98,6 +99,7 @@ export default function AdminDashboard() {
     doubts: 'view_doubts',
     students: 'view_students',
     student_data_adjustment: 'edit_students',
+    target_strike_management: 'edit_students',
     stream_requests: 'edit_students',
     premium_access: 'manage_premium',
     section_locks: 'manage_access_locks',
@@ -183,6 +185,7 @@ export default function AdminDashboard() {
     { id: 'doubts', label: 'Doubt Management', icon: HelpCircle, badge: pendingDoubtsCount },
     { id: 'students', label: 'Students', icon: Users },
     { id: 'student_data_adjustment', label: '⏱️ Student Data Adjustment', icon: SlidersHorizontal },
+    { id: 'target_strike_management', label: '🎯 Target & Strike Recovery', icon: Target },
     { id: 'stream_requests', label: '🎓 Stream Change Requests', icon: GraduationCap },
     { id: 'premium_access', label: '👑 Premium / Pro Access', icon: Crown },
     { id: 'section_locks', label: 'Section Access Control', icon: Lock },
@@ -360,6 +363,7 @@ export default function AdminDashboard() {
                 {activeTab === 'admin_management' && <AdminManagement />}
                 {activeTab === 'students' && <AdminStudents />}
                 {activeTab === 'student_data_adjustment' && <AdminStudentDataAdjustment />}
+                {activeTab === 'target_strike_management' && <AdminTargetStrikeManagement />}
                 {activeTab === 'stream_requests' && <AdminStreamRequests />}
                 {activeTab === 'premium_access' && <AdminPremiumAccess />}
                 {activeTab === 'section_locks' && <AdminSectionLocks />}

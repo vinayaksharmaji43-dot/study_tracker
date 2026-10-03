@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { 
   collection, 
   onSnapshot, 
@@ -42,7 +43,8 @@ import {
   SlidersHorizontal,
   ChevronRight,
   TrendingUp,
-  Tag
+  Tag,
+  Target
 } from 'lucide-react';
 
 function getFallbackSubjects(course, level) {
@@ -135,6 +137,7 @@ function resolveStudentStream(student) {
 export default function AdminStudentDataAdjustment() {
   const { currentUser, userProfile, isOwner, adminDesignation, hasPermission } = useAuth();
   const { isEyeCare } = useTheme();
+  const [searchParams, setSearchParams] = useSearchParams();
 
   // Sub-tabs: 'adjust' | 'history'
   const [activeTab, setActiveTab] = useState('adjust');
@@ -604,6 +607,15 @@ export default function AdminStudentDataAdjustment() {
           >
             <History className="w-4 h-4" />
             <span>Adjustment History ({historyList.length})</span>
+          </button>
+
+          <button
+            onClick={() => setSearchParams({ tab: 'target_strike_management' })}
+            className="px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 bg-purple-600/20 hover:bg-purple-600/30 text-purple-300 border border-purple-500/30 cursor-pointer"
+            title="Switch to Target & Strike Recovery"
+          >
+            <Target className="w-4 h-4 text-purple-400" />
+            <span>Target & Strike Recovery →</span>
           </button>
         </div>
       </div>

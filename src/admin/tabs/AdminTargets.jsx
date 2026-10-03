@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { collection, onSnapshot } from 'firebase/firestore';
 import { db } from '../../config/firebase';
 import { formatDate } from '../../utils/helpers';
 import EmptyState from '../../components/EmptyState';
-import { Target, Search, CheckCircle2, Circle, Calendar } from 'lucide-react';
+import { Target, Search, CheckCircle2, Circle, Calendar, Sparkles, ArrowRight } from 'lucide-react';
 
 export default function AdminTargets() {
+  const [searchParams, setSearchParams] = useSearchParams();
   const [targets, setTargets] = useState([]);
   const [students, setStudents] = useState([]);
 
@@ -59,17 +61,27 @@ export default function AdminTargets() {
       {/* Header Banner */}
       <div className="p-6 sm:p-8 rounded-3xl glass-card border border-gold-500/30 relative overflow-hidden">
         <div className="absolute top-0 right-0 w-80 h-80 bg-gold-500/10 rounded-full blur-3xl pointer-events-none" />
-        <div className="relative z-10 space-y-2">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-gold-500/20 text-gold-400 text-xs font-bold border border-gold-500/30">
-            <Target className="w-3.5 h-3.5" />
-            <span>Student Daily Goal Monitoring</span>
+        <div className="relative z-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+          <div className="space-y-2">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-gold-500/20 text-gold-400 text-xs font-bold border border-gold-500/30">
+              <Target className="w-3.5 h-3.5" />
+              <span>Student Daily Goal Monitoring</span>
+            </div>
+            <h1 className="text-2xl sm:text-3xl font-extrabold text-white">
+              Target Milestones <span className="gold-gradient-text">Hub</span>
+            </h1>
+            <p className="text-slate-300 text-sm max-w-xl">
+              Monitor daily study goals and targets created by CA Foundation & CMA students.
+            </p>
           </div>
-          <h1 className="text-2xl sm:text-3xl font-extrabold text-white">
-            Target Milestones <span className="gold-gradient-text">Hub</span>
-          </h1>
-          <p className="text-slate-300 text-sm max-w-xl">
-            Monitor daily study goals and targets created by CA Foundation & CMA students.
-          </p>
+
+          <button
+            onClick={() => setSearchParams({ tab: 'target_strike_management' })}
+            className="px-4 py-2.5 rounded-2xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-black text-xs flex items-center gap-2 shadow-lg cursor-pointer shrink-0 transition-all hover:scale-[1.02]"
+          >
+            <Sparkles className="w-4 h-4 text-amber-300" />
+            <span>Target & Strike Recovery →</span>
+          </button>
         </div>
       </div>
 
