@@ -16,7 +16,8 @@ import { Trophy, Award, Flame, UserCheck, ShieldCheck, Sparkles, Calendar, BookO
 export default function Leaderboard() {
   const { currentUser, userProfile } = useAuth();
   const { isEyeCare } = useTheme();
-  const { isStudentOnline, getStudentLiveDuration } = useActiveSessionsTracker(currentUser, userProfile);
+  const activeTracker = useActiveSessionsTracker(currentUser, userProfile);
+  const { isStudentOnline, getStudentLiveDuration } = activeTracker;
   const [leaderboardData, setLeaderboardData] = useState([]);
   const [selectedStudent, setSelectedStudent] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -406,7 +407,10 @@ export default function Leaderboard() {
 
       {/* Global Live Study Now Section */}
       <div className="pt-4 border-t border-white/10">
-        <LiveStudyNow onSelectStudent={setSelectedStudent} />
+        <LiveStudyNow 
+          activeSessionsTracker={activeTracker} 
+          onSelectStudent={setSelectedStudent} 
+        />
       </div>
 
       {/* Student Profile & Study Statistics Modal */}

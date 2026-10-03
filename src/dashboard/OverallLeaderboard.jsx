@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { collection, collectionGroup, onSnapshot } from 'firebase/firestore';
+import { collection, collectionGroup, onSnapshot, getDocs } from 'firebase/firestore';
 import { db } from '../config/firebase';
 import { useAuth } from '../contexts/AuthContext';
 import { calculateStreak } from '../utils/helpers';
@@ -86,17 +86,19 @@ export default function OverallLeaderboard() {
     return () => unsubSessions();
   }, []);
 
-  // 4. Fetch Day Offs for streak calculation
+  // 4. Fetch Day Offs for streak calculation (one-time fetch to avoid continuous listener quota drain)
   useEffect(() => {
-    try {
-      const unsubDayOffs = onSnapshot(collectionGroup(db, 'records'), (snap) => {
+    let active = true;
+    getDocs(collectionGroup(db, 'records'))
+      .then((snap) => {
+        if (!active) return;
         const docs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
         setDayOffs(docs);
-      }, () => {});
-      return () => unsubDayOffs();
-    } catch {
-      // Ignore if collectionGroup records index not available
-    }
+      })
+      .catch((err) => {
+        console.warn("DayOffs records fetch notice:", err);
+      });
+    return () => { active = false; };
   }, []);
 
   // Pre-aggregate sessions and protected days by uid

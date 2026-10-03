@@ -27,7 +27,9 @@ import {
   Bell,
   Sparkles,
   ShoppingBag,
-  ChevronRight
+  ChevronRight,
+  Filter,
+  Layers
 } from 'lucide-react';
 import { useEffectiveMotivation } from '../hooks/useEffectiveMotivation';
 import { useRealStudyTimer } from '../hooks/useRealStudyTimer';
@@ -35,18 +37,91 @@ import { useRealStudyTimer } from '../hooks/useRealStudyTimer';
 function parseStream(userProfile) {
   if (!userProfile) return { course: 'CA', level: 'Foundation', attempt: '' };
   const rawCourse = String(userProfile.course || 'CA Foundation').toUpperCase();
+  const rawLevel = String(userProfile.level || '').toUpperCase();
   let course = 'CA';
   let level = 'Foundation';
   
   if (rawCourse.includes('CMA')) course = 'CMA';
   
-  const rawLevel = String(userProfile.level || '').toUpperCase();
-  if (rawCourse.includes('INTER') || rawLevel.includes('INTER')) level = 'Intermediate';
+  if (rawCourse.includes('FINAL') || rawLevel.includes('FINAL')) level = 'Final';
+  else if (rawCourse.includes('INTER') || rawLevel.includes('INTER')) level = 'Intermediate';
   else if (rawLevel.includes('FOUND') || rawCourse.includes('FOUND')) level = 'Foundation';
   else if (userProfile.level) level = userProfile.level; 
   
   const attempt = userProfile?.attempt || '';
   return { course, level, attempt };
+}
+
+function getSessionStream(session, defaultStream = 'CA Foundation') {
+  if (!session) return defaultStream;
+  const courseStr = String(session.course || '').trim();
+  const levelStr = String(session.level || '').trim();
+  const streamStr = String(session.stream || '').trim();
+
+  // 1. Direct course matching
+  if (courseStr.toLowerCase().includes('cma')) {
+    if (courseStr.toLowerCase().includes('final') || levelStr.toLowerCase().includes('final')) return 'CMA Final';
+    if (courseStr.toLowerCase().includes('inter') || levelStr.toLowerCase().includes('inter')) return 'CMA Intermediate';
+    return 'CMA Foundation';
+  } else if (courseStr.toLowerCase().includes('ca')) {
+    if (courseStr.toLowerCase().includes('final') || levelStr.toLowerCase().includes('final')) return 'CA Final';
+    if (courseStr.toLowerCase().includes('inter') || levelStr.toLowerCase().includes('inter')) return 'CA Intermediate';
+    return 'CA Foundation';
+  }
+
+  // 2. Stream ID matching
+  if (streamStr) {
+    const s = streamStr.toLowerCase();
+    if (s.includes('cma_final') || s.includes('cma final')) return 'CMA Final';
+    if (s.includes('cma_intermediate') || s.includes('cma_inter') || s.includes('cma inter')) return 'CMA Intermediate';
+    if (s.includes('cma_foundation') || s.includes('cma foundation')) return 'CMA Foundation';
+    if (s.includes('ca_final') || s.includes('ca final')) return 'CA Final';
+    if (s.includes('ca_intermediate') || s.includes('ca_inter') || s.includes('ca inter')) return 'CA Intermediate';
+    if (s.includes('ca_foundation') || s.includes('ca foundation')) return 'CA Foundation';
+  }
+
+  // 3. Fallback to subject keywords
+  const sub = String(session.subject || '').toLowerCase();
+  if (sub.includes('advanced accounting') || sub.includes('cost and management') || sub.includes('strategic management') || sub.includes('corporate and other laws')) {
+    return 'CA Intermediate';
+  }
+  if (sub.includes('financial reporting') || sub.includes('advanced auditing') || sub.includes('integrated business')) {
+    return 'CA Final';
+  }
+  if (sub.includes('corporate financial reporting') || sub.includes('strategic financial management')) {
+    return 'CMA Final';
+  }
+  if (sub.includes('business laws and ethics') || sub.includes('direct taxation') || sub.includes('cost accounting')) {
+    return 'CMA Intermediate';
+  }
+  if (sub.includes('quantitative aptitude') || sub.includes('business economics') || sub.includes('accounting') || sub.includes('business law') || sub.includes('law')) {
+    return defaultStream || 'CA Foundation';
+  }
+
+  return defaultStream || 'CA Foundation';
+}
+
+function getSubjectBadge(subject = '') {
+  if (!subject) return 'SUB';
+  const clean = String(subject).trim();
+  
+  // Paper 1, Paper 2, etc.
+  const paperMatch = clean.match(/^Paper\s*(\d+)/i);
+  if (paperMatch) {
+    return `P${paperMatch[1]}`;
+  }
+  
+  const upper = clean.toUpperCase();
+  if (upper.includes('ACCOUNTING') || upper.includes('ACCOUNTS')) return 'ACC';
+  if (upper.includes('LAW')) return 'LAW';
+  if (upper.includes('TAX')) return 'TAX';
+  if (upper.includes('AUDIT')) return 'AUD';
+  if (upper.includes('COST')) return 'COST';
+  if (upper.includes('MATH') || upper.includes('QUANT') || upper.includes('STAT')) return 'QA';
+  if (upper.includes('ECONOM')) return 'ECO';
+  if (upper.includes('FINANC') || upper.includes('FM')) return 'FM';
+  
+  return clean.replace(/[^a-zA-Z0-9]/g, '').slice(0, 3).toUpperCase() || 'SUB';
 }
 
 function normalizeAttempt(att) {
@@ -57,6 +132,8 @@ export default function Overview({ setActiveTab }) {
   const { userProfile, currentUser } = useAuth();
   const { isEyeCare } = useTheme();
   const [sessions, setSessions] = useState([]);
+  const [sessionStreamFilter, setSessionStreamFilter] = useState('all');
+  const [showAllRecentSessions, setShowAllRecentSessions] = useState(false);
   const [targets, setTargets] = useState([]);
   const [announcements, setAnnouncements] = useState([]);
   const [dayOffs, setDayOffs] = useState([]);
@@ -106,6 +183,18 @@ export default function Overview({ setActiveTab }) {
     );
     const unsubSessions = onSnapshot(sessionsQuery, (snapshot) => {
       const docs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      docs.sort((a, b) => {
+        const getSessionTime = (s) => {
+          if (s.date?.toMillis) return s.date.toMillis();
+          if (s.date?.toDate) return s.date.toDate().getTime();
+          if (s.date) return new Date(s.date).getTime();
+          if (s.createdAt?.toMillis) return s.createdAt.toMillis();
+          if (s.createdAt?.toDate) return s.createdAt.toDate().getTime();
+          if (s.createdAt) return new Date(s.createdAt).getTime();
+          return 0;
+        };
+        return getSessionTime(b) - getSessionTime(a);
+      });
       setSessions(docs);
     });
 
@@ -233,6 +322,30 @@ export default function Overview({ setActiveTab }) {
     const getTime = item => item.createdAt?.toMillis ? item.createdAt.toMillis() : new Date(item.createdAt || 0).getTime();
     return getTime(b) - getTime(a);
   });
+
+  const myStream = parseStream(userProfile);
+  const userStreamLabel = `${myStream.course} ${myStream.level}`;
+
+  // Unique streams found in sessions for filter tabs
+  const availableStreams = useMemo(() => {
+    const streamSet = new Set();
+    if (userStreamLabel) streamSet.add(userStreamLabel);
+    sessions.forEach(sess => {
+      const st = getSessionStream(sess, userStreamLabel);
+      if (st) streamSet.add(st);
+    });
+    return Array.from(streamSet);
+  }, [sessions, userStreamLabel]);
+
+  // Filter sessions by selected stream tab ('all' or specific stream name)
+  const filteredSessions = useMemo(() => {
+    if (sessionStreamFilter === 'all') return sessions;
+    const normalizedFilter = sessionStreamFilter.toLowerCase().replace(/[\s_]+/g, '');
+    return sessions.filter(sess => {
+      const st = getSessionStream(sess, userStreamLabel);
+      return st.toLowerCase().replace(/[\s_]+/g, '') === normalizedFilter;
+    });
+  }, [sessions, sessionStreamFilter, userStreamLabel]);
 
   return (
     <div className="space-y-8">
@@ -620,7 +733,7 @@ export default function Overview({ setActiveTab }) {
             {userProfile?.points || 0} <span className={`text-xs font-bold ${isEyeCare ? 'text-slate-400' : 'text-slate-600'}`}>PTS</span>
           </div>
           <div className={`text-xs ${isEyeCare ? 'text-slate-400' : 'text-slate-600'}`}>
-            Earn 10 pts/hr + target bonus
+            6h = 5 pts (+2/hr) • Target bonus (4h+)
           </div>
         </div>
 
@@ -732,24 +845,63 @@ export default function Overview({ setActiveTab }) {
         
         {/* Left Column: Recent Sessions */}
         <div className="lg:col-span-8 space-y-4">
-          <div className="flex items-center justify-between">
-            <h3 className={`text-lg font-bold flex items-center gap-2 ${isEyeCare ? 'text-white' : 'text-slate-900'}`}>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="flex items-center gap-2">
               <Clock className={`w-5 h-5 ${isEyeCare ? 'text-emerald-500' : 'text-blue-600'}`} />
-              Recent Study Sessions
-            </h3>
+              <h3 className={`text-lg font-bold ${isEyeCare ? 'text-white' : 'text-slate-900'}`}>
+                Recent Study Sessions
+              </h3>
+              <span className={`text-xs px-2.5 py-0.5 rounded-full font-bold ${
+                isEyeCare ? 'bg-white/10 text-slate-300 border border-white/10' : 'bg-blue-50 text-blue-700 border border-blue-200'
+              }`}>
+                {filteredSessions.length}
+              </span>
+            </div>
             <button 
               onClick={() => setActiveTab('timer')}
-              className={`text-xs font-bold ${isEyeCare ? 'text-emerald-400 hover:text-emerald-300' : 'text-blue-600 hover:text-blue-700'}`}
+              className={`text-xs font-bold flex items-center gap-1 ${isEyeCare ? 'text-emerald-400 hover:text-emerald-300' : 'text-blue-600 hover:text-blue-700'}`}
             >
               View All in Timer →
             </button>
           </div>
 
-          {sessions.length === 0 ? (
+          {/* Stream Filter Pills */}
+          <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none text-xs">
+            <button
+              onClick={() => { setSessionStreamFilter('all'); setShowAllRecentSessions(false); }}
+              className={`px-3 py-1.5 rounded-xl font-bold whitespace-nowrap transition-all cursor-pointer ${
+                sessionStreamFilter === 'all'
+                  ? (isEyeCare ? 'bg-emerald-500 text-white shadow-sm' : 'bg-blue-600 text-white shadow-sm')
+                  : (isEyeCare ? 'bg-navy-900/80 border border-white/10 text-slate-400 hover:bg-white/10' : 'bg-slate-100 border border-slate-200 text-slate-600 hover:bg-slate-200')
+              }`}
+            >
+              All Streams
+            </button>
+            {availableStreams.map((st) => {
+              const isSelected = sessionStreamFilter.toLowerCase().replace(/[\s_]+/g, '') === st.toLowerCase().replace(/[\s_]+/g, '');
+              return (
+                <button
+                  key={st}
+                  onClick={() => { setSessionStreamFilter(st); setShowAllRecentSessions(false); }}
+                  className={`px-3 py-1.5 rounded-xl font-bold whitespace-nowrap transition-all cursor-pointer ${
+                    isSelected
+                      ? (isEyeCare ? 'bg-emerald-500 text-white shadow-sm' : 'bg-blue-600 text-white shadow-sm')
+                      : (isEyeCare ? 'bg-navy-900/80 border border-white/10 text-slate-400 hover:bg-white/10' : 'bg-slate-100 border border-slate-200 text-slate-600 hover:bg-slate-200')
+                  }`}
+                >
+                  {st}
+                </button>
+              );
+            })}
+          </div>
+
+          {filteredSessions.length === 0 ? (
             <EmptyState 
               icon={Clock}
-              title="No study sessions logged yet"
-              description="Start the study timer to record your real study sessions and subject-wise duration."
+              title={sessionStreamFilter === 'all' ? "No study sessions logged yet" : `No sessions for ${sessionStreamFilter}`}
+              description={sessionStreamFilter === 'all' 
+                ? "Start the study timer to record your real study sessions and subject-wise duration." 
+                : `You haven't recorded any study sessions under ${sessionStreamFilter} yet.`}
               actionText="Start Study Timer"
               onAction={() => setActiveTab('timer')}
             />
@@ -757,32 +909,64 @@ export default function Overview({ setActiveTab }) {
             <div className={`glass-card rounded-2xl border divide-y overflow-hidden ${
               isEyeCare ? 'border-white/10 divide-white/5' : 'border-blue-100 divide-slate-100 shadow-sm'
             }`}>
-              {sessions.slice(0, 5).map((session) => (
-                <div key={session.id} className={`p-4 flex items-center justify-between transition-colors ${
-                  isEyeCare ? 'hover:bg-white/5' : 'hover:bg-slate-50'
-                }`}>
-                  <div className="flex items-center space-x-3">
-                    <div className={`w-10 h-10 rounded-xl border flex items-center justify-center font-bold text-xs ${
-                      isEyeCare ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' : 'bg-blue-50 border-blue-200 text-blue-700'
-                    }`}>
-                      {session.subject ? session.subject.substring(0, 3).toUpperCase() : 'SUB'}
+              {(showAllRecentSessions ? filteredSessions : filteredSessions.slice(0, 5)).map((session) => {
+                const streamTag = getSessionStream(session, userStreamLabel);
+                return (
+                  <div 
+                    key={session.id} 
+                    onClick={() => setActiveTab('timer')}
+                    className={`p-4 flex items-center justify-between transition-colors cursor-pointer group ${
+                      isEyeCare ? 'hover:bg-white/5' : 'hover:bg-slate-50'
+                    }`}
+                    title="Open in Study Timer"
+                  >
+                    <div className="flex items-center space-x-3 min-w-0">
+                      <div className={`w-10 h-10 rounded-xl border flex items-center justify-center font-black text-xs shrink-0 ${
+                        isEyeCare ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' : 'bg-blue-50 border-blue-200 text-blue-700'
+                      }`}>
+                        {getSubjectBadge(session.subject)}
+                      </div>
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className={`text-sm font-bold truncate ${isEyeCare ? 'text-white' : 'text-slate-900'}`}>
+                            {session.subject}
+                          </span>
+                          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md shrink-0 ${
+                            isEyeCare ? 'bg-emerald-500/15 text-emerald-300 border border-emerald-500/30' : 'bg-blue-50 text-blue-700 border border-blue-200'
+                          }`}>
+                            {streamTag}
+                          </span>
+                        </div>
+                        <div className={`text-xs mt-0.5 ${isEyeCare ? 'text-slate-400' : 'text-slate-500'}`}>
+                          {formatDate(session.date)}
+                        </div>
+                      </div>
                     </div>
-                    <div>
-                      <div className={`text-sm font-bold ${isEyeCare ? 'text-white' : 'text-slate-900'}`}>{session.subject}</div>
-                      <div className={`text-xs ${isEyeCare ? 'text-slate-400' : 'text-slate-500'}`}>{formatDate(session.date)}</div>
-                    </div>
-                  </div>
 
-                  <div className="text-right">
-                    <div className={`text-sm font-bold font-mono ${isEyeCare ? 'text-emerald-400' : 'text-blue-700'}`}>
-                      {formatTimerTime(session.duration)}
-                    </div>
-                    <div className={`text-[11px] font-bold ${isEyeCare ? 'text-gold-400' : 'text-blue-600'}`}>
-                      +{(session.duration / 3600 * 10).toFixed(0)} PTS
+                    <div className="text-right shrink-0 ml-4">
+                      <div className={`text-sm font-bold font-mono ${isEyeCare ? 'text-emerald-400' : 'text-blue-700'}`}>
+                        {formatTimerTime(session.duration)}
+                      </div>
+                      <div className={`text-[11px] font-bold ${isEyeCare ? 'text-emerald-400' : 'text-emerald-600'}`}>
+                        ✓ Verified
+                      </div>
                     </div>
                   </div>
+                );
+              })}
+
+              {filteredSessions.length > 5 && (
+                <div className={`p-3 text-center border-t ${isEyeCare ? 'border-white/5 bg-navy-900/40' : 'border-slate-100 bg-slate-50'}`}>
+                  <button
+                    onClick={() => setShowAllRecentSessions(!showAllRecentSessions)}
+                    className={`text-xs font-bold transition-colors cursor-pointer ${
+                      isEyeCare ? 'text-emerald-400 hover:text-emerald-300' : 'text-blue-600 hover:text-blue-700'
+                    }`}
+                  >
+                    {showAllRecentSessions ? 'Show Less ↑' : `Show All ${filteredSessions.length} Sessions (${filteredSessions.length - 5} More) ↓`}
+                  </button>
                 </div>
-              ))}
+              )}
             </div>
           )}
         </div>

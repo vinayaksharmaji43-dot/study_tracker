@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { collection, addDoc, doc, getDoc, increment, onSnapshot, query, runTransaction, serverTimestamp, updateDoc, where, setDoc } from 'firebase/firestore';
+import { collection, addDoc, doc, getDoc, increment, onSnapshot, query, runTransaction, serverTimestamp, updateDoc, where, setDoc, deleteDoc } from 'firebase/firestore';
 import { db } from '../config/firebase';
 import { useAuth } from '../contexts/AuthContext';
 import { formatTimerTime, formatDate, getDateKey, getMonthKey, calculateDailyPoints } from '../utils/helpers';
@@ -28,6 +28,12 @@ import {
 import CoachingStudyModal from '../components/CoachingStudyModal';
 import { isSubjectMatch, calculateTargetProgress } from '../utils/subjectMatcher';
 import { useTheme } from '../contexts/ThemeContext';
+import { 
+  calculateDailyTimerPoints, 
+  isDailyTargetEligible, 
+  calculateCombinedDailyStudy, 
+  syncDailyPointsAndEligibility 
+} from '../services/pointsService';
 
 function normalizeAttempt(att) {
   return (att || '').toLowerCase().replace(/\s+/g, '').replace('2027', '27');
@@ -122,6 +128,74 @@ function parseStream(userProfile) {
   return { course, level, attempt };
 }
 
+function getSessionStream(session, defaultStream = 'CA Foundation') {
+  if (!session) return defaultStream;
+  const courseStr = String(session.course || '').trim();
+  const levelStr = String(session.level || '').trim();
+  const streamStr = String(session.stream || '').trim();
+
+  if (courseStr.toLowerCase().includes('cma')) {
+    if (courseStr.toLowerCase().includes('final') || levelStr.toLowerCase().includes('final')) return 'CMA Final';
+    if (courseStr.toLowerCase().includes('inter') || levelStr.toLowerCase().includes('inter')) return 'CMA Intermediate';
+    return 'CMA Foundation';
+  } else if (courseStr.toLowerCase().includes('ca')) {
+    if (courseStr.toLowerCase().includes('final') || levelStr.toLowerCase().includes('final')) return 'CA Final';
+    if (courseStr.toLowerCase().includes('inter') || levelStr.toLowerCase().includes('inter')) return 'CA Intermediate';
+    return 'CA Foundation';
+  }
+
+  if (streamStr) {
+    const s = streamStr.toLowerCase();
+    if (s.includes('cma_final') || s.includes('cma final')) return 'CMA Final';
+    if (s.includes('cma_intermediate') || s.includes('cma_inter') || s.includes('cma inter')) return 'CMA Intermediate';
+    if (s.includes('cma_foundation') || s.includes('cma foundation')) return 'CMA Foundation';
+    if (s.includes('ca_final') || s.includes('ca final')) return 'CA Final';
+    if (s.includes('ca_intermediate') || s.includes('ca_inter') || s.includes('ca inter')) return 'CA Intermediate';
+    if (s.includes('ca_foundation') || s.includes('ca foundation')) return 'CA Foundation';
+  }
+
+  const sub = String(session.subject || '').toLowerCase();
+  if (sub.includes('advanced accounting') || sub.includes('cost and management') || sub.includes('strategic management') || sub.includes('corporate and other laws')) {
+    return 'CA Intermediate';
+  }
+  if (sub.includes('financial reporting') || sub.includes('advanced auditing') || sub.includes('integrated business')) {
+    return 'CA Final';
+  }
+  if (sub.includes('corporate financial reporting') || sub.includes('strategic financial management')) {
+    return 'CMA Final';
+  }
+  if (sub.includes('business laws and ethics') || sub.includes('direct taxation') || sub.includes('cost accounting')) {
+    return 'CMA Intermediate';
+  }
+  if (sub.includes('quantitative aptitude') || sub.includes('business economics') || sub.includes('accounting') || sub.includes('business law') || sub.includes('law')) {
+    return defaultStream || 'CA Foundation';
+  }
+
+  return defaultStream || 'CA Foundation';
+}
+
+function getSubjectBadge(subject = '') {
+  if (!subject) return 'SUB';
+  const clean = String(subject).trim();
+  
+  const paperMatch = clean.match(/^Paper\s*(\d+)/i);
+  if (paperMatch) {
+    return `P${paperMatch[1]}`;
+  }
+  
+  const upper = clean.toUpperCase();
+  if (upper.includes('ACCOUNTING') || upper.includes('ACCOUNTS')) return 'ACC';
+  if (upper.includes('LAW')) return 'LAW';
+  if (upper.includes('TAX')) return 'TAX';
+  if (upper.includes('AUDIT')) return 'AUD';
+  if (upper.includes('COST')) return 'COST';
+  if (upper.includes('MATH') || upper.includes('QUANT') || upper.includes('STAT')) return 'QA';
+  if (upper.includes('ECONOM')) return 'ECO';
+  if (upper.includes('FINANC') || upper.includes('FM')) return 'FM';
+  
+  return clean.replace(/[^a-zA-Z0-9]/g, '').slice(0, 3).toUpperCase() || 'SUB';
+}
+
 export default function StudyTimer() {
   const { currentUser, userProfile } = useAuth();
   const { isEyeCare } = useTheme();
@@ -210,6 +284,30 @@ export default function StudyTimer() {
   const [showTimerDayModal, setShowTimerDayModal] = useState(false);
   const [timerDayDate, setTimerDayDate] = useState(() => new Date());
   const [showCoachingModal, setShowCoachingModal] = useState(false);
+  const [recentStreamFilter, setRecentStreamFilter] = useState('all');
+  const [showAllRecentTimerSessions, setShowAllRecentTimerSessions] = useState(false);
+
+  const { course: myCourseStr, level: myLevelStr } = parseStream(userProfile);
+  const userStreamLabel = `${myCourseStr} ${myLevelStr}`;
+
+  const availableStreams = useMemo(() => {
+    const streamSet = new Set();
+    if (userStreamLabel) streamSet.add(userStreamLabel);
+    sessions.forEach(sess => {
+      const st = getSessionStream(sess, userStreamLabel);
+      if (st) streamSet.add(st);
+    });
+    return Array.from(streamSet);
+  }, [sessions, userStreamLabel]);
+
+  const filteredRecentSessions = useMemo(() => {
+    if (recentStreamFilter === 'all') return sessions;
+    const normalizedFilter = recentStreamFilter.toLowerCase().replace(/[\s_]+/g, '');
+    return sessions.filter(sess => {
+      const st = getSessionStream(sess, userStreamLabel);
+      return st.toLowerCase().replace(/[\s_]+/g, '') === normalizedFilter;
+    });
+  }, [sessions, recentStreamFilter, userStreamLabel]);
 
   const todayKey = getDateKey(new Date());
 
@@ -541,6 +639,20 @@ export default function StudyTimer() {
     return () => { unsubscribe(); unsubStats(); unsubTarget(); };
   }, [currentUser]);
 
+  // Auto-sync daily study points and eligibility idempotently (no duplicate transactions)
+  useEffect(() => {
+    if (!currentUser?.uid || !sessions || sessions.length === 0) return;
+    const todayStr = getDateKey(new Date());
+    syncDailyPointsAndEligibility({
+      db,
+      uid: currentUser.uid,
+      dateKey: todayStr,
+      sessions,
+      targets: userTargets,
+      activeTimerState: null
+    });
+  }, [currentUser?.uid, sessions.length, userTargets.length]);
+
   // Auto-sync any offline or locally cached unsaved study sessions
   useEffect(() => {
     if (!currentUser?.uid) return;
@@ -618,53 +730,52 @@ export default function StudyTimer() {
     const usageId = `${currentUser.uid}_${currentMonthKey}`;
     const dayOffData = {
       uid: currentUser.uid,
+      studentName: userProfile?.name || currentUser.displayName || '',
+      studentEmail: currentUser.email || '',
+      course: userProfile?.course || '',
+      level: userProfile?.level || '',
       dateKey: todayKey,
       monthKey: currentMonthKey,
-      year: now.getUTCFullYear(),
-      month: now.getUTCMonth() + 1,
-      day: now.getUTCDate(),
+      year: now.getFullYear(),
+      month: now.getMonth() + 1,
+      day: now.getDate(),
       monthlyUsageId: usageId,
       status: 'active',
-      createdAt: serverTimestamp()
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp()
     };
 
     try {
       setSavingDayOff(true);
       setDayOffError('');
-      await runTransaction(db, async (transaction) => {
+
+      // Direct write to the user's records collection - idempotent and resilient against transaction locks / quota exhaustion
+      const dayOffRef = doc(db, 'dayOffs', currentUser.uid, 'records', todayKey);
+      await setDoc(dayOffRef, dayOffData, { merge: true });
+
+      // Update monthly usage tracking doc
+      try {
         const usageRef = doc(db, 'dayOffUsage', currentUser.uid, 'months', currentMonthKey);
-        const dayOffRef = doc(db, 'dayOffs', currentUser.uid, 'records', todayKey);
-        const usageSnapshot = await transaction.get(usageRef);
-        const dayOffSnapshot = await transaction.get(dayOffRef);
-        if (dayOffSnapshot.exists() && dayOffSnapshot.data()?.status === 'active') {
-          throw new Error('TODAY_ALREADY_ACTIVE');
-        }
+        await setDoc(usageRef, {
+          uid: currentUser.uid,
+          monthKey: currentMonthKey,
+          year: now.getFullYear(),
+          month: now.getMonth() + 1,
+          used: dayOffsUsed + 1,
+          updatedAt: serverTimestamp()
+        }, { merge: true });
+      } catch (usageErr) {
+        console.warn('dayOffUsage sync notice:', usageErr);
+      }
 
-        const currentUsage = usageSnapshot.exists() ? usageSnapshot.data() : null;
-        if ((currentUsage?.used || 0) >= 7) throw new Error('MONTHLY_LIMIT_REACHED');
-
-        transaction.set(dayOffRef, dayOffData);
-        if (currentUsage) {
-          transaction.update(usageRef, { used: increment(1), updatedAt: serverTimestamp() });
-        } else {
-          transaction.set(usageRef, {
-            uid: currentUser.uid,
-            monthKey: currentMonthKey,
-            year: now.getUTCFullYear(),
-            month: now.getUTCMonth() + 1,
-            used: 1,
-            updatedAt: serverTimestamp()
-          });
-        }
-      });
       setShowDayOffModal(false);
     } catch (error) {
       console.error('Error activating Day Off:', error);
-      setDayOffError(error.message === 'TODAY_ALREADY_ACTIVE'
-        ? 'Day Off is already active for today.'
-        : error.message === 'MONTHLY_LIMIT_REACHED'
-          ? 'Monthly limit reached (7/7).'
-          : (error.message || 'Failed to activate Day Off. Please try again.'));
+      if (error?.code === 'resource-exhausted') {
+        setDayOffError('Database is currently busy. Please wait a moment and try again.');
+      } else {
+        setDayOffError(error?.message || 'Failed to activate Day Off. Please try again.');
+      }
     } finally {
       setSavingDayOff(false);
     }
@@ -676,31 +787,28 @@ export default function StudyTimer() {
     try {
       setSavingDayOff(true);
       setDayOffError('');
-      await runTransaction(db, async (transaction) => {
+
+      const dayOffRef = doc(db, 'dayOffs', currentUser.uid, 'records', todayKey);
+      await deleteDoc(dayOffRef);
+
+      try {
         const usageRef = doc(db, 'dayOffUsage', currentUser.uid, 'months', currentMonthKey);
-        const dayOffRef = doc(db, 'dayOffs', currentUser.uid, 'records', todayKey);
+        await setDoc(usageRef, {
+          used: Math.max(0, dayOffsUsed - 1),
+          updatedAt: serverTimestamp()
+        }, { merge: true });
+      } catch (usageErr) {
+        console.warn('dayOffUsage sync notice:', usageErr);
+      }
 
-        const usageSnapshot = await transaction.get(usageRef);
-        const dayOffSnapshot = await transaction.get(dayOffRef);
-
-        if (!dayOffSnapshot.exists() || dayOffSnapshot.data()?.status !== 'active') {
-          throw new Error('NO_ACTIVE_DAY_OFF');
-        }
-
-        transaction.delete(dayOffRef);
-
-        if (usageSnapshot.exists()) {
-          const currentUsed = usageSnapshot.data().used || 1;
-          const newUsed = Math.max(0, currentUsed - 1);
-          transaction.update(usageRef, { used: newUsed, updatedAt: serverTimestamp() });
-        }
-      });
       setShowDayOnModal(false);
     } catch (error) {
       console.error('Error deactivating Day Off:', error);
-      setDayOffError(error.message === 'NO_ACTIVE_DAY_OFF'
-        ? 'No active Day Off found for today.'
-        : (error.message || 'Failed to turn Day On. Please try again.'));
+      if (error?.code === 'resource-exhausted') {
+        setDayOffError('Database is currently busy. Please wait a moment and try again.');
+      } else {
+        setDayOffError(error?.message || 'Failed to turn Day On. Please try again.');
+      }
     } finally {
       setSavingDayOff(false);
     }
@@ -759,84 +867,7 @@ export default function StudyTimer() {
       source: 'timer'
     });
 
-    // 2. STEP 2: CALCULATE MILESTONES & UPDATE studyDailyStats
-    let newlyUnlocked = [];
-    let earned = 0;
-    try {
-      const statRef = doc(db, 'studyDailyStats', `${currentUser.uid}_${todayStr}`);
-      const statSnap = await getDoc(statRef);
-      let prevTotalSecs = 0;
-      let completedMilestones = [];
-      let lowStudyPenaltyApplied = false;
-
-      if (statSnap.exists()) {
-        const sData = statSnap.data();
-        prevTotalSecs = Number(sData.totalStudySeconds) || 0;
-        completedMilestones = Array.isArray(sData.completedMilestones) ? [...sData.completedMilestones] : [];
-        lowStudyPenaltyApplied = Boolean(sData.lowStudyPenaltyApplied);
-      }
-
-      const newTotalSecs = prevTotalSecs + durationSecs;
-      const newFullHours = Math.floor(newTotalSecs / 3600);
-
-      for (let h = 1; h <= newFullHours; h++) {
-        if (!completedMilestones.includes(h)) {
-          newlyUnlocked.push(h);
-          completedMilestones.push(h);
-          if (h === 6) earned += 5;
-          if (h >= 7) earned += 2;
-        }
-      }
-
-      const statPayload = {
-        studentId: currentUser.uid,
-        date: todayStr,
-        totalStudySeconds: newTotalSecs,
-        completedFullHours: newFullHours,
-        dailyStudyPoints: increment(earned),
-        completedMilestones,
-        lowStudyPenaltyApplied,
-        updatedAt: serverTimestamp()
-      };
-
-      await setDoc(statRef, statPayload, { merge: true });
-    } catch (statsErr) {
-      console.warn("Could not update studyDailyStats:", statsErr);
-    }
-
-    // 3. STEP 3: LOG POINT TRANSACTIONS IF MILESTONES ACHIEVED
-    if (earned > 0) {
-      try {
-        await addDoc(collection(db, 'pointTransactions'), {
-          studentId: currentUser.uid,
-          amount: earned,
-          type: 'reward',
-          reason: `Study Milestones: ${newlyUnlocked.join(', ')} Hours`,
-          sourceId: `timer_${todayStr}_${Date.now()}`,
-          date: todayStr,
-          createdAt: serverTimestamp()
-        });
-      } catch (ptErr) {
-        console.warn("Could not log pointTransaction:", ptErr);
-      }
-    }
-
-    // 4. STEP 4: UPDATE USER PROFILE (STUDY HOURS & EARNED POINTS)
-    try {
-      const userRef = doc(db, 'users', currentUser.uid);
-      const userUpdates = {
-        studyHours: increment(durationHours),
-        lastActiveAt: serverTimestamp()
-      };
-      if (earned > 0) {
-        userUpdates.points = increment(earned);
-      }
-      await setDoc(userRef, userUpdates, { merge: true });
-    } catch (uErr) {
-      console.warn("Could not update user document:", uErr);
-    }
-
-    // 5. STEP 5: INCREMENT TARGET STUDIED SECONDS
+    // 2. STEP 2: INCREMENT TARGET STUDIED SECONDS FOR MATCHING SUBJECT
     try {
       const matchingTargets = userTargets.filter(t => 
         (t.status !== 'completed' && !t.completed) && isSubjectMatch(t.subject, finalSubject)
@@ -852,10 +883,50 @@ export default function StudyTimer() {
       console.warn("Could not update target studiedSeconds:", tErr);
     }
 
-    // 6. STEP 6: MILESTONE CELEBRATIONS
-    if (newlyUnlocked.length > 0) {
-      const msgs = newlyUnlocked.map(h => getMilestoneMessage(h));
-      setMilestoneMessages(msgs);
+    // 3. STEP 3: UPDATE USER PROFILE STUDY HOURS
+    try {
+      const userRef = doc(db, 'users', currentUser.uid);
+      await setDoc(userRef, {
+        studyHours: increment(durationHours),
+        lastActiveAt: serverTimestamp()
+      }, { merge: true });
+    } catch (uErr) {
+      console.warn("Could not update user studyHours:", uErr);
+    }
+
+    // 4. STEP 4: RECONCILE STUDY POINTS, MILESTONES & TARGET ELIGIBILITY DETERMINISTICALLY
+    try {
+      const updatedSessions = [
+        ...sessions,
+        {
+          uid: currentUser.uid,
+          subject: finalSubject,
+          duration: durationSecs,
+          dateKey: todayStr,
+          date: new Date()
+        }
+      ];
+
+      const syncResult = await syncDailyPointsAndEligibility({
+        db,
+        uid: currentUser.uid,
+        dateKey: todayStr,
+        sessions: updatedSessions,
+        targets: userTargets,
+        activeTimerState: null
+      });
+
+      // 5. STEP 5: MILESTONE CELEBRATIONS
+      if (syncResult?.completedMilestones) {
+        const prevMilestones = todayStats?.completedMilestones || [];
+        const newlyUnlocked = syncResult.completedMilestones.filter(h => !prevMilestones.includes(h) && h >= 6);
+        if (newlyUnlocked.length > 0) {
+          const msgs = newlyUnlocked.map(h => getMilestoneMessage(h));
+          setMilestoneMessages(msgs);
+        }
+      }
+    } catch (syncErr) {
+      console.warn("Could not sync daily points and eligibility:", syncErr);
     }
   };
 
@@ -1454,16 +1525,24 @@ export default function StudyTimer() {
                 {todayDayOff ? (
                   <button
                     onClick={() => { setDayOffError(''); setShowDayOnModal(true); }}
-                    className="shrink-0 px-4 py-2.5 rounded-xl bg-emerald-500/20 border border-emerald-400/40 text-emerald-800 text-xs font-black hover:bg-emerald-500/30 flex items-center gap-1.5 transition-all"
+                    className={`shrink-0 px-4 py-2.5 rounded-xl border text-xs font-black flex items-center gap-1.5 transition-all ${
+                      isEyeCare
+                        ? 'bg-emerald-500/20 border-emerald-500/40 text-emerald-300 hover:bg-emerald-500/30'
+                        : 'bg-emerald-100 border-emerald-300 text-emerald-800 hover:bg-emerald-200'
+                    }`}
                   >
-                    <Zap className="w-3.5 h-3.5 text-emerald-600" />
+                    <Zap className="w-3.5 h-3.5 text-emerald-500" />
                     <span>Turn Day On</span>
                   </button>
                 ) : (
                   <button
                     onClick={() => { setDayOffError(''); setShowDayOffModal(true); }}
                     disabled={dayOffsUsed >= 7 || isActive}
-                    className="shrink-0 px-4 py-2.5 rounded-xl bg-amber-500/20 border border-amber-400/40 text-amber-900 text-xs font-black hover:bg-amber-500/30 disabled:opacity-50 disabled:cursor-not-allowed"
+                    className={`shrink-0 px-4 py-2.5 rounded-xl border text-xs font-black transition-all disabled:opacity-50 disabled:cursor-not-allowed ${
+                      isEyeCare
+                        ? 'bg-amber-500/20 border-amber-500/40 text-amber-300 hover:bg-amber-500/30'
+                        : 'bg-amber-100 border-amber-300 text-amber-900 hover:bg-amber-200'
+                    }`}
                   >
                     {dayOffsUsed >= 7 ? 'Monthly limit reached (7/7)' : 'Take Day Off'}
                   </button>
@@ -1540,6 +1619,123 @@ export default function StudyTimer() {
                    )}
                 </div>
              </div>
+          </div>
+
+          {/* Recent Study Sessions Card */}
+          <div className={`p-6 sm:p-7 rounded-3xl border shadow-xl space-y-4 ${
+            isEyeCare ? 'glass-card border-white/10' : 'bg-white border-2 border-blue-200 shadow-md'
+          }`}>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Clock className={`w-5 h-5 ${isEyeCare ? 'text-emerald-400' : 'text-blue-600'}`} />
+                <h3 className={`text-base font-black ${isEyeCare ? 'text-white' : 'text-slate-950 font-black'}`}>
+                  Recent Study Sessions
+                </h3>
+              </div>
+              <span className={`text-xs px-2.5 py-0.5 rounded-full font-bold ${
+                isEyeCare ? 'bg-white/10 text-slate-300 border border-white/10' : 'bg-blue-50 text-blue-700 border border-blue-200'
+              }`}>
+                {filteredRecentSessions.length} Logs
+              </span>
+            </div>
+
+            {/* Stream Selector Chips */}
+            <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none text-xs">
+              <button
+                onClick={() => { setRecentStreamFilter('all'); setShowAllRecentTimerSessions(false); }}
+                className={`px-3 py-1.5 rounded-xl font-bold whitespace-nowrap transition-all cursor-pointer ${
+                  recentStreamFilter === 'all'
+                    ? (isEyeCare ? 'bg-emerald-500 text-white shadow-sm' : 'bg-blue-600 text-white shadow-sm')
+                    : (isEyeCare ? 'bg-navy-900/80 border border-white/10 text-slate-400 hover:bg-white/10' : 'bg-slate-100 border border-slate-200 text-slate-600 hover:bg-slate-200')
+                }`}
+              >
+                All Streams
+              </button>
+              {availableStreams.map((st) => {
+                const isSelected = recentStreamFilter.toLowerCase().replace(/[\s_]+/g, '') === st.toLowerCase().replace(/[\s_]+/g, '');
+                return (
+                  <button
+                    key={st}
+                    onClick={() => { setRecentStreamFilter(st); setShowAllRecentTimerSessions(false); }}
+                    className={`px-3 py-1.5 rounded-xl font-bold whitespace-nowrap transition-all cursor-pointer ${
+                      isSelected
+                        ? (isEyeCare ? 'bg-emerald-500 text-white shadow-sm' : 'bg-blue-600 text-white shadow-sm')
+                        : (isEyeCare ? 'bg-navy-900/80 border border-white/10 text-slate-400 hover:bg-white/10' : 'bg-slate-100 border border-slate-200 text-slate-600 hover:bg-slate-200')
+                    }`}
+                  >
+                    {st}
+                  </button>
+                );
+              })}
+            </div>
+
+            {filteredRecentSessions.length === 0 ? (
+              <div className={`p-6 text-center text-sm border rounded-2xl ${
+                isEyeCare ? 'text-slate-500 border-white/5 bg-white/5' : 'text-slate-600 border-slate-200 bg-slate-50 font-semibold'
+              }`}>
+                {recentStreamFilter === 'all'
+                  ? 'No study sessions recorded yet. Start the stopwatch above to log your time!'
+                  : `No recorded study sessions found for ${recentStreamFilter}.`}
+              </div>
+            ) : (
+              <div className={`rounded-2xl border divide-y overflow-hidden ${
+                isEyeCare ? 'border-white/10 divide-white/5 bg-navy-900/40' : 'border-slate-200 divide-slate-100 bg-white'
+              }`}>
+                {(showAllRecentTimerSessions ? filteredRecentSessions : filteredRecentSessions.slice(0, 5)).map((sess) => {
+                  const streamTag = getSessionStream(sess, userStreamLabel);
+                  return (
+                    <div key={sess.id} className={`p-3.5 flex items-center justify-between transition-colors ${
+                      isEyeCare ? 'hover:bg-white/5' : 'hover:bg-slate-50'
+                    }`}>
+                      <div className="flex items-center space-x-3 min-w-0">
+                        <div className={`w-9 h-9 rounded-xl border flex items-center justify-center font-black text-xs shrink-0 ${
+                          isEyeCare ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' : 'bg-blue-50 border-blue-200 text-blue-700'
+                        }`}>
+                          {getSubjectBadge(sess.subject)}
+                        </div>
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <span className={`text-xs font-bold truncate ${isEyeCare ? 'text-white' : 'text-slate-900'}`}>
+                              {sess.subject}
+                            </span>
+                            <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded shrink-0 ${
+                              isEyeCare ? 'bg-emerald-500/15 text-emerald-300 border border-emerald-500/30' : 'bg-blue-50 text-blue-700 border border-blue-200'
+                            }`}>
+                              {streamTag}
+                            </span>
+                          </div>
+                          <div className={`text-[11px] mt-0.5 ${isEyeCare ? 'text-slate-400' : 'text-slate-500'}`}>
+                            {formatDate(sess.date)}
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="text-right shrink-0 ml-3">
+                        <div className={`text-xs font-mono font-bold ${isEyeCare ? 'text-emerald-400' : 'text-blue-700'}`}>
+                          {formatTimerTime(sess.duration)}
+                        </div>
+                        <div className={`text-[10px] font-bold ${isEyeCare ? 'text-emerald-400' : 'text-emerald-600'}`}>
+                          ✓ Verified
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+
+                {filteredRecentSessions.length > 5 && (
+                  <div className={`p-2.5 text-center border-t ${isEyeCare ? 'border-white/5 bg-navy-950/40' : 'border-slate-100 bg-slate-50'}`}>
+                    <button
+                      onClick={() => setShowAllRecentTimerSessions(!showAllRecentTimerSessions)}
+                      className={`text-xs font-bold transition-colors cursor-pointer ${
+                        isEyeCare ? 'text-emerald-400 hover:text-emerald-300' : 'text-blue-600 hover:text-blue-700'
+                      }`}
+                    >
+                      {showAllRecentTimerSessions ? 'Show Less ↑' : `Show All ${filteredRecentSessions.length} Sessions (${filteredRecentSessions.length - 5} More) ↓`}
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         </div>
 

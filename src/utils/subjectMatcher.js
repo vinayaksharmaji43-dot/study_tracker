@@ -52,30 +52,34 @@ export function formatDurationHuman(totalSeconds) {
  * 2. Saved studySessions matching this subject recorded on/after target creation
  * 3. Active running timer for this subject (if currently in progress)
  */
+import { getDateKey } from './helpers';
+
 export function calculateTargetProgress(target, sessions = [], activeTimerState = null) {
   const targetTotalSeconds = (parseFloat(target.targetValue || target.targetHours) || 1.0) * 3600;
   
   // 1. Stored studiedSeconds on the target document
   const storedStudied = Number(target.studiedSeconds) || 0;
 
-  // 2. Sum recorded studySessions matching subject
+  // 2. Sum recorded studySessions matching subject on target date
   let sessionsStudied = 0;
   if (Array.isArray(sessions) && sessions.length > 0) {
     const targetDateKey = target.targetDate;
-    const targetCreatedAt = target.createdAt?.toDate ? target.createdAt.toDate() : (targetDateKey ? new Date(targetDateKey + 'T00:00:00') : null);
 
     sessionsStudied = sessions.reduce((sum, s) => {
       if (!isSubjectMatch(s.subject, target.subject)) return sum;
       
-      // Ensure session is on or after target creation
-      if (targetCreatedAt && s.date) {
-        const sDate = s.date?.toDate ? s.date.toDate() : new Date(s.date);
-        // Include sessions from the same date or later (give 2 hours buffer for same-day start)
-        if (sDate < new Date(targetCreatedAt.getTime() - 2 * 3600 * 1000)) {
-          return sum;
+      if (targetDateKey) {
+        const sDateKey = s.dateKey || (s.date?.toDate ? getDateKey(s.date.toDate()) : (s.date ? getDateKey(new Date(s.date)) : null));
+        if (sDateKey && sDateKey === targetDateKey) {
+          return sum + (Number(s.duration) || 0);
         }
+        if (!sDateKey) {
+          return sum + (Number(s.duration) || 0);
+        }
+      } else {
+        return sum + (Number(s.duration) || 0);
       }
-      return sum + (Number(s.duration) || 0);
+      return sum;
     }, 0);
   }
 
@@ -100,6 +104,11 @@ export function calculateTargetProgress(target, sessions = [], activeTimerState 
   const remainingSeconds = Math.max(0, targetTotalSeconds - effectiveStudied);
   const progressPct = Math.min(100, Math.round((effectiveStudied / targetTotalSeconds) * 100));
 
+  // 20-minute requirement (1200 seconds)
+  const has20Mins = effectiveStudied >= 1200;
+  const requiresTimer = target.category !== 'other';
+  const isLocked = requiresTimer && !has20Mins;
+
   return {
     targetTotalSeconds,
     effectiveStudied,
@@ -108,6 +117,9 @@ export function calculateTargetProgress(target, sessions = [], activeTimerState 
     isEligible,
     remainingSeconds,
     progressPct,
+    has20Mins,
+    requiresTimer,
+    isLocked,
     studiedHuman: formatDurationHuman(effectiveStudied),
     targetHuman: formatDurationHuman(targetTotalSeconds),
     remainingHuman: formatDurationHuman(remainingSeconds)

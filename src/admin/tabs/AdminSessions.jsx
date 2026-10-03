@@ -157,7 +157,7 @@ export default function AdminSessions() {
                   <th className="px-6 py-4">Subject</th>
                   <th className="px-6 py-4">Date & Time</th>
                   <th className="px-6 py-4 text-center">Duration</th>
-                  <th className="px-6 py-4 text-right">Points Earned</th>
+                  <th className="px-6 py-4 text-right">Status</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-white/5 text-sm">
@@ -193,8 +193,10 @@ export default function AdminSessions() {
                         {formatTimerTime(sess.duration)}
                       </td>
 
-                      <td className="px-6 py-4 text-right font-black text-gold-400 font-mono">
-                        +{(sess.duration / 3600 * 10).toFixed(0)} PTS
+                      <td className="px-6 py-4 text-right">
+                        <span className="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                          ✓ Verified
+                        </span>
                       </td>
 
                     </tr>

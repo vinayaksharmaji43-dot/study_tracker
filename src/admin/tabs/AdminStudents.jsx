@@ -1,14 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { collection, collectionGroup, onSnapshot, query, where, doc, updateDoc, addDoc, increment, serverTimestamp } from 'firebase/firestore';
+import { collection, collectionGroup, onSnapshot, query, where, doc, updateDoc, addDoc, increment, serverTimestamp, setDoc, deleteDoc } from 'firebase/firestore';
 import { db } from '../../config/firebase';
-import { formatDate, formatHours, formatTabAwayTime, formatDateTime } from '../../utils/helpers';
+import { formatDate, formatHours, formatTabAwayTime, formatDateTime, getDateKey } from '../../utils/helpers';
 import EmptyState from '../../components/EmptyState';
 import { 
   Users, 
   Search, 
   Filter, 
   Eye, 
-  EyeOff,
+  EyeOff, 
   Award, 
   Clock, 
   BookOpen, 
@@ -16,15 +16,17 @@ import {
   Target, 
   HelpCircle, 
   Sliders, 
-  CheckCircle,
-  AlertCircle,
-  AlertTriangle,
-  LogOut,
-  UserX,
-  UserCheck,
-  ShieldAlert,
-  Crown,
-  X
+  CheckCircle, 
+  AlertCircle, 
+  AlertTriangle, 
+  LogOut, 
+  UserX, 
+  UserCheck, 
+  ShieldAlert, 
+  ShieldCheck, 
+  Zap, 
+  Crown, 
+  X 
 } from 'lucide-react';
 import ProBadge from '../../components/ProBadge';
 import { getStreamId, getStreamDetails, STREAM_OPTIONS, STREAM_LABELS } from '../../utils/levelSystem';
@@ -72,6 +74,13 @@ export default function AdminStudents() {
   const [selectedNewStream, setSelectedNewStream] = useState('');
   const [savingStream, setSavingStream] = useState(false);
 
+  // Admin Day Off Management State
+  const todayKey = getDateKey();
+  const [adminDayOffDate, setAdminDayOffDate] = useState(todayKey);
+  const [adminDayOffNote, setAdminDayOffNote] = useState('');
+  const [togglingDayOff, setTogglingDayOff] = useState(false);
+  const [dayOffSuccessMsg, setDayOffSuccessMsg] = useState('');
+
   // Helper to format referral source badges with consistent colors & icons
   const getReferralBadge = (source) => {
     switch (source) {
@@ -117,6 +126,8 @@ export default function AdminStudents() {
 
     const unsubDayOffs = onSnapshot(collectionGroup(db, 'records'), (snapshot) => {
       setDayOffs(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+    }, (err) => {
+      console.warn("AdminStudents dayOffs listener notice:", err);
     });
 
     return () => {
@@ -201,11 +212,106 @@ export default function AdminStudents() {
   });
 
   const currentMonthKey = new Date().toISOString().slice(0, 7);
-  const getStudentDayOffs = (student) => dayOffs.filter(dayOff =>
-    dayOff.uid === (student.id || student.uid) &&
-    dayOff.monthKey === currentMonthKey &&
-    dayOff.status === 'active'
-  );
+  const getStudentDayOffs = (student) => {
+    if (!student) return [];
+    const sUid = student.id || student.uid;
+    return dayOffs.filter(dayOff =>
+      (dayOff.uid === sUid || dayOff.id === sUid) &&
+      (dayOff.monthKey === currentMonthKey || (dayOff.dateKey && dayOff.dateKey.startsWith(currentMonthKey))) &&
+      dayOff.status === 'active'
+    );
+  };
+
+  const handleAdminToggleDayOff = async (student, targetDateKey, shouldActivate) => {
+    if (!student) return;
+    const studentUid = student.id || student.uid;
+    if (!studentUid || !targetDateKey) return;
+
+    setTogglingDayOff(true);
+    setDayOffSuccessMsg('');
+
+    try {
+      const targetDateParts = targetDateKey.split('-');
+      const year = parseInt(targetDateParts[0], 10);
+      const month = parseInt(targetDateParts[1], 10);
+      const day = parseInt(targetDateParts[2], 10);
+      const monthKey = targetDateKey.slice(0, 7);
+      const usageId = `${studentUid}_${monthKey}`;
+
+      const dayOffRef = doc(db, 'dayOffs', studentUid, 'records', targetDateKey);
+
+      if (shouldActivate) {
+        const dayOffData = {
+          uid: studentUid,
+          studentName: student.name || '',
+          studentEmail: student.email || '',
+          course: student.course || '',
+          level: student.level || '',
+          dateKey: targetDateKey,
+          monthKey: monthKey,
+          year,
+          month,
+          day,
+          monthlyUsageId: usageId,
+          status: 'active',
+          activatedByAdmin: true,
+          adminEmail: currentUser?.email || 'admin',
+          note: adminDayOffNote.trim() || 'Turned ON by Admin',
+          createdAt: serverTimestamp(),
+          updatedAt: serverTimestamp()
+        };
+
+        await setDoc(dayOffRef, dayOffData, { merge: true });
+
+        // Update dayOffUsage counter gracefully
+        try {
+          const usageRef = doc(db, 'dayOffUsage', studentUid, 'months', monthKey);
+          await setDoc(usageRef, {
+            uid: studentUid,
+            monthKey: monthKey,
+            year,
+            month,
+            used: increment(1),
+            updatedAt: serverTimestamp()
+          }, { merge: true });
+        } catch (e) {
+          console.warn('dayOffUsage sync warning:', e);
+        }
+
+        // Optimistic local state update
+        setDayOffs(prev => {
+          const filtered = prev.filter(d => !( (d.uid === studentUid || d.id === targetDateKey) && d.dateKey === targetDateKey ));
+          return [...filtered, { id: targetDateKey, ...dayOffData }];
+        });
+
+        setDayOffSuccessMsg(`Day Off turned ON for ${targetDateKey} successfully!`);
+      } else {
+        await deleteDoc(dayOffRef);
+
+        // Decrement usage gracefully
+        try {
+          const usageRef = doc(db, 'dayOffUsage', studentUid, 'months', monthKey);
+          await setDoc(usageRef, {
+            used: increment(-1),
+            updatedAt: serverTimestamp()
+          }, { merge: true });
+        } catch (e) {
+          console.warn('dayOffUsage sync warning:', e);
+        }
+
+        // Optimistic local state update
+        setDayOffs(prev => prev.filter(d => !( (d.uid === studentUid || d.id === targetDateKey) && d.dateKey === targetDateKey )));
+
+        setDayOffSuccessMsg(`Day Off removed for ${targetDateKey} successfully!`);
+      }
+    } catch (err) {
+      console.error("Admin toggle Day Off error:", err);
+      alert(`Failed to update Day Off: ${err.message || 'Please try again.'}`);
+    } finally {
+      setTogglingDayOff(false);
+      setTimeout(() => setDayOffSuccessMsg(''), 4500);
+    }
+  };
 
   const handleAdjustPoints = async (e) => {
     e.preventDefault();
@@ -725,6 +831,15 @@ export default function AdminStudents() {
                     <td className="px-6 py-4 text-center text-xs text-slate-300">
                       <div className="font-bold text-amber-300">{getStudentDayOffs(student).length}/7</div>
                       <div className="text-[11px] text-slate-500">{7 - getStudentDayOffs(student).length} left</div>
+                      {(() => {
+                        const sUid = student.id || student.uid;
+                        const isToday = dayOffs.some(d => (d.uid === sUid || d.id === todayKey) && d.dateKey === todayKey && d.status === 'active');
+                        return isToday ? (
+                          <span className="inline-block mt-1 px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 text-[10px] font-bold border border-emerald-500/30">
+                            Active Today
+                          </span>
+                        ) : null;
+                      })()}
                     </td>
 
                     {/* Actions */}
@@ -737,6 +852,18 @@ export default function AdminStudents() {
                         >
                           <Eye className="w-3.5 h-3.5" />
                           <span>View</span>
+                        </button>
+
+                        <button
+                          onClick={() => {
+                            setSelectedStudent(student);
+                            setAdminDayOffDate(todayKey);
+                          }}
+                          title="Manage Day Off for student"
+                          className="px-2.5 py-1.5 rounded-xl bg-amber-500/20 border border-amber-500/30 text-amber-300 hover:bg-amber-500 hover:text-navy-950 text-xs font-bold transition-all flex items-center gap-1"
+                        >
+                          <ShieldCheck className="w-3.5 h-3.5" />
+                          <span>Day Off</span>
                         </button>
 
                         <button
@@ -1099,15 +1226,154 @@ export default function AdminStudents() {
                 </div>
               </div>
 
-              <div className="p-4 rounded-2xl bg-navy-900/40 border border-white/5 space-y-2">
-                <h4 className="text-sm font-bold text-white flex items-center gap-2">
-                  <Calendar className="w-4 h-4 text-amber-400" />
-                  <span>Day Off Dates This Month</span>
-                </h4>
-                <div className="text-xs text-slate-300">
-                  {getStudentDayOffs(selectedStudent).length > 0
-                    ? getStudentDayOffs(selectedStudent).map(dayOff => dayOff.dateKey).join(', ')
-                    : 'No Day Offs used this month.'}
+              {/* Day Off Management Card (Admin Override) */}
+              <div className="p-5 rounded-2xl bg-navy-900/60 border border-amber-500/20 space-y-4">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                  <h4 className="text-sm font-bold text-white flex items-center gap-2">
+                    <ShieldCheck className="w-4 h-4 text-amber-400" />
+                    <span>Day Off Management (Admin Control)</span>
+                  </h4>
+                  <span className="text-xs font-bold px-2.5 py-1 rounded-full bg-amber-500/15 text-amber-300 border border-amber-500/30 w-fit">
+                    {getStudentDayOffs(selectedStudent).length} / 7 Used This Month
+                  </span>
+                </div>
+
+                {dayOffSuccessMsg && (
+                  <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-xs text-emerald-300 flex items-center gap-2">
+                    <CheckCircle className="w-4 h-4 shrink-0" />
+                    <span>{dayOffSuccessMsg}</span>
+                  </div>
+                )}
+
+                {/* Quick Today Toggle */}
+                {(() => {
+                  const sUid = selectedStudent.id || selectedStudent.uid;
+                  const isTodayActive = dayOffs.some(d => (d.uid === sUid || d.id === todayKey) && d.dateKey === todayKey && d.status === 'active');
+                  return (
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-3.5 rounded-xl bg-navy-950/80 border border-white/5">
+                      <div>
+                        <div className="text-xs font-bold text-white flex items-center gap-2">
+                          <span>Today ({todayKey}):</span>
+                          {isTodayActive ? (
+                            <span className="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 font-extrabold text-[11px] border border-emerald-500/30">
+                              🟢 Day Off Active
+                            </span>
+                          ) : (
+                            <span className="px-2 py-0.5 rounded bg-slate-800 text-slate-300 font-bold text-[11px] border border-white/10">
+                              ⚪ Working / No Day Off
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-[11px] text-slate-400 mt-0.5">
+                          {isTodayActive ? "Exempt from study penalties today." : "Student is expected to study today."}
+                        </p>
+                      </div>
+
+                      <button
+                        type="button"
+                        disabled={togglingDayOff}
+                        onClick={() => handleAdminToggleDayOff(selectedStudent, todayKey, !isTodayActive)}
+                        className={`shrink-0 px-3.5 py-2 rounded-xl text-xs font-black transition-all flex items-center gap-1.5 disabled:opacity-50 ${
+                          isTodayActive
+                            ? 'bg-rose-500/20 text-rose-300 border border-rose-500/30 hover:bg-rose-500 hover:text-white'
+                            : 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 hover:bg-emerald-500 hover:text-navy-950 shadow-glow-emerald'
+                        }`}
+                      >
+                        {togglingDayOff ? (
+                          <span>Updating...</span>
+                        ) : isTodayActive ? (
+                          <>
+                            <X className="w-3.5 h-3.5" />
+                            <span>Turn Day Off OFF</span>
+                          </>
+                        ) : (
+                          <>
+                            <ShieldCheck className="w-3.5 h-3.5" />
+                            <span>Turn Day Off ON</span>
+                          </>
+                        )}
+                      </button>
+                    </div>
+                  );
+                })()}
+
+                {/* Custom Date Selector */}
+                <div className="p-3.5 rounded-xl bg-navy-950/80 border border-white/5 space-y-3">
+                  <div className="text-xs font-bold text-slate-300">
+                    Set / Remove Day Off for Any Specific Date:
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-12 gap-2">
+                    <div className="sm:col-span-5">
+                      <input
+                        type="date"
+                        value={adminDayOffDate}
+                        onChange={(e) => setAdminDayOffDate(e.target.value)}
+                        className="w-full px-3 py-2 rounded-xl bg-navy-900 border border-white/10 text-white text-xs font-mono focus:outline-none focus:border-amber-400"
+                      />
+                    </div>
+                    <div className="sm:col-span-4">
+                      <input
+                        type="text"
+                        placeholder="Admin note (optional)"
+                        value={adminDayOffNote}
+                        onChange={(e) => setAdminDayOffNote(e.target.value)}
+                        className="w-full px-3 py-2 rounded-xl bg-navy-900 border border-white/10 text-white text-xs placeholder-slate-500 focus:outline-none focus:border-amber-400"
+                      />
+                    </div>
+                    <div className="sm:col-span-3">
+                      {(() => {
+                        const sUid = selectedStudent.id || selectedStudent.uid;
+                        const isDateActive = dayOffs.some(d => (d.uid === sUid || d.id === adminDayOffDate) && d.dateKey === adminDayOffDate && d.status === 'active');
+                        return (
+                          <button
+                            type="button"
+                            disabled={togglingDayOff || !adminDayOffDate}
+                            onClick={() => handleAdminToggleDayOff(selectedStudent, adminDayOffDate, !isDateActive)}
+                            className={`w-full py-2 px-3 rounded-xl text-xs font-black transition-all flex items-center justify-center gap-1 disabled:opacity-50 ${
+                              isDateActive
+                                ? 'bg-rose-500/20 text-rose-300 border border-rose-500/30 hover:bg-rose-500 hover:text-white'
+                                : 'bg-amber-500 text-navy-950 font-black hover:bg-amber-400 shadow-glow-amber'
+                            }`}
+                          >
+                            {togglingDayOff ? '...' : isDateActive ? 'Turn OFF' : 'Turn ON'}
+                          </button>
+                        );
+                      })()}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Active Day Off Dates this Month with Remove Chips */}
+                <div>
+                  <div className="text-xs font-semibold text-slate-400 mb-2">
+                    Active Day Off Records This Month ({getStudentDayOffs(selectedStudent).length}):
+                  </div>
+                  {getStudentDayOffs(selectedStudent).length > 0 ? (
+                    <div className="flex flex-wrap gap-2">
+                      {getStudentDayOffs(selectedStudent).map(dayOff => (
+                        <div
+                          key={dayOff.dateKey}
+                          className="flex items-center gap-1.5 px-3 py-1 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs font-mono font-bold"
+                        >
+                          <Calendar className="w-3 h-3 text-amber-400" />
+                          <span>{dayOff.dateKey}</span>
+                          {dayOff.activatedByAdmin && (
+                            <span className="text-[10px] text-amber-200 bg-amber-500/20 px-1 rounded">Admin</span>
+                          )}
+                          <button
+                            type="button"
+                            onClick={() => handleAdminToggleDayOff(selectedStudent, dayOff.dateKey, false)}
+                            title={`Remove Day Off for ${dayOff.dateKey}`}
+                            className="ml-1 hover:text-rose-400 text-slate-400 transition-colors"
+                          >
+                            <X className="w-3 h-3" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-xs text-slate-500 italic">No Day Offs recorded for this student this month.</div>
+                  )}
                 </div>
               </div>
 

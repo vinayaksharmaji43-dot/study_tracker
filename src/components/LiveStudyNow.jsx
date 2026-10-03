@@ -1,11 +1,10 @@
-import React, { useState, useEffect } from 'react';
-import { collection, query, where, onSnapshot } from 'firebase/firestore';
+import React, { useState, useEffect, useMemo } from 'react';
+import { collection, onSnapshot } from 'firebase/firestore';
 import { db } from '../config/firebase';
 import { useAuth } from '../contexts/AuthContext';
-import { Users, Radio, Flame, Sparkles, ChevronRight, BarChart3 } from 'lucide-react';
+import { BarChart3, ChevronRight, Radio } from 'lucide-react';
 import { calculateStudentLevel, getDefaultStreamLevels, getStreamId, normalizeLevelConfig } from '../utils/levelSystem';
 import StudentProfileModal from './StudentProfileModal';
-
 import { useActiveSessionsTracker, formatLiveTimer } from '../hooks/useActiveSessionsTracker';
 import { useTheme } from '../contexts/ThemeContext';
 
@@ -39,12 +38,18 @@ function getBadge(durationSecs, isEyeCare = false) {
   return null;
 }
 
-export default function LiveStudyNow({ onSelectStudent }) {
+export default function LiveStudyNow({ onSelectStudent, activeSessionsTracker: parentTracker }) {
   const { currentUser, userProfile } = useAuth();
   const { isEyeCare } = useTheme();
-  const { activeSessionsList } = useActiveSessionsTracker(currentUser, userProfile);
+
+  // Use parent tracker if provided, otherwise run own instance
+  const ownTracker = useActiveSessionsTracker(currentUser, userProfile);
+  const tracker = parentTracker || ownTracker;
+  const { activeSessionsList = [], isLoading = false } = tracker;
+
   const [levelConfigs, setLevelConfigs] = useState({});
   const [localSelectedStudent, setLocalSelectedStudent] = useState(null);
+  const [streamFilter, setStreamFilter] = useState('all');
 
   useEffect(() => {
     return onSnapshot(collection(db, 'levelConfigs'), (snapshot) => {
@@ -56,7 +61,25 @@ export default function LiveStudyNow({ onSelectStudent }) {
     });
   }, []);
 
-  const validSessions = activeSessionsList;
+  // Compute available streams from activeSessionsList
+  const availableStreams = useMemo(() => {
+    const set = new Set();
+    activeSessionsList.forEach(s => {
+      const st = `${s.course || 'CA'} ${s.level || 'Foundation'}`.trim();
+      if (st) set.add(st);
+    });
+    return Array.from(set);
+  }, [activeSessionsList]);
+
+  // Filter sessions by selected stream tab ('all' or specific stream name)
+  const filteredSessions = useMemo(() => {
+    if (streamFilter === 'all') return activeSessionsList;
+    const normalizedFilter = streamFilter.toLowerCase().replace(/[\s_]+/g, '');
+    return activeSessionsList.filter(s => {
+      const st = `${s.course || ''} ${s.level || ''}`.toLowerCase().replace(/[\s_]+/g, '');
+      return st === normalizedFilter || st.includes(normalizedFilter);
+    });
+  }, [activeSessionsList, streamFilter]);
 
   const handleCardClick = (session) => {
     if (onSelectStudent) {
@@ -68,6 +91,7 @@ export default function LiveStudyNow({ onSelectStudent }) {
 
   return (
     <div className="space-y-4">
+      {/* Header */}
       <div className="flex items-center justify-between gap-2 flex-wrap">
         <div>
           <h2 className={`text-xl font-black flex items-center gap-2 ${
@@ -91,27 +115,95 @@ export default function LiveStudyNow({ onSelectStudent }) {
         </span>
       </div>
 
-      {validSessions.length === 0 ? (
+      {/* Stream Filter Pills */}
+      {!isLoading && activeSessionsList.length > 0 && availableStreams.length > 1 && (
+        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 custom-scrollbar">
+          <button
+            onClick={() => setStreamFilter('all')}
+            className={`px-3 py-1 rounded-xl text-xs font-bold transition-all cursor-pointer shrink-0 ${
+              streamFilter === 'all'
+                ? 'bg-emerald-500 text-slate-950 font-black shadow-glow-emerald'
+                : isEyeCare 
+                  ? 'bg-navy-900 text-slate-300 border border-white/10 hover:bg-navy-800' 
+                  : 'bg-white text-slate-700 border border-slate-200 hover:bg-slate-100'
+            }`}
+          >
+            All Streams ({activeSessionsList.length})
+          </button>
+          {availableStreams.map((st) => {
+            const count = activeSessionsList.filter(s => `${s.course || ''} ${s.level || ''}`.trim() === st).length;
+            return (
+              <button
+                key={st}
+                onClick={() => setStreamFilter(st)}
+                className={`px-3 py-1 rounded-xl text-xs font-bold transition-all cursor-pointer shrink-0 ${
+                  streamFilter === st
+                    ? 'bg-emerald-500 text-slate-950 font-black shadow-glow-emerald'
+                    : isEyeCare 
+                      ? 'bg-navy-900 text-slate-300 border border-white/10 hover:bg-navy-800' 
+                      : 'bg-white text-slate-700 border border-slate-200 hover:bg-slate-100'
+                }`}
+              >
+                {st} ({count})
+              </button>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Content Rendering: Loading / Empty / Cards */}
+      {isLoading ? (
+        /* Proper loading skeleton matching design */
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 animate-pulse">
+          {[1, 2, 3, 4].map((n) => (
+            <div 
+              key={n} 
+              className={`p-4 rounded-3xl border h-32 flex flex-col justify-between ${
+                isEyeCare ? 'bg-navy-900/60 border-white/5' : 'bg-slate-50 border-2 border-slate-200'
+              }`}
+            >
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <div className="w-2.5 h-2.5 rounded-full bg-slate-400"></div>
+                  <div className="h-4 bg-slate-300 dark:bg-slate-700 rounded-md w-28"></div>
+                </div>
+                <div className="h-3 bg-slate-200 dark:bg-slate-800 rounded-md w-36"></div>
+              </div>
+              <div className="flex justify-between items-center pt-2">
+                <div className="h-7 bg-slate-300 dark:bg-slate-700 rounded-xl w-24"></div>
+                <div className="h-3 bg-slate-200 dark:bg-slate-800 rounded w-16"></div>
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : filteredSessions.length === 0 ? (
         <div className={`p-8 rounded-3xl text-center space-y-2 border ${
           isEyeCare 
             ? 'glass-card border-white/5' 
             : 'bg-white border-2 border-blue-200 shadow-sm'
         }`}>
           <div className="text-3xl mb-2">😴</div>
-          <div className={`text-sm font-black ${isEyeCare ? 'text-slate-300' : 'text-slate-900 font-black'}`}>No students are studying right now.</div>
-          <div className={`text-xs font-bold ${isEyeCare ? 'text-slate-500' : 'text-slate-600'}`}>Start your timer and become the first one!</div>
+          <div className={`text-sm font-black ${isEyeCare ? 'text-slate-300' : 'text-slate-900 font-black'}`}>
+            {streamFilter === 'all' 
+              ? 'No students are studying right now.' 
+              : `No students currently studying in ${streamFilter}.`}
+          </div>
+          <div className={`text-xs font-bold ${isEyeCare ? 'text-slate-500' : 'text-slate-600'}`}>
+            Start your timer and become the first one!
+          </div>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {validSessions.map((s) => {
-            const badge = getBadge(Math.max(0, s.durationSecs), isEyeCare);
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          {filteredSessions.map((s) => {
+            const effectiveSecs = Math.max(0, Number(s.durationSecs) || Number(s.elapsedSeconds) || 0);
+            const badge = getBadge(effectiveSecs, isEyeCare);
             const isMe = s.studentId === currentUser?.uid;
             const streamId = getStreamId(s.course, s.level);
             const liveLevel = calculateStudentLevel(s.points || 0, levelConfigs[streamId] || getDefaultStreamLevels(streamId));
 
             return (
               <div 
-                key={s.id} 
+                key={s.id || s.studentId} 
                 onClick={() => handleCardClick(s)}
                 className={`p-4 rounded-3xl border transition-all flex flex-col justify-between cursor-pointer group hover:scale-[1.01] hover:shadow-lg ${
                   isMe 
@@ -132,7 +224,7 @@ export default function LiveStudyNow({ onSelectStudent }) {
                         <h3 className={`text-sm font-black truncate max-w-[120px] sm:max-w-[150px] uppercase flex items-center gap-1 transition-colors ${
                           isEyeCare ? 'text-white group-hover:text-gold-400' : 'text-slate-950 group-hover:text-blue-700 font-black'
                         }`}>
-                          <span>{s.displayName}</span>
+                          <span>{s.displayName || 'Student'}</span>
                           <span title={`Level ${liveLevel.currentLevelNumber}: ${liveLevel.currentLevelName}`}>
                             {liveLevel.badge}
                           </span>
@@ -160,7 +252,7 @@ export default function LiveStudyNow({ onSelectStudent }) {
                     <div className={`text-xs font-bold mt-1 ${
                       isEyeCare ? 'text-slate-400' : 'text-slate-700 font-bold'
                     }`}>
-                      {s.course} {s.level} • {s.attempt}
+                      {s.course || 'CA'} {s.level || 'Foundation'} {s.attempt ? `• ${s.attempt}` : ''}
                     </div>
                   </div>
                 </div>
@@ -175,7 +267,7 @@ export default function LiveStudyNow({ onSelectStudent }) {
                     <span className={`text-sm font-mono font-black tracking-wide ${
                       isEyeCare ? 'text-white' : 'text-emerald-950 font-black'
                     }`}>
-                      {s.formattedDuration || formatLiveTimer(s.elapsedSeconds || s.durationSecs || 0)}
+                      {s.formattedDuration || formatLiveTimer(effectiveSecs)}
                     </span>
                   </div>
 

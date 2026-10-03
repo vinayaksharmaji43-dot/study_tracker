@@ -36,6 +36,7 @@ import {
 } from 'lucide-react';
 import TestTracker from './TestTracker';
 import { isSubjectMatch, calculateTargetProgress, formatDurationHuman } from '../utils/subjectMatcher';
+import { calculateCombinedDailyStudy, syncDailyPointsAndEligibility } from '../services/pointsService';
 import { useTheme } from '../contexts/ThemeContext';
 
 const CA_SUBJECTS = [
@@ -330,22 +331,21 @@ export default function Targets({ setActiveTab }) {
   const markTarget = async (target, statusAction) => {
     if (target.status === 'completed' || target.status === 'half_completed' || target.status === 'missed') return;
 
-    try {
-      const batch = writeBatch(db);
-      const targetRef = doc(db, 'targets', target.id);
-      const userRef = doc(db, 'users', currentUser.uid);
-      const txRef = doc(collection(db, 'pointTransactions'));
-      const todayStr = getDateKey(new Date());
+    const progress = target.progress || calculateTargetProgress(target, sessions, activeTimerState);
 
-      const todayKey = getDateKey(new Date());
-      const todaySessions = sessions.filter(s => s.date === todayKey);
-      let totalStudiedTodaySeconds = todaySessions.reduce((acc, curr) => acc + (curr.duration || 0), 0);
-      
-      if (activeTimerState?.isActive && activeTimerState.startTimestamp) {
-        const elapsed = Math.floor((Date.now() - activeTimerState.startTimestamp) / 1000);
-        totalStudiedTodaySeconds += elapsed;
+    // Enforce 20-minute requirement on subject before Done / Half Done
+    if ((statusAction === 'done' || statusAction === 'half_done') && target.category !== 'other') {
+      if (progress.effectiveStudied < 1200) {
+        alert(`You must study at least 20 verified minutes on "${target.subject}" before marking it complete.\nCurrent studied: ${progress.studiedHuman || '0m'}.`);
+        return;
       }
-      
+    }
+
+    try {
+      const todayStr = getDateKey(new Date());
+      const study = calculateCombinedDailyStudy(sessions, activeTimerState, todayStr);
+      const isEligible = study.isTargetEligible; // Verified study time >= 14,400s (4+ hours)
+
       let pointsToAward = 0;
       let reason = '';
       let newStatus = '';
@@ -353,15 +353,15 @@ export default function Targets({ setActiveTab }) {
 
       if (statusAction === 'done') {
         newStatus = 'completed';
-        if (totalStudiedTodaySeconds >= 14400) {
+        if (isEligible) {
           pointsToAward = 10;
-          reason = 'Daily Target Completed (>= 4 hrs)';
+          reason = 'Daily Target Completed (>= 4 hrs verified)';
         }
       } else if (statusAction === 'half_done') {
         newStatus = 'half_completed';
-        if (totalStudiedTodaySeconds >= 14400) {
+        if (isEligible) {
           pointsToAward = 5;
-          reason = 'Daily Target Half Done (>= 4 hrs)';
+          reason = 'Daily Target Half Done (>= 4 hrs verified)';
         }
       } else if (statusAction === 'missed') {
         newStatus = 'missed';
@@ -369,6 +369,10 @@ export default function Targets({ setActiveTab }) {
         reason = 'Daily Target Missed';
         isPenalty = true;
       }
+
+      const batch = writeBatch(db);
+      const targetRef = doc(db, 'targets', target.id);
+      const userRef = doc(db, 'users', currentUser.uid);
 
       batch.update(targetRef, {
         status: newStatus,
@@ -379,38 +383,61 @@ export default function Targets({ setActiveTab }) {
       });
 
       if (pointsToAward !== 0) {
-        batch.update(userRef, {
-          points: increment(pointsToAward)
-        });
+        const txDocId = isPenalty 
+          ? `${currentUser.uid}_target_penalty_${target.id}` 
+          : `${currentUser.uid}_target_reward_${target.id}`;
+        const txRef = doc(db, 'pointTransactions', txDocId);
 
         batch.set(txRef, {
           studentId: currentUser.uid,
           amount: pointsToAward,
           type: isPenalty ? 'penalty' : 'reward',
           reason: reason,
-          sourceId: target.id,
-          targetTitle: target.title,
-          subject: target.subject,
+          sourceId: txDocId,
+          targetId: target.id,
+          targetTitle: target.title || 'Daily Target',
+          subject: target.subject || '',
           date: todayStr,
           createdAt: serverTimestamp()
+        });
+
+        batch.update(userRef, {
+          points: increment(pointsToAward)
         });
       }
 
       await batch.commit();
 
-      if (pointsToAward !== 0) {
+      if (pointsToAward > 0) {
         setRewardToast({
           title: target.title,
           subject: target.subject,
           points: pointsToAward
         });
         setTimeout(() => setRewardToast(null), 4500);
+      } else if ((statusAction === 'done' || statusAction === 'half_done') && !isEligible) {
+        const remainingMinutes = Math.max(0, Math.ceil((14400 - study.totalSeconds) / 60));
+        alert(`Target marked as ${statusAction === 'done' ? 'Completed' : 'Half Done'}! Study ${remainingMinutes} more minutes today across your subjects to unlock your +${statusAction === 'done' ? 10 : 5} PTS.`);
       }
     } catch (err) {
       console.error("Error updating target status:", err);
       alert("Failed to update target. Please try again.");
     }
   };
+
+  // Auto-sync daily points and eligibility on mount / sessions change without duplicates
+  useEffect(() => {
+    if (!currentUser?.uid || !sessions || sessions.length === 0) return;
+    const todayStr = getDateKey(new Date());
+    syncDailyPointsAndEligibility({
+      db,
+      uid: currentUser.uid,
+      dateKey: todayStr,
+      sessions,
+      targets,
+      activeTimerState
+    });
+  }, [currentUser?.uid, sessions.length, targets.length]);
 
   const handleQuickStudy = (subjectName) => {
     if (!subjectName) return;
@@ -891,12 +918,12 @@ export default function Targets({ setActiveTab }) {
                       {isCompleted ? (
                         <div className="w-full py-2.5 rounded-xl bg-emerald-500/10 text-emerald-400 text-xs font-black flex items-center justify-center gap-1.5 border border-emerald-500/20 cursor-default">
                           <CheckCircle2 className="w-4 h-4" />
-                          <span>Target Completed (+10 Points)</span>
+                          <span>{target.targetRewardGranted ? 'Target Completed (+10 Points)' : 'Target Completed (Pending 4h Daily Study)'}</span>
                         </div>
                       ) : isHalfCompleted ? (
                         <div className="w-full py-2.5 rounded-xl bg-teal-500/10 text-teal-400 text-xs font-black flex items-center justify-center gap-1.5 border border-teal-500/20 cursor-default">
                           <CheckCircle2 className="w-4 h-4" />
-                          <span>Target Half Done (+5 Points)</span>
+                          <span>{target.targetRewardGranted ? 'Target Half Done (+5 Points)' : 'Target Half Done (Pending 4h Daily Study)'}</span>
                         </div>
                       ) : isMissed ? (
                         <div className="w-full py-2.5 rounded-xl bg-rose-500/10 text-rose-400 text-xs font-black flex items-center justify-center gap-1.5 border border-rose-500/20 cursor-default">
@@ -908,7 +935,7 @@ export default function Targets({ setActiveTab }) {
                           {target.isLocked ? (
                             <div className="w-full py-2.5 rounded-xl bg-navy-800 border border-white/10 text-slate-400 text-xs font-bold flex items-center justify-center gap-1.5 cursor-not-allowed">
                               <Lock className="w-3.5 h-3.5 text-slate-500" />
-                              <span>🔒 Study 20 min to complete</span>
+                              <span>🔒 Study 20 min to complete ({progress.studiedHuman || '0m'} / 20m)</span>
                             </div>
                           ) : (
                             <div className="grid grid-cols-2 gap-2">
@@ -916,13 +943,13 @@ export default function Targets({ setActiveTab }) {
                                 onClick={() => markTarget(target, 'done')}
                                 className="w-full py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-400 hover:from-emerald-400 hover:to-teal-300 text-navy-950 text-xs font-black shadow-glow-emerald flex items-center justify-center gap-1.5 transition-all cursor-pointer"
                               >
-                                <span>✅ Done</span>
+                                <span>✅ Done (+10 PTS)</span>
                               </button>
                               <button
                                 onClick={() => markTarget(target, 'half_done')}
                                 className="w-full py-2.5 rounded-xl bg-teal-500/20 hover:bg-teal-500/30 text-teal-300 border border-teal-500/30 text-xs font-bold flex items-center justify-center transition-all cursor-pointer"
                               >
-                                <span>Half Done</span>
+                                <span>Half Done (+5 PTS)</span>
                               </button>
                             </div>
                           )}
