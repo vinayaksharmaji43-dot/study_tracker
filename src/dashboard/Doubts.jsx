@@ -18,6 +18,7 @@ import { db } from '../config/firebase';
 import { useAuth } from '../contexts/AuthContext';
 import { formatDate } from '../utils/helpers';
 import { getStreamId, STREAM_LABELS } from '../utils/levelSystem';
+import { uploadDoubtImage, uploadDoubtAudio } from '../utils/fileUploadHelper';
 import { SYLLABUS_DATA } from '../data/syllabusData';
 import EmptyState from '../components/EmptyState';
 import { 
@@ -201,6 +202,26 @@ function blobToBase64(blob) {
 }
 
 /**
+ * Bulletproof Stream matcher supporting both underscore and space-separated formats
+ */
+export function isStreamMatch(s1, s2) {
+  if (!s1 || !s2) return false;
+  const a = s1.toString().toLowerCase().replace(/[^a-z0-9]/g, '');
+  const b = s2.toString().toLowerCase().replace(/[^a-z0-9]/g, '');
+  if (a === b) return true;
+  if (a.includes('foundation') && b.includes('foundation')) {
+    if ((a.startsWith('ca') && b.startsWith('ca')) || (a.startsWith('cma') && b.startsWith('cma'))) return true;
+  }
+  if (a.includes('inter') && b.includes('inter')) {
+    if ((a.startsWith('ca') && b.startsWith('ca')) || (a.startsWith('cma') && b.startsWith('cma'))) return true;
+  }
+  if (a.includes('final') && b.includes('final')) {
+    if ((a.startsWith('ca') && b.startsWith('ca')) || (a.startsWith('cma') && b.startsWith('cma'))) return true;
+  }
+  return false;
+}
+
+/**
  * Community Discussion & Replies Thread for a specific doubt
  */
 function DoubtCommunityRepliesThread({ doubt, currentUser, userProfile, isAdmin, onOpenLightbox }) {
@@ -261,11 +282,11 @@ function DoubtCommunityRepliesThread({ doubt, currentUser, userProfile, isAdmin,
       // Add to subcollection
       await addDoc(collection(db, 'communityDoubts', doubt.id, 'replies'), replyData);
 
-      // Update parent doubt: increment reply count and mark as answered
+      // Update parent doubt: increment reply count and set answerStatus
       const doubtRef = doc(db, 'communityDoubts', doubt.id);
       await updateDoc(doubtRef, {
         replyCount: increment(1),
-        status: 'answered',
+        answerStatus: 'answered',
         lastActivityAt: serverTimestamp()
       });
 
@@ -447,8 +468,8 @@ export default function Doubts() {
   const [mainTab, setMainTab] = useState('community');
 
   // Auto-detect student stream from registered profile (LOCKED strictly to student's stream)
-  const studentStreamId = getStreamId(userProfile?.course, userProfile?.level) || 'CA_Foundation';
-  const streamDisplayName = STREAM_LABELS[studentStreamId] || 'CA Foundation';
+  const studentStreamId = getStreamId(userProfile?.course || userProfile?.stream, userProfile?.level) || 'CA_Foundation';
+  const streamDisplayName = STREAM_LABELS[studentStreamId] || userProfile?.stream || 'CA Foundation';
 
   // ==========================================
   // COMMUNITY DOUBTS STATE
@@ -463,15 +484,20 @@ export default function Doubts() {
   // Ask Doubt Modal State
   const [showAskModal, setShowAskModal] = useState(false);
   const [askSubject, setAskSubject] = useState('');
+  const [askChapter, setAskChapter] = useState('');
   const [askTitle, setAskTitle] = useState('');
   const [askDescription, setAskDescription] = useState('');
   const [askImageFile, setAskImageFile] = useState(null);
   const [askImagePreview, setAskImagePreview] = useState('');
   const [submittingDoubt, setSubmittingDoubt] = useState(false);
+  const [publishProgress, setPublishProgress] = useState(''); // 'uploading_media' | 'saving_record' | ''
+  const [publishSuccessBanner, setPublishSuccessBanner] = useState('');
+  const isSubmittingRef = useRef(false);
 
   // Voice recording state
   const [isRecording, setIsRecording] = useState(false);
   const [recordingSeconds, setRecordingSeconds] = useState(0);
+  const [recordedAudioBlob, setRecordedAudioBlob] = useState(null);
   const [audioDataUrl, setAudioDataUrl] = useState('');
   const mediaRecorderRef = useRef(null);
   const timerIntervalRef = useRef(null);
@@ -491,23 +517,46 @@ export default function Doubts() {
   }, [studentStreamId]);
 
   // ==========================================
-  // REAL-TIME LISTENER: COMMUNITY DOUBTS (STREAM-LOCKED)
+  // REAL-TIME LISTENER: COMMUNITY DOUBTS (STREAM-LOCKED & BULLETPROOF)
   // ==========================================
   useEffect(() => {
     setLoadingCommunity(true);
-    // STRICT STREAM ISOLATION: A student ONLY receives doubts where stream == studentStreamId
-    const q = query(
-      collection(db, 'communityDoubts'),
-      where('stream', '==', studentStreamId),
-      orderBy('createdAt', 'desc')
-    );
+    // Listen to all communityDoubts in real-time, avoid compound index errors
+    const q = query(collection(db, 'communityDoubts'));
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
-      const list = snapshot.docs.map(docSnap => ({
+      const allList = snapshot.docs.map(docSnap => ({
         id: docSnap.id,
         ...docSnap.data()
       }));
-      setCommunityDoubts(list);
+
+      // STRICT STREAM ISOLATION & STATUS FILTER:
+      // A student ONLY receives published doubts belonging to their stream
+      const filtered = allList.filter((d) => {
+        // Stream isolation check
+        const matchStream = isStreamMatch(d.stream, studentStreamId) || 
+                            isStreamMatch(d.streamLabel, streamDisplayName) ||
+                            isStreamMatch(d.stream, streamDisplayName);
+        if (!matchStream) return false;
+
+        // Status check: only published doubts appear in the student feed
+        // (Accept 'published', 'Published', and legacy 'unanswered'/'answered'; strictly exclude 'hidden', 'deleted', 'pending')
+        const st = (d.status || 'published').toLowerCase().trim();
+        if (st === 'hidden' || st === 'deleted' || st === 'pending') {
+          return false;
+        }
+
+        return true;
+      });
+
+      // Sort client-side by newest first
+      filtered.sort((a, b) => {
+        const timeA = a.createdAt?.toMillis ? a.createdAt.toMillis() : (a.createdAt?.seconds ? a.createdAt.seconds * 1000 : (new Date(a.createdAt || 0)).getTime());
+        const timeB = b.createdAt?.toMillis ? b.createdAt.toMillis() : (b.createdAt?.seconds ? b.createdAt.seconds * 1000 : (new Date(b.createdAt || 0)).getTime());
+        return timeB - timeA;
+      });
+
+      setCommunityDoubts(filtered);
       setLoadingCommunity(false);
     }, (err) => {
       console.error('Error fetching community doubts:', err);
@@ -515,7 +564,7 @@ export default function Doubts() {
     });
 
     return () => unsubscribe();
-  }, [studentStreamId]);
+  }, [studentStreamId, streamDisplayName]);
 
   // Voice recording methods
   const startRecording = async () => {
@@ -538,11 +587,13 @@ export default function Doubts() {
       mediaRecorder.onstop = async () => {
         const mimeType = mediaRecorder.mimeType || 'audio/webm';
         const blob = new Blob(audioChunksRef.current, { type: mimeType });
+        setRecordedAudioBlob(blob);
         try {
+          const previewUrl = URL.createObjectURL(blob);
+          setAudioDataUrl(previewUrl);
+        } catch {
           const b64 = await blobToBase64(blob);
           setAudioDataUrl(b64);
-        } catch (b64Err) {
-          console.error('Error converting audio to base64:', b64Err);
         }
         stream.getTracks().forEach(t => t.stop());
       };
@@ -579,6 +630,7 @@ export default function Doubts() {
 
   const removeAudioRecording = () => {
     stopRecording();
+    setRecordedAudioBlob(null);
     setAudioDataUrl('');
     setRecordingSeconds(0);
   };
@@ -586,12 +638,17 @@ export default function Doubts() {
   const handleAskImageSelect = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    setAskImageFile(file);
     try {
-      const compressed = await compressImageToDataUrl(file);
-      setAskImageFile(compressed);
-      setAskImagePreview(compressed);
+      const preview = await compressImageToDataUrl(file, 800, 0.7);
+      setAskImagePreview(preview);
     } catch (err) {
-      console.error('Compression error:', err);
+      console.error('Compression preview error:', err);
+      try {
+        setAskImagePreview(URL.createObjectURL(file));
+      } catch {
+        // Ignore fallback
+      }
     }
   };
 
@@ -604,53 +661,114 @@ export default function Doubts() {
   const resetAskModal = () => {
     removeAudioRecording();
     removeAskImage();
+    setAskChapter('');
     setAskTitle('');
     setAskDescription('');
     setShowAskModal(false);
   };
 
   const handlePostCommunityDoubt = async (e) => {
-    e.preventDefault();
+    if (e && e.preventDefault) e.preventDefault();
+
+    // 1. Publish Button Protection: Prevent rapid duplicate clicks
+    if (isSubmittingRef.current || submittingDoubt) {
+      return;
+    }
+
+    if (!currentUser?.uid) {
+      alert('You must be logged in to ask a doubt.');
+      return;
+    }
 
     if (!askTitle.trim()) {
       alert('Please enter a brief topic or title for your doubt.');
       return;
     }
 
-    if (!askDescription.trim() && !askImageFile && !audioDataUrl) {
+    if (!askDescription.trim() && !askImageFile && !recordedAudioBlob) {
       alert('Please provide a description, attach an image, or record a voice note for your doubt.');
       return;
     }
 
     try {
+      isSubmittingRef.current = true;
       setSubmittingDoubt(true);
+      setPublishProgress('uploading_media');
 
+      // 2. Complete text + image + audio uploads first
+      let uploadedImageUrl = null;
+      if (askImageFile) {
+        try {
+          uploadedImageUrl = await uploadDoubtImage(askImageFile, studentStreamId);
+        } catch (imgErr) {
+          console.warn('Direct image upload failed, checking preview fallback:', imgErr);
+          if (askImagePreview && askImagePreview.length < 250000) {
+            uploadedImageUrl = askImagePreview;
+          } else {
+            throw new Error('Image upload failed: ' + imgErr.message);
+          }
+        }
+      }
+
+      let uploadedAudioUrl = null;
+      if (recordedAudioBlob) {
+        try {
+          uploadedAudioUrl = await uploadDoubtAudio(recordedAudioBlob, studentStreamId);
+        } catch (audErr) {
+          console.warn('Direct audio upload failed, checking preview fallback:', audErr);
+          if (audioDataUrl && audioDataUrl.startsWith('data:audio') && audioDataUrl.length < 350000) {
+            uploadedAudioUrl = audioDataUrl;
+          } else {
+            throw new Error('Voice note upload failed: ' + audErr.message);
+          }
+        }
+      }
+
+      setPublishProgress('saving_record');
+
+      // 3. Create the database record only after required uploads succeed
       const payload = {
         uid: currentUser.uid,
+        studentId: currentUser.uid,
+        studentName: userProfile?.name || currentUser?.displayName || 'Student',
+        studentEmail: currentUser?.email || userProfile?.email || '',
         authorName: userProfile?.name || currentUser?.displayName || 'Student',
         authorBadge: userProfile?.badge || '🎓',
         authorCourse: userProfile?.course || '',
         stream: studentStreamId,
-        subject: askSubject,
+        streamLabel: streamDisplayName,
+        subject: askSubject || getSubjectsForStream(studentStreamId)[0],
+        chapterTopic: askChapter.trim() || 'General / All Chapters',
         title: askTitle.trim(),
         description: askDescription.trim(),
-        imageUrl: askImageFile || null,
-        audioUrl: audioDataUrl || null,
+        imageUrl: uploadedImageUrl || null,
+        audioUrl: uploadedAudioUrl || null,
         likesCount: 0,
         likedBy: [],
         replyCount: 0,
-        status: 'unanswered',
+        status: 'published', // Properly marked Published
+        answerStatus: 'unanswered',
         createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
         lastActivityAt: serverTimestamp()
       };
 
       await addDoc(collection(db, 'communityDoubts'), payload);
+
+      // 4. On success, clear/reset the form, show success message, update feed immediately
       resetAskModal();
+      setPublishSuccessBanner('Your doubt was successfully published to the stream feed!');
+      setTimeout(() => {
+        setPublishSuccessBanner('');
+      }, 6000);
+
     } catch (err) {
       console.error('Error posting community doubt:', err);
-      alert('Failed to post doubt: ' + err.message);
+      alert('Failed to publish doubt: ' + (err.message || 'Please check connection and retry.'));
     } finally {
+      isSubmittingRef.current = false;
       setSubmittingDoubt(false);
+      setPublishProgress('');
     }
   };
 
@@ -873,7 +991,22 @@ export default function Doubts() {
       {mainTab === 'community' && (
         <div className="space-y-6">
           
-          {/* Search & Filter Controls */}
+          {/* Publish Success Banner */}
+          {publishSuccessBanner && (
+            <div className="p-4 rounded-2xl bg-emerald-500/20 border border-emerald-500/40 text-emerald-200 text-xs sm:text-sm font-semibold flex items-center justify-between gap-3 animate-in fade-in">
+              <div className="flex items-center gap-2">
+                <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0" />
+                <span>{publishSuccessBanner}</span>
+              </div>
+              <button 
+                type="button" 
+                onClick={() => setPublishSuccessBanner('')} 
+                className="text-emerald-400 hover:text-white font-bold cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+          )}
           <div className="p-4 rounded-2xl glass-card border border-white/10 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
             
             {/* Search Input */}
@@ -1020,10 +1153,17 @@ export default function Doubts() {
                       </div>
                     </div>
 
-                    {/* Subject Pill & Title */}
+                    {/* Subject & Chapter Pills & Title */}
                     <div className="space-y-1.5">
-                      <div className="inline-block px-2.5 py-0.5 rounded-lg bg-white/5 text-amber-400 border border-white/10 text-xs font-bold">
-                        {doubt.subject || 'General'}
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <div className="inline-block px-2.5 py-0.5 rounded-lg bg-white/5 text-amber-400 border border-white/10 text-xs font-bold">
+                          {doubt.subject || 'General'}
+                        </div>
+                        {doubt.chapterTopic && doubt.chapterTopic !== 'General / All Chapters' && doubt.chapterTopic !== 'General / Not Specified' && (
+                          <div className="inline-block px-2.5 py-0.5 rounded-lg bg-emerald-500/10 text-emerald-300 border border-emerald-500/20 text-xs font-semibold">
+                            📖 {doubt.chapterTopic}
+                          </div>
+                        )}
                       </div>
                       <h3 className="text-base sm:text-lg font-bold text-white tracking-tight">
                         {doubt.title}
@@ -1396,6 +1536,20 @@ export default function Doubts() {
                 </select>
               </div>
 
+              {/* Chapter / Topic */}
+              <div className="space-y-1">
+                <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-300">
+                  Chapter / Topic (Optional)
+                </label>
+                <input
+                  type="text"
+                  value={askChapter}
+                  onChange={(e) => setAskChapter(e.target.value)}
+                  placeholder="e.g. Consignment Accounts or Chapter 3 - Partnership"
+                  className="w-full px-4 py-2.5 rounded-xl bg-navy-900 border border-white/10 text-white placeholder-slate-500 text-xs focus:outline-none focus:border-amber-500"
+                />
+              </div>
+
               {/* Title / Question Topic */}
               <div className="space-y-1">
                 <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-300">
@@ -1520,7 +1674,8 @@ export default function Doubts() {
                 <button
                   type="button"
                   onClick={resetAskModal}
-                  className="flex-1 py-3 rounded-xl bg-white/5 hover:bg-white/10 text-slate-300 text-xs font-bold transition-all cursor-pointer"
+                  disabled={submittingDoubt}
+                  className="flex-1 py-3 rounded-xl bg-white/5 hover:bg-white/10 text-slate-300 text-xs font-bold transition-all cursor-pointer disabled:opacity-50"
                 >
                   Cancel
                 </button>
@@ -1533,12 +1688,18 @@ export default function Doubts() {
                   {submittingDoubt ? (
                     <>
                       <Loader2 className="w-4 h-4 animate-spin text-navy-950" />
-                      <span>Posting Doubt...</span>
+                      <span>
+                        {publishProgress === 'uploading_media'
+                          ? 'Uploading Attachments...'
+                          : publishProgress === 'saving_record'
+                          ? 'Publishing Doubt...'
+                          : 'Processing...'}
+                      </span>
                     </>
                   ) : (
                     <>
                       <Send className="w-4 h-4" />
-                      <span>Post Doubt</span>
+                      <span>Publish Doubt</span>
                     </>
                   )}
                 </button>

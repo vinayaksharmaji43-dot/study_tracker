@@ -66,13 +66,20 @@ service cloud.firestore {
     }
 
     match /communityDoubts/{doubtId} {
-      allow read, create: if signedIn();
-      allow update: if signedIn();
+      allow read: if signedIn();
+      allow create: if signedIn() && request.auth.uid == request.resource.data.uid;
+      allow update: if admin() || (
+        signedIn() && (
+          (resource.data.uid == request.auth.uid && request.resource.data.uid == resource.data.uid) ||
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likesCount', 'likedBy', 'replyCount', 'answerStatus', 'lastActivityAt'])
+        )
+      );
       allow delete: if admin() || (signedIn() && resource.data.uid == request.auth.uid);
 
       match /replies/{replyId} {
-        allow read, create: if signedIn();
-        allow update, delete: if admin() || (signedIn() && resource.data.uid == request.auth.uid);
+        allow read: if signedIn();
+        allow create: if signedIn();
+        allow update, delete: if admin() || (signedIn() && resource.data.authorUid == request.auth.uid);
       }
     }
 

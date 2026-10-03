@@ -6,11 +6,12 @@ import {
   updateDoc, 
   deleteDoc, 
   serverTimestamp, 
-  query 
+  query,
+  increment 
 } from 'firebase/firestore';
 import { db } from '../../config/firebase';
 import { useAuth } from '../../contexts/AuthContext';
-import { formatDate } from '../../utils/helpers';
+import { formatDate, formatExactTime } from '../../utils/helpers';
 import EmptyState from '../../components/EmptyState';
 import { 
   HelpCircle, 
@@ -36,7 +37,11 @@ import {
   Hash,
   X,
   Loader2,
-  RefreshCw
+  RefreshCw,
+  Users,
+  Volume2,
+  Lock,
+  EyeOff
 } from 'lucide-react';
 
 const STREAM_OPTIONS = [
@@ -80,16 +85,99 @@ function normalizeStream(stream) {
   return stream;
 }
 
+/**
+ * Admin view of Student Discussion / Replies for Community Doubts
+ */
+function AdminCommunityRepliesThread({ doubtId, onOpenLightbox }) {
+  const [replies, setReplies] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!doubtId) return;
+    const q = query(collection(db, 'communityDoubts', doubtId, 'replies'));
+    const unsub = onSnapshot(q, (snap) => {
+      const list = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      list.sort((a, b) => (a.createdAt?.seconds || 0) - (b.createdAt?.seconds || 0));
+      setReplies(list);
+      setLoading(false);
+    }, (err) => {
+      console.warn('Error loading replies:', err);
+      setLoading(false);
+    });
+    return () => unsub();
+  }, [doubtId]);
+
+  const handleDeleteReply = async (replyId) => {
+    if (!window.confirm('Delete this solution/reply?')) return;
+    try {
+      await deleteDoc(doc(db, 'communityDoubts', doubtId, 'replies', replyId));
+      await updateDoc(doc(db, 'communityDoubts', doubtId), { replyCount: increment(-1) });
+    } catch (e) {
+      alert('Failed to delete reply: ' + e.message);
+    }
+  };
+
+  if (loading) return <div className="text-xs text-slate-400 p-2">Loading discussion...</div>;
+  if (replies.length === 0) return <div className="text-xs text-slate-500 italic p-2">No student answers posted yet.</div>;
+
+  return (
+    <div className="space-y-2 mt-3 pt-3 border-t border-white/10">
+      <div className="text-xs font-bold text-amber-400">Student Discussion & Solutions ({replies.length}):</div>
+      {replies.map(r => (
+        <div key={r.id} className="p-3 rounded-xl bg-navy-950/60 border border-white/5 flex items-start justify-between gap-3 text-xs">
+          <div className="space-y-1">
+            <div className="font-bold text-white flex items-center gap-2">
+              <span>{r.authorName || 'Student'}</span>
+              <span className="text-[10px] text-slate-400 font-normal">{formatDate(r.createdAt)}</span>
+            </div>
+            <p className="text-slate-200 whitespace-pre-wrap">{r.text}</p>
+            {r.imageUrl && (
+              <img 
+                src={r.imageUrl} 
+                alt="Attachment" 
+                onClick={() => onOpenLightbox(r.imageUrl)}
+                className="w-20 h-20 object-cover rounded-lg border border-white/10 cursor-pointer hover:opacity-80" 
+              />
+            )}
+          </div>
+          <button 
+            type="button" 
+            onClick={() => handleDeleteReply(r.id)} 
+            className="text-red-400 hover:text-red-300 p-1 rounded-lg hover:bg-red-500/10 cursor-pointer"
+            title="Delete this reply"
+          >
+            <Trash2 className="w-3.5 h-3.5" />
+          </button>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 export default function AdminDoubts() {
   const { userProfile, currentUser, isOwner, hasPermission, adminDesignation } = useAuth();
+  
+  // Top Level View Switcher: 'community' | 'private'
+  const [activeSection, setActiveSection] = useState('community');
+
+  // 1-on-1 Guidance doubts (existing preserved)
   const [doubts, setDoubts] = useState([]);
   const [loading, setLoading] = useState(true);
+
+  // Community doubts (public stream moderation)
+  const [communityDoubts, setCommunityDoubts] = useState([]);
+  const [loadingCommunity, setLoadingCommunity] = useState(true);
+  const [commStreamFilter, setCommStreamFilter] = useState('ALL');
+  const [commStatusFilter, setCommStatusFilter] = useState('ALL'); // 'ALL', 'published', 'hidden'
+  const [commSearchQuery, setCommSearchQuery] = useState('');
+  const [expandedCommDoubtId, setExpandedCommDoubtId] = useState(null);
+  const [togglingHideId, setTogglingHideId] = useState(null);
 
   const canReply = isOwner || hasPermission('reply_doubts');
   const canResolve = isOwner || hasPermission('resolve_doubts');
   const canDelete = isOwner || hasPermission('delete_doubts');
 
-  // Filters & Search
+  // Filters & Search for 1-on-1 guidance
   const [statusFilter, setStatusFilter] = useState('ALL'); // 'ALL', 'New', 'In Review', 'Replied', 'Resolved', 'Unanswered'
   const [streamFilter, setStreamFilter] = useState('ALL');
   const [typeFilter, setTypeFilter] = useState('ALL');
@@ -110,7 +198,7 @@ export default function AdminDoubts() {
   // Lightbox modal for attachments
   const [lightboxImage, setLightboxImage] = useState(null);
 
-  // Real-time listener: Fetches all submitted doubts across the platform
+  // Real-time listener: 1-on-1 Private Doubts
   useEffect(() => {
     const q = query(collection(db, 'doubts'));
 
@@ -133,6 +221,59 @@ export default function AdminDoubts() {
 
     return () => unsubscribe();
   }, []);
+
+  // Real-time listener: Community Public Stream Doubts
+  useEffect(() => {
+    const q = query(collection(db, 'communityDoubts'));
+
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const docs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+      docs.sort((a, b) => {
+        const timeA = a.createdAt?.toMillis ? a.createdAt.toMillis() : (a.createdAt?.seconds ? a.createdAt.seconds * 1000 : (new Date(a.createdAt || 0)).getTime());
+        const timeB = b.createdAt?.toMillis ? b.createdAt.toMillis() : (b.createdAt?.seconds ? b.createdAt.seconds * 1000 : (new Date(b.createdAt || 0)).getTime());
+        return timeB - timeA;
+      });
+
+      setCommunityDoubts(docs);
+      setLoadingCommunity(false);
+    }, (err) => {
+      console.error("Error fetching community doubts in AdminDoubts:", err);
+      setLoadingCommunity(false);
+    });
+
+    return () => unsubscribe();
+  }, []);
+
+  // Moderation: Toggle Hide / Unhide Community Doubt
+  const handleToggleHideCommunityDoubt = async (doubt) => {
+    const isCurrentlyHidden = (doubt.status || '').toLowerCase() === 'hidden';
+    const nextStatus = isCurrentlyHidden ? 'published' : 'hidden';
+    try {
+      setTogglingHideId(doubt.id);
+      await updateDoc(doc(db, 'communityDoubts', doubt.id), {
+        status: nextStatus,
+        moderatedAt: serverTimestamp(),
+        moderatedBy: userProfile?.name || currentUser?.displayName || 'Admin'
+      });
+    } catch (err) {
+      console.error('Error toggling hide status:', err);
+      alert('Failed to update status: ' + err.message);
+    } finally {
+      setTogglingHideId(null);
+    }
+  };
+
+  // Moderation: Delete Community Doubt
+  const handleDeleteCommunityDoubt = async (doubtId) => {
+    if (!window.confirm('Are you sure you want to permanently delete this public doubt?')) return;
+    try {
+      await deleteDoc(doc(db, 'communityDoubts', doubtId));
+    } catch (err) {
+      console.error('Error deleting community doubt:', err);
+      alert('Failed to delete doubt: ' + err.message);
+    }
+  };
 
   const handleUpdateStatus = async (doubtId, newStatus) => {
     if (!canResolve) {
@@ -210,14 +351,54 @@ export default function AdminDoubts() {
     }
   };
 
-  // Metrics Calculation
+  // 1-on-1 Guidance Metrics Calculation
   const totalCount = doubts.length;
   const newCount = doubts.filter(d => normalizeStatus(d.status) === 'New' && !d.reply).length;
   const inReviewCount = doubts.filter(d => normalizeStatus(d.status) === 'In Review').length;
   const repliedCount = doubts.filter(d => normalizeStatus(d.status) === 'Replied' || Boolean(d.reply)).length;
   const resolvedCount = doubts.filter(d => normalizeStatus(d.status) === 'Resolved').length;
 
-  // Filter & Search Logic
+  // Community Doubts Metrics Calculation
+  const commTotalCount = communityDoubts.length;
+  const commPublishedCount = communityDoubts.filter(d => (d.status || 'published').toLowerCase() !== 'hidden').length;
+  const commHiddenCount = communityDoubts.filter(d => (d.status || '').toLowerCase() === 'hidden').length;
+  const commAudioCount = communityDoubts.filter(d => Boolean(d.audioUrl)).length;
+  const commImageCount = communityDoubts.filter(d => Boolean(d.imageUrl)).length;
+
+  // Filtered Community Doubts
+  const filteredCommunityDoubts = communityDoubts.filter(d => {
+    // Stream Filter
+    const curStream = normalizeStream(d.stream || d.streamLabel);
+    if (commStreamFilter !== 'ALL') {
+      const f1 = commStreamFilter.toLowerCase().replace(/[^a-z0-9]/g, '');
+      const s1 = (d.stream || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+      const s2 = (d.streamLabel || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+      if (curStream !== commStreamFilter && f1 !== s1 && f1 !== s2) return false;
+    }
+
+    // Status Filter
+    const st = (d.status || 'published').toLowerCase().trim();
+    if (commStatusFilter === 'published' && st === 'hidden') return false;
+    if (commStatusFilter === 'hidden' && st !== 'hidden') return false;
+
+    // Search Query
+    if (commSearchQuery.trim()) {
+      const q = commSearchQuery.toLowerCase().trim();
+      const author = (d.authorName || d.studentName || '').toLowerCase();
+      const email = (d.studentEmail || d.authorEmail || '').toLowerCase();
+      const sub = (d.subject || '').toLowerCase();
+      const topic = (d.chapterTopic || '').toLowerCase();
+      const title = (d.title || '').toLowerCase();
+      const desc = (d.description || '').toLowerCase();
+      if (!author.includes(q) && !email.includes(q) && !sub.includes(q) && !topic.includes(q) && !title.includes(q) && !desc.includes(q)) {
+        return false;
+      }
+    }
+
+    return true;
+  });
+
+  // Filter & Search Logic for 1-on-1 Guidance
   const filteredDoubts = doubts.filter(d => {
     const curStatus = normalizeStatus(d.status);
     const curStream = normalizeStream(d.stream);
@@ -253,7 +434,7 @@ export default function AdminDoubts() {
     <div className="space-y-6">
       
       {/* Header Banner */}
-      <div className="p-6 sm:p-8 rounded-3xl glass-card border border-amber-500/30 relative overflow-hidden shadow-2xl">
+      <div className="p-6 sm:p-8 rounded-3xl glass-card border border-amber-500/30 relative overflow-hidden shadow-2xl space-y-5">
         <div className="absolute top-0 right-0 w-80 h-80 bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
         <div className="relative z-10 space-y-2">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-500/20 text-amber-300 text-xs font-bold border border-amber-500/30">
@@ -261,13 +442,407 @@ export default function AdminDoubts() {
             <span>Admin Control Panel</span>
           </div>
           <h1 className="text-2xl sm:text-3xl font-extrabold text-white">
-            Doubt <span className="gold-gradient-text">Management</span>
+            Doubt <span className="gold-gradient-text">Management & Moderation</span>
           </h1>
           <p className="text-slate-300 text-sm max-w-2xl leading-relaxed">
-            Review student academic doubts, syllabus queries, study planner hurdles, and guidance requests. Provide private 1-on-1 replies and manage status from New to Resolved.
+            Moderate public stream questions, hide inappropriate content, and respond privately to 1-on-1 faculty guidance requests.
           </p>
         </div>
+
+        {/* Top Level Section Switcher */}
+        <div className="relative z-10 flex items-center gap-3 border-t border-white/10 pt-4 flex-wrap">
+          <button
+            type="button"
+            onClick={() => setActiveSection('community')}
+            className={`px-4 py-2.5 rounded-2xl text-xs font-black transition-all flex items-center gap-2 cursor-pointer ${
+              activeSection === 'community'
+                ? 'bg-amber-500 text-navy-950 shadow-glow-gold'
+                : 'bg-white/5 text-slate-300 hover:text-white hover:bg-white/10 border border-white/10'
+            }`}
+          >
+            <Users className="w-4 h-4" />
+            <span>👥 Public Community Doubts (Feed Moderation)</span>
+            <span className={`px-2 py-0.5 rounded-full text-[10px] font-black ${
+              activeSection === 'community' ? 'bg-navy-950 text-amber-300' : 'bg-white/10 text-slate-300'
+            }`}>
+              {commTotalCount}
+            </span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveSection('private')}
+            className={`px-4 py-2.5 rounded-2xl text-xs font-black transition-all flex items-center gap-2 cursor-pointer ${
+              activeSection === 'private'
+                ? 'bg-amber-500 text-navy-950 shadow-glow-gold'
+                : 'bg-white/5 text-slate-300 hover:text-white hover:bg-white/10 border border-white/10'
+            }`}
+          >
+            <Lock className="w-4 h-4" />
+            <span>🔒 1-on-1 Faculty Guidance (Private Doubts)</span>
+            <span className={`px-2 py-0.5 rounded-full text-[10px] font-black ${
+              activeSection === 'private' ? 'bg-navy-950 text-amber-300' : 'bg-white/10 text-slate-300'
+            }`}>
+              {totalCount}
+            </span>
+          </button>
+        </div>
       </div>
+
+      {/* ========================================================= */}
+      {/* SECTION 1: PUBLIC COMMUNITY DOUBTS (STREAM MODERATION)   */}
+      {/* ========================================================= */}
+      {activeSection === 'community' && (
+        <div className="space-y-6">
+          
+          {/* Metrics Counter Cards for Community Doubts */}
+          <div className="grid grid-cols-2 sm:grid-cols-5 gap-3.5">
+            {/* Total Community Doubts */}
+            <div 
+              onClick={() => setCommStatusFilter('ALL')}
+              className={`p-4 rounded-2xl glass-card border transition-all cursor-pointer ${
+                commStatusFilter === 'ALL' ? 'border-white/40 ring-1 ring-white/30' : 'border-white/10 hover:border-white/20'
+              }`}
+            >
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Total</span>
+                <Users className="w-4 h-4 text-slate-400" />
+              </div>
+              <div className="text-2xl font-black text-white mt-1">{commTotalCount}</div>
+              <div className="text-[11px] text-slate-400">Public stream doubts</div>
+            </div>
+
+            {/* Published in Feed */}
+            <div 
+              onClick={() => setCommStatusFilter('published')}
+              className={`p-4 rounded-2xl glass-card border transition-all cursor-pointer ${
+                commStatusFilter === 'published' ? 'border-emerald-400 ring-2 ring-emerald-400/40 bg-emerald-500/10' : 'border-emerald-500/30 hover:border-emerald-500/50'
+              }`}
+            >
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-400">Published</span>
+                <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+              </div>
+              <div className="text-2xl font-black text-emerald-300 mt-1">{commPublishedCount}</div>
+              <div className="text-[11px] text-emerald-300/80">Visible in feed</div>
+            </div>
+
+            {/* Hidden by Admin */}
+            <div 
+              onClick={() => setCommStatusFilter('hidden')}
+              className={`p-4 rounded-2xl glass-card border transition-all cursor-pointer ${
+                commStatusFilter === 'hidden' ? 'border-amber-400 ring-2 ring-amber-400/40 bg-amber-500/10' : 'border-amber-500/30 hover:border-amber-500/50'
+              }`}
+            >
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-amber-400">Hidden</span>
+                <EyeOff className="w-4 h-4 text-amber-400" />
+              </div>
+              <div className="text-2xl font-black text-amber-300 mt-1">{commHiddenCount}</div>
+              <div className="text-[11px] text-amber-300/80">Hidden from students</div>
+            </div>
+
+            {/* Voice Notes */}
+            <div className="p-4 rounded-2xl glass-card border border-white/10">
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-purple-400">Voice Notes</span>
+                <Volume2 className="w-4 h-4 text-purple-400" />
+              </div>
+              <div className="text-2xl font-black text-purple-300 mt-1">{commAudioCount}</div>
+              <div className="text-[11px] text-purple-300/80">Audio recordings</div>
+            </div>
+
+            {/* With Photos */}
+            <div className="p-4 rounded-2xl glass-card border border-white/10">
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-sky-400">With Photos</span>
+                <ImageIcon className="w-4 h-4 text-sky-400" />
+              </div>
+              <div className="text-2xl font-black text-sky-300 mt-1">{commImageCount}</div>
+              <div className="text-[11px] text-sky-300/80">Screenshots / images</div>
+            </div>
+          </div>
+
+          {/* Filter & Search Toolbar */}
+          <div className="p-4 sm:p-5 rounded-3xl glass-card border border-white/10 space-y-4">
+            <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
+              {/* Search Bar */}
+              <div className="relative flex-1">
+                <Search className="w-4 h-4 text-slate-400 absolute left-4 top-1/2 -translate-y-1/2" />
+                <input
+                  type="text"
+                  value={commSearchQuery}
+                  onChange={(e) => setCommSearchQuery(e.target.value)}
+                  placeholder="Search community doubts by student name, email, roll, subject, or question..."
+                  className="w-full pl-11 pr-4 py-2.5 rounded-2xl bg-navy-900 border border-white/10 text-white placeholder-slate-500 text-xs focus:outline-none focus:border-amber-500"
+                />
+              </div>
+
+              {/* Stream Filter */}
+              <div className="flex items-center gap-2">
+                <Filter className="w-3.5 h-3.5 text-slate-400" />
+                <select
+                  value={commStreamFilter}
+                  onChange={(e) => setCommStreamFilter(e.target.value)}
+                  className="px-3 py-2 rounded-xl bg-navy-900 border border-white/10 text-slate-300 text-xs focus:outline-none focus:border-amber-500"
+                >
+                  {STREAM_OPTIONS.map(opt => (
+                    <option key={opt.value} value={opt.value}>{opt.label}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            {/* Status Pills */}
+            <div className="flex items-center gap-2 flex-wrap pt-1 border-t border-white/5">
+              <span className="text-[11px] font-bold text-slate-400 mr-2">Feed Visibility:</span>
+              <button
+                type="button"
+                onClick={() => setCommStatusFilter('ALL')}
+                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
+                  commStatusFilter === 'ALL'
+                    ? 'bg-amber-500 text-navy-950 font-black shadow-glow-gold'
+                    : 'bg-white/5 text-slate-400 hover:text-white'
+                }`}
+              >
+                All ({commTotalCount})
+              </button>
+              <button
+                type="button"
+                onClick={() => setCommStatusFilter('published')}
+                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
+                  commStatusFilter === 'published'
+                    ? 'bg-emerald-500 text-navy-950 font-black shadow-glow-emerald'
+                    : 'bg-white/5 text-slate-400 hover:text-white'
+                }`}
+              >
+                ✅ Published ({commPublishedCount})
+              </button>
+              <button
+                type="button"
+                onClick={() => setCommStatusFilter('hidden')}
+                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
+                  commStatusFilter === 'hidden'
+                    ? 'bg-amber-500 text-navy-950 font-black'
+                    : 'bg-white/5 text-slate-400 hover:text-white'
+                }`}
+              >
+                🚫 Hidden by Admin ({commHiddenCount})
+              </button>
+            </div>
+          </div>
+
+          {/* Doubts List */}
+          {loadingCommunity ? (
+            <div className="p-16 text-center text-slate-400 space-y-3 glass-card rounded-3xl border border-white/10">
+              <Loader2 className="w-8 h-8 animate-spin mx-auto text-amber-400" />
+              <p className="text-sm font-semibold">Loading public stream doubts...</p>
+            </div>
+          ) : filteredCommunityDoubts.length === 0 ? (
+            <EmptyState
+              icon={HelpCircle}
+              title="No Community Doubts Match Filters"
+              description="No public doubts found for the selected stream and status filters."
+            />
+          ) : (
+            <div className="space-y-4">
+              {filteredCommunityDoubts.map((doubt) => {
+                const isHidden = (doubt.status || '').toLowerCase() === 'hidden';
+                const isExpanded = expandedCommDoubtId === doubt.id;
+                const formattedTime = doubt.createdAt?.seconds 
+                  ? formatExactTime(new Date(doubt.createdAt.seconds * 1000))
+                  : doubt.createdAt ? formatDate(doubt.createdAt) : 'Just now';
+
+                return (
+                  <div
+                    key={doubt.id}
+                    className={`p-5 sm:p-6 rounded-3xl glass-card border transition-all shadow-xl space-y-4 ${
+                      isHidden ? 'border-amber-500/40 bg-amber-500/5' : 'border-white/10 hover:border-amber-500/30'
+                    }`}
+                  >
+                    {/* Header: Student details, Stream badge, Exact Time, Status */}
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-amber-500/20 to-yellow-500/20 border border-amber-500/30 flex items-center justify-center text-amber-300 font-bold text-sm shadow-sm">
+                          {(doubt.authorName || doubt.studentName || 'S').charAt(0).toUpperCase()}
+                        </div>
+                        <div>
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="text-sm font-bold text-white">
+                              {doubt.authorName || doubt.studentName || 'Student'}
+                            </span>
+                            <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 font-bold">
+                              {doubt.streamLabel || normalizeStream(doubt.stream)}
+                            </span>
+                            {doubt.uid && (
+                              <span className="text-[10px] font-mono text-slate-500">
+                                ID: {doubt.uid.slice(0, 8)}...
+                              </span>
+                            )}
+                          </div>
+                          <div className="text-[11px] text-slate-400 mt-0.5">
+                            {doubt.authorEmail || doubt.studentEmail ? `${doubt.authorEmail || doubt.studentEmail} • ` : ''}
+                            {formattedTime}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Status & Quick Moderation Badges */}
+                      <div className="flex items-center gap-2">
+                        {isHidden ? (
+                          <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-amber-500/20 text-amber-300 border border-amber-500/40 flex items-center gap-1">
+                            <EyeOff className="w-3.5 h-3.5" />
+                            <span>Hidden from Feed</span>
+                          </span>
+                        ) : (
+                          <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 flex items-center gap-1">
+                            <CheckCircle2 className="w-3.5 h-3.5" />
+                            <span>Published</span>
+                          </span>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Subject & Chapter Topic */}
+                    <div className="space-y-1.5">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="px-2.5 py-0.5 rounded-lg bg-white/5 text-amber-400 border border-white/10 text-xs font-bold">
+                          {doubt.subject || 'General Subject'}
+                        </span>
+                        {doubt.chapterTopic && doubt.chapterTopic !== 'General / All Chapters' && doubt.chapterTopic !== 'General / Not Specified' && (
+                          <span className="px-2.5 py-0.5 rounded-lg bg-emerald-500/10 text-emerald-300 border border-emerald-500/20 text-xs font-semibold">
+                            📖 {doubt.chapterTopic}
+                          </span>
+                        )}
+                      </div>
+                      <h3 className="text-base font-bold text-white tracking-tight">
+                        {doubt.title}
+                      </h3>
+                    </div>
+
+                    {/* Description */}
+                    {doubt.description && (
+                      <p className="text-xs sm:text-sm text-slate-200 leading-relaxed whitespace-pre-wrap bg-navy-950/50 p-4 rounded-2xl border border-white/5">
+                        {doubt.description}
+                      </p>
+                    )}
+
+                    {/* Attached Image */}
+                    {doubt.imageUrl && (
+                      <div className="pt-1">
+                        <div className="relative inline-block group">
+                          <img
+                            src={doubt.imageUrl}
+                            alt="Doubt screenshot"
+                            onClick={() => setLightboxImage(doubt.imageUrl)}
+                            className="w-32 h-32 sm:w-44 sm:h-44 object-cover rounded-2xl border border-white/15 cursor-pointer group-hover:opacity-85 transition-opacity shadow-md"
+                          />
+                          <div 
+                            onClick={() => setLightboxImage(doubt.imageUrl)}
+                            className="absolute bottom-2 right-2 px-2 py-0.5 rounded-lg bg-navy-950/80 text-[10px] text-slate-200 border border-white/10 flex items-center gap-1 cursor-pointer pointer-events-none"
+                          >
+                            <Eye className="w-3 h-3" />
+                            <span>View Full</span>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Attached Audio Voice Note */}
+                    {doubt.audioUrl && (
+                      <div className="p-3.5 rounded-2xl bg-gradient-to-r from-emerald-950/30 to-navy-900 border border-emerald-500/30 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                        <div className="flex items-center gap-2 text-xs font-bold text-emerald-300">
+                          <Volume2 className="w-4 h-4 text-emerald-400 animate-pulse" />
+                          <span>Student Voice Note</span>
+                        </div>
+                        <audio
+                          controls
+                          src={doubt.audioUrl}
+                          className="w-full sm:w-80 h-8"
+                        />
+                      </div>
+                    )}
+
+                    {/* Moderation Actions Toolbar */}
+                    <div className="pt-3 border-t border-white/10 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                      <div className="flex items-center gap-2">
+                        {/* Discussion Toggle */}
+                        <button
+                          type="button"
+                          onClick={() => setExpandedCommDoubtId(isExpanded ? null : doubt.id)}
+                          className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+                            isExpanded
+                              ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
+                              : 'bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white border border-white/5'
+                          }`}
+                        >
+                          <MessageSquare className="w-3.5 h-3.5 text-amber-400" />
+                          <span>{doubt.replyCount || 0} Replies</span>
+                          {isExpanded ? <ChevronUp className="w-3.5 h-3.5 ml-1" /> : <ChevronDown className="w-3.5 h-3.5 ml-1" />}
+                        </button>
+
+                        <span className="text-xs text-slate-500">
+                          👍 {doubt.likesCount || 0} Likes
+                        </span>
+                      </div>
+
+                      {/* Admin Moderation Buttons */}
+                      <div className="flex items-center gap-2">
+                        {/* Hide / Unhide Toggle */}
+                        <button
+                          type="button"
+                          disabled={togglingHideId === doubt.id}
+                          onClick={() => handleToggleHideCommunityDoubt(doubt)}
+                          className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50 ${
+                            isHidden
+                              ? 'bg-emerald-600/30 hover:bg-emerald-600/50 text-emerald-300 border border-emerald-500/40'
+                              : 'bg-amber-600/30 hover:bg-amber-600/50 text-amber-300 border border-amber-500/40'
+                          }`}
+                        >
+                          {togglingHideId === doubt.id ? (
+                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                          ) : isHidden ? (
+                            <Eye className="w-3.5 h-3.5" />
+                          ) : (
+                            <EyeOff className="w-3.5 h-3.5" />
+                          )}
+                          <span>{isHidden ? 'Publish to Feed' : 'Hide from Feed'}</span>
+                        </button>
+
+                        {/* Delete Doubt */}
+                        {canDelete && (
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteCommunityDoubt(doubt.id)}
+                            className="px-3 py-1.5 rounded-xl bg-red-600/20 hover:bg-red-600/40 text-red-300 border border-red-500/30 text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer"
+                            title="Permanently delete this doubt"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                            <span>Delete</span>
+                          </button>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Expandable Discussion Thread */}
+                    {isExpanded && (
+                      <AdminCommunityRepliesThread doubtId={doubt.id} onOpenLightbox={setLightboxImage} />
+                    )}
+
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+        </div>
+      )}
+
+      {/* ========================================================= */}
+      {/* SECTION 2: 1-ON-1 FACULTY GUIDANCE (PRIVATE DOUBTS)       */}
+      {/* ========================================================= */}
+      {activeSection === 'private' && (
+        <div className="space-y-6">
 
       {/* Metrics Counter Cards */}
       <div className="grid grid-cols-2 sm:grid-cols-5 gap-3.5">
@@ -743,6 +1318,9 @@ export default function AdminDoubts() {
               </div>
             );
           })}
+        </div>
+      )}
+
         </div>
       )}
 
