@@ -695,34 +695,15 @@ export default function Doubts() {
       setSubmittingDoubt(true);
       setPublishProgress('uploading_media');
 
-      // 2. Complete text + image + audio uploads first
-      let uploadedImageUrl = null;
-      if (askImageFile) {
-        try {
-          uploadedImageUrl = await uploadDoubtImage(askImageFile, studentStreamId);
-        } catch (imgErr) {
-          console.warn('Direct image upload failed, checking preview fallback:', imgErr);
-          if (askImagePreview && askImagePreview.length < 250000) {
-            uploadedImageUrl = askImagePreview;
-          } else {
-            throw new Error('Image upload failed: ' + imgErr.message);
-          }
-        }
-      }
-
-      let uploadedAudioUrl = null;
-      if (recordedAudioBlob) {
-        try {
-          uploadedAudioUrl = await uploadDoubtAudio(recordedAudioBlob, studentStreamId);
-        } catch (audErr) {
-          console.warn('Direct audio upload failed, checking preview fallback:', audErr);
-          if (audioDataUrl && audioDataUrl.startsWith('data:audio') && audioDataUrl.length < 350000) {
-            uploadedAudioUrl = audioDataUrl;
-          } else {
-            throw new Error('Voice note upload failed: ' + audErr.message);
-          }
-        }
-      }
+      // 2. Upload image and voice attachments in parallel with instant non-blocking fallback
+      const [uploadedImageUrl, uploadedAudioUrl] = await Promise.all([
+        askImagePreview
+          ? uploadDoubtImage(askImagePreview, studentStreamId, askImagePreview)
+          : Promise.resolve(null),
+        (recordedAudioBlob || audioDataUrl)
+          ? uploadDoubtAudio(recordedAudioBlob || audioDataUrl, studentStreamId, audioDataUrl)
+          : Promise.resolve(null)
+      ]);
 
       setPublishProgress('saving_record');
 
