@@ -92,21 +92,17 @@ export function useActiveSessionsTracker(currentUser, userProfile) {
 
     window.addEventListener('storage', handleStorage);
     window.addEventListener('study-timer-start-command', handleTimerCommand);
+    window.addEventListener('study-timer-state-changed', handleTimerCommand);
 
     return () => {
       window.removeEventListener('storage', handleStorage);
       window.removeEventListener('study-timer-start-command', handleTimerCommand);
+      window.removeEventListener('study-timer-state-changed', handleTimerCommand);
     };
   }, [uid, readLocalStorageTimer]);
 
-  // 2. Real-time Firestore subscription to activeStudySessions
+  // 2. Real-time Firestore subscription to activeStudySessions (starts immediately)
   useEffect(() => {
-    // Only subscribe once user is defined or auth is ready
-    if (!uid) {
-      // If no currentUser yet, keep loading until auth resolves
-      return;
-    }
-
     setIsLoading(true);
 
     const q = query(
@@ -127,13 +123,12 @@ export function useActiveSessionsTracker(currentUser, userProfile) {
       },
       (err) => {
         console.warn("Active study sessions listener warning:", err);
-        // Fallback: If filtered query fails or has permissions delay, attempt collection fallback
         setIsLoading(false);
       }
     );
 
     return () => unsub();
-  }, [uid]);
+  }, []);
 
   // 3. Second-by-second local tick for real-time live timer update
   useEffect(() => {
@@ -183,7 +178,7 @@ export function useActiveSessionsTracker(currentUser, userProfile) {
     return () => clearInterval(interval);
   }, [uid, userProfile?.name, userProfile?.course, userProfile?.level, userProfile?.attempt, userProfile?.points]);
 
-  // 5. Build activeSessionsMap with live seconds & check stale sessions (< 5 mins = 300,000ms)
+  // 5. Build activeSessionsMap with live seconds & tolerance for clock skew
   const activeSessionsMap = {};
 
   rawSessions.forEach((s) => {
@@ -191,8 +186,9 @@ export function useActiveSessionsTracker(currentUser, userProfile) {
     if (!studentId) return;
 
     const lastUpdated = parseTimestampToMillis(s.lastUpdatedAt) || parseTimestampToMillis(s.startedAt) || 0;
-    // Session is valid if updated in last 5 minutes (300,000 ms)
-    if (lastUpdated > 0 && (now - lastUpdated) < 300000) {
+    // Session is valid if active and updated within 15 mins (900,000ms) or lastUpdated is valid
+    const isStale = lastUpdated > 0 && (now - lastUpdated) > 900000;
+    if (s.active && !isStale) {
       const startedAt = parseTimestampToMillis(s.startedAt) || (now - ((Number(s.elapsedSeconds) || 0) * 1000));
       const elapsedSecs = Math.max(0, Math.floor((now - startedAt) / 1000));
 
@@ -208,30 +204,25 @@ export function useActiveSessionsTracker(currentUser, userProfile) {
   });
 
   // 6. Always merge current user's local active timer if active right now
-  if (uid && localTimerState) {
-    if (localTimerState.isActive && localTimerState.startTimestamp) {
-      const elapsed = (localTimerState.accumulatedSeconds || 0) + Math.floor((now - localTimerState.startTimestamp) / 1000);
-      if (elapsed < 18000) {
-        activeSessionsMap[uid] = {
-          id: uid,
-          studentId: uid,
-          displayName: userProfile?.name || currentUser.displayName || currentUser.email || 'Student',
-          course: userProfile?.course || 'CA',
-          level: userProfile?.level || 'Foundation',
-          attempt: userProfile?.attempt || '',
-          points: userProfile?.points || 0,
-          isOnline: true,
-          elapsedSeconds: elapsed,
-          durationSecs: elapsed,
-          formattedDuration: formatLiveTimer(elapsed),
-          active: true,
-          startedAt: now - (elapsed * 1000),
-          subject: localTimerState.selectedSubject || 'General Study'
-        };
-      }
-    } else {
-      // Timer explicitly paused or stopped locally
-      delete activeSessionsMap[uid];
+  if (uid && localTimerState && localTimerState.isActive && localTimerState.startTimestamp) {
+    const elapsed = (localTimerState.accumulatedSeconds || 0) + Math.floor((now - localTimerState.startTimestamp) / 1000);
+    if (elapsed < 18000) {
+      activeSessionsMap[uid] = {
+        id: uid,
+        studentId: uid,
+        displayName: userProfile?.name || currentUser.displayName || currentUser.email || 'Student',
+        course: userProfile?.course || 'CA',
+        level: userProfile?.level || 'Foundation',
+        attempt: userProfile?.attempt || '',
+        points: userProfile?.points || 0,
+        isOnline: true,
+        elapsedSeconds: elapsed,
+        durationSecs: elapsed,
+        formattedDuration: formatLiveTimer(elapsed),
+        active: true,
+        startedAt: now - (elapsed * 1000),
+        subject: localTimerState.selectedSubject || 'General Study'
+      };
     }
   }
 

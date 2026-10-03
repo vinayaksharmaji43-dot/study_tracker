@@ -569,20 +569,22 @@ export default function StudyTimer() {
     const broadcastPresence = async () => {
       if (isActive) {
         try {
-          const course = userProfile.course || 'CA';
-          const level = userProfile.level || 'Foundation';
+          const { course: parsedCourse, level: parsedLevel, attempt: parsedAttempt } = parseStream(userProfile);
+          const course = userProfile.course || parsedCourse || 'CA';
+          const level = userProfile.level || parsedLevel || 'Foundation';
+          const attemptVal = userProfile.attempt || parsedAttempt || '';
           const currentContinuous = startTimestamp ? Math.floor((Date.now() - startTimestamp) / 1000) : 0;
           const currentFocusSecs = Math.max(currentContinuous, secondsRef.current || 0);
 
           await setDoc(sessionRef, {
             studentId: currentUser.uid,
-            displayName: userProfile.name || currentUser.email,
+            displayName: userProfile.name || currentUser.displayName || currentUser.email || 'Student',
             course,
             level,
-            attempt,
+            attempt: attemptVal,
             points: userProfile.points || 0,
-            subject: selectedSubject || '',
-            startedAt: Date.now() - (secondsRef.current * 1000),
+            subject: selectedSubject || 'General Study',
+            startedAt: Date.now() - ((secondsRef.current || 0) * 1000),
             lastUpdatedAt: Date.now(),
             maxFocusSecs: currentFocusSecs,
             active: true
@@ -595,15 +597,15 @@ export default function StudyTimer() {
 
     if (isActive) {
       broadcastPresence();
-      intervalId = setInterval(broadcastPresence, 30000);
+      intervalId = setInterval(broadcastPresence, 15000);
     } else {
-      updateDoc(sessionRef, { active: false, lastUpdatedAt: Date.now() }).catch(() => {});
+      setDoc(sessionRef, { active: false, lastUpdatedAt: Date.now() }, { merge: true }).catch(() => {});
     }
 
     return () => {
       if (intervalId) clearInterval(intervalId);
     };
-  }, [isActive, currentUser, userProfile]);
+  }, [isActive, currentUser, userProfile, startTimestamp, selectedSubject]);
 
   // Real-time listener for study sessions
   useEffect(() => {
@@ -982,6 +984,7 @@ export default function StudyTimer() {
         startTimestamp: now
       }));
     }
+    window.dispatchEvent(new Event('study-timer-state-changed'));
   };
 
   // Handle Pause Session
@@ -1005,6 +1008,7 @@ export default function StudyTimer() {
         startTimestamp: null
       }));
     }
+    window.dispatchEvent(new Event('study-timer-state-changed'));
   };
 
   // Handle Subject Change
@@ -1018,6 +1022,7 @@ export default function StudyTimer() {
         startTimestamp
       }));
     }
+    window.dispatchEvent(new Event('study-timer-state-changed'));
   };
 
   // Handle Stop & Save Session
@@ -1034,6 +1039,7 @@ export default function StudyTimer() {
       setAccumulatedSeconds(0);
       setSeconds(0);
       if (storageKey) localStorage.removeItem(storageKey);
+      window.dispatchEvent(new Event('study-timer-state-changed'));
       return;
     }
 
@@ -1048,6 +1054,7 @@ export default function StudyTimer() {
       setAccumulatedSeconds(0);
       setStartTimestamp(null);
       if (storageKey) localStorage.removeItem(storageKey);
+      window.dispatchEvent(new Event('study-timer-state-changed'));
 
       setSavedSuccess(true);
       setTimeout(() => setSavedSuccess(false), 4000);
