@@ -31,6 +31,7 @@ import {
 import ProBadge from '../../components/ProBadge';
 import { getStreamId, getStreamDetails, STREAM_OPTIONS, STREAM_LABELS } from '../../utils/levelSystem';
 import { useAuth } from '../../contexts/AuthContext';
+import StudentManagementCenter from '../components/StudentManagementCenter';
 
 export default function AdminStudents() {
   const { userProfile, currentUser, isOwner, hasPermission } = useAuth();
@@ -49,8 +50,9 @@ export default function AdminStudents() {
   const [statusFilter, setStatusFilter] = useState('all'); // 'all', 'active', 'banned', 'logout'
   const [sourceFilter, setSourceFilter] = useState('all'); // 'all', 'Instagram', 'YouTube', 'Telegram', 'Facebook', 'Friends Circle'
 
-  // Selected Student Modal State
+  // Selected Student Management Center State
   const [selectedStudent, setSelectedStudent] = useState(null);
+  const [managementTab, setManagementTab] = useState('overview');
 
   // Controlled Point Adjustment Modal State
   const [adjustingStudent, setAdjustingStudent] = useState(null);
@@ -846,20 +848,23 @@ export default function AdminStudents() {
                     <td className="px-6 py-4 text-right">
                       <div className="flex flex-wrap items-center justify-end gap-1.5">
                         <button
-                          onClick={() => setSelectedStudent(student)}
-                          title="View student profile details"
+                          onClick={() => {
+                            setSelectedStudent(student);
+                            setManagementTab('overview');
+                          }}
+                          title="Open student management center"
                           className="px-2.5 py-1.5 rounded-xl bg-royal-600/20 border border-royal-500/30 text-royal-400 hover:bg-royal-600 hover:text-white text-xs font-bold transition-all flex items-center gap-1"
                         >
                           <Eye className="w-3.5 h-3.5" />
-                          <span>View</span>
+                          <span>Manage</span>
                         </button>
 
                         <button
                           onClick={() => {
                             setSelectedStudent(student);
-                            setAdminDayOffDate(todayKey);
+                            setManagementTab('recovery');
                           }}
-                          title="Manage Day Off for student"
+                          title="Manage Day Off & Recovery"
                           className="px-2.5 py-1.5 rounded-xl bg-amber-500/20 border border-amber-500/30 text-amber-300 hover:bg-amber-500 hover:text-navy-950 text-xs font-bold transition-all flex items-center gap-1"
                         >
                           <ShieldCheck className="w-3.5 h-3.5" />
@@ -867,8 +872,11 @@ export default function AdminStudents() {
                         </button>
 
                         <button
-                          onClick={() => setAdjustingStudent(student)}
-                          title="Adjust student points"
+                          onClick={() => {
+                            setSelectedStudent(student);
+                            setManagementTab('adjustment');
+                          }}
+                          title="Adjust study hours & points"
                           className="px-2.5 py-1.5 rounded-xl bg-gold-500/20 border border-gold-500/30 text-gold-400 hover:bg-gold-500 hover:text-navy-950 text-xs font-bold transition-all flex items-center gap-1"
                         >
                           <Sliders className="w-3.5 h-3.5" />
@@ -877,11 +885,10 @@ export default function AdminStudents() {
 
                         <button
                           onClick={() => {
-                            setWarningReason('Studied less than 6 hours minimum requirement today');
-                            setWarningMessage('');
-                            setWarningStudent(student);
+                            setSelectedStudent(student);
+                            setManagementTab('strike');
                           }}
-                          title="Issue official warning"
+                          title="Issue official warning or strike"
                           className="px-2.5 py-1.5 rounded-xl bg-amber-500/20 border border-amber-500/30 text-amber-300 hover:bg-amber-500 hover:text-navy-950 text-xs font-bold transition-all flex items-center gap-1"
                         >
                           <AlertTriangle className="w-3.5 h-3.5" />
@@ -930,477 +937,18 @@ export default function AdminStudents() {
         </div>
       )}
 
-      {/* Student Details Modal */}
+      {/* Comprehensive Student Management Center (All 8 Tabs + Action History) */}
       {selectedStudent && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-navy-950/85 backdrop-blur-md animate-in fade-in duration-200">
-          <div className="glass-card p-6 sm:p-8 rounded-3xl border border-white/15 max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl space-y-6">
-            
-            <div className="flex items-center justify-between border-b border-white/10 pb-4">
-              <div className="flex items-center space-x-3">
-                <div className="w-12 h-12 rounded-full bg-gradient-to-tr from-emerald-600 to-gold-500 p-0.5">
-                  <div className="w-full h-full bg-navy-950 rounded-full flex items-center justify-center text-white font-extrabold text-lg">
-                    {selectedStudent.name ? selectedStudent.name.charAt(0).toUpperCase() : 'S'}
-                  </div>
-                </div>
-                <div>
-                  <h3 className="text-xl font-bold text-white flex items-center gap-2">
-                    {selectedStudent.name}
-                    {selectedStudent.rollNumber && (
-                      <span className="px-2 py-0.5 rounded-md bg-gold-500/20 text-gold-400 text-[10px] font-mono border border-gold-500/30">
-                        {selectedStudent.rollNumber}
-                      </span>
-                    )}
-                  </h3>
-                  <p className="text-xs text-slate-400">{selectedStudent.email}</p>
-                </div>
-              </div>
-              <button onClick={() => setSelectedStudent(null)} className="text-slate-400 hover:text-white font-bold p-2">
-                <X className="w-6 h-6" />
-              </button>
-            </div>
-
-            {/* Profile Overview Grid */}
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-              {/* Course Stream Block with Admin Direct Change */}
-              {!isEditingStream ? (
-                <div className="p-4 rounded-2xl bg-navy-900/60 border border-white/5 space-y-1.5">
-                  <div className="flex items-center justify-between">
-                    <div className="text-[11px] text-slate-400 font-semibold">Course Stream</div>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setSelectedNewStream(getStreamId(selectedStudent.course, selectedStudent.level));
-                        setIsEditingStream(true);
-                      }}
-                      className="text-[10px] font-bold text-amber-400 hover:text-amber-300 underline"
-                    >
-                      Change Stream
-                    </button>
-                  </div>
-                  <div className="text-sm font-extrabold text-emerald-400 flex items-center gap-1.5">
-                    <span>{STREAM_LABELS[getStreamId(selectedStudent.course, selectedStudent.level)] || selectedStudent.course || 'CA Foundation'}</span>
-                    <span className="text-amber-400 text-xs" title="Stream Locked">🔒</span>
-                  </div>
-                </div>
-              ) : (
-                <div className="p-4 rounded-2xl bg-navy-950 border border-amber-500/50 space-y-2.5 col-span-2 sm:col-span-2 shadow-lg">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-bold text-amber-300">Directly Change Stream (Admin)</span>
-                    <button
-                      type="button"
-                      onClick={() => setIsEditingStream(false)}
-                      className="text-xs text-slate-400 hover:text-white"
-                    >
-                      ✕
-                    </button>
-                  </div>
-                  <select
-                    value={selectedNewStream}
-                    onChange={(e) => setSelectedNewStream(e.target.value)}
-                    className="w-full px-3 py-2 rounded-xl bg-navy-900 border border-white/15 text-white text-xs font-bold focus:outline-none focus:border-amber-400"
-                  >
-                    {STREAM_OPTIONS.map(opt => (
-                      <option key={opt.id} value={opt.id}>{opt.label}</option>
-                    ))}
-                  </select>
-                  <div className="flex justify-end gap-2 pt-1">
-                    <button
-                      type="button"
-                      onClick={() => setIsEditingStream(false)}
-                      className="px-3 py-1.5 rounded-lg border border-white/10 text-slate-300 text-xs font-bold hover:bg-white/5"
-                    >
-                      Cancel
-                    </button>
-                    <button
-                      type="button"
-                      disabled={savingStream}
-                      onClick={handleAdminDirectStreamChange}
-                      className="px-4 py-1.5 rounded-lg bg-amber-500 text-navy-950 text-xs font-black shadow-glow-gold hover:bg-amber-400 disabled:opacity-50"
-                    >
-                      {savingStream ? 'Updating...' : 'Save Stream'}
-                    </button>
-                  </div>
-                </div>
-              )}
-
-              <div className="p-4 rounded-2xl bg-navy-900/60 border border-white/5 space-y-1">
-                <div className="text-[11px] text-slate-400">Exam Attempt</div>
-                <div className="text-sm font-bold text-white">{selectedStudent.attempt || 'N/A'}</div>
-              </div>
-
-              <div className="p-4 rounded-2xl bg-navy-900/60 border border-white/5 space-y-1">
-                <div className="text-[11px] text-slate-400">Study Hours</div>
-                <div className="text-sm font-bold text-white">{formatHours(selectedStudent.studyHours || 0)}</div>
-              </div>
-
-              <div className="p-4 rounded-2xl bg-navy-900/60 border border-white/5 space-y-1">
-                <div className="text-[11px] text-slate-400">Earned Points</div>
-                <div className="text-sm font-bold text-gold-400">{selectedStudent.points || 0} PTS</div>
-              </div>
-
-              <div className="p-4 rounded-2xl bg-navy-900/60 border border-white/5 space-y-1">
-                <div className="text-[11px] text-slate-400">Day Offs This Month</div>
-                <div className="text-sm font-bold text-amber-300">{getStudentDayOffs(selectedStudent).length}/7 used</div>
-              </div>
-
-              <div className="p-4 rounded-2xl bg-navy-900/60 border border-white/5 space-y-1">
-                <div className="text-[11px] text-slate-400">Total Tab Away Time</div>
-                <div className="text-sm font-bold font-mono text-rose-400">
-                  {formatTabAwayTime(selectedStudent.totalTabAwayTime ?? (selectedStudent.totalTabAwayTimeMs ? Math.floor(selectedStudent.totalTabAwayTimeMs / 1000) : 0))}
-                </div>
-              </div>
-
-              <div className="p-4 rounded-2xl bg-navy-900/60 border border-white/5 space-y-1">
-                <div className="text-[11px] text-slate-400">Heard About Us</div>
-                <div className="text-sm font-bold text-white flex items-center gap-1.5">
-                  <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-lg text-xs font-bold border ${getReferralBadge(selectedStudent.referralSource).bg}`}>
-                    <span>{getReferralBadge(selectedStudent.referralSource).icon}</span>
-                    <span>{getReferralBadge(selectedStudent.referralSource).label}</span>
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            {/* Detailed Activity Summaries */}
-            <div className="space-y-4 pt-2">
-
-              {/* Tab Away Time Tracking (Page Visibility API - Admin Only) */}
-              <div className="p-4 sm:p-5 rounded-2xl bg-navy-900/60 border border-rose-500/20 space-y-3">
-                <div className="flex items-center justify-between border-b border-white/5 pb-2.5">
-                  <h4 className="text-sm font-bold text-white flex items-center gap-2">
-                    <EyeOff className="w-4 h-4 text-rose-400" />
-                    <span>Page Visibility & Tab Away Tracking</span>
-                  </h4>
-                  <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-500/20 text-rose-300 border border-rose-500/30">
-                    Admin Only
-                  </span>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
-                  {/* Total Tab Away Time */}
-                  <div className="p-3.5 rounded-xl bg-navy-950/80 border border-white/5 space-y-1">
-                    <div className="text-[11px] text-slate-400 font-medium">Total Tab Away Time</div>
-                    <div className="text-lg sm:text-xl font-black font-mono text-rose-400">
-                      {formatTabAwayTime(selectedStudent.totalTabAwayTime ?? (selectedStudent.totalTabAwayTimeMs ? Math.floor(selectedStudent.totalTabAwayTimeMs / 1000) : 0))}
-                    </div>
-                    <div className="text-[10px] text-slate-500">
-                      Accumulated browser tab hidden duration (HH:MM:SS)
-                    </div>
-                  </div>
-
-                  {/* Number of Tab Away Sessions */}
-                  <div className="p-3.5 rounded-xl bg-navy-950/80 border border-white/5 space-y-1">
-                    <div className="text-[11px] text-slate-400 font-medium">Number of Tab Away Sessions</div>
-                    <div className="text-lg sm:text-xl font-bold font-mono text-amber-300">
-                      {selectedStudent.tabAwaySessionsCount || 0} {(selectedStudent.tabAwaySessionsCount || 0) === 1 ? 'session' : 'sessions'}
-                    </div>
-                    <div className="text-[10px] text-slate-500">
-                      Total switch-away / hide cycles detected
-                    </div>
-                  </div>
-
-                  {/* Last Tab Hidden At */}
-                  <div className="p-3.5 rounded-xl bg-navy-950/80 border border-white/5 space-y-1">
-                    <div className="text-[11px] text-slate-400 font-medium">Last Tab Hidden At</div>
-                    <div className="text-xs font-semibold text-slate-200">
-                      {formatDateTime(selectedStudent.lastTabHiddenAt)}
-                    </div>
-                    <div className="text-[10px] text-slate-500">
-                      Timestamp student last left this tab
-                    </div>
-                  </div>
-
-                  {/* Last Tab Visible At */}
-                  <div className="p-3.5 rounded-xl bg-navy-950/80 border border-white/5 space-y-1">
-                    <div className="text-[11px] text-slate-400 font-medium">Last Tab Visible At</div>
-                    <div className="text-xs font-semibold text-slate-200">
-                      {formatDateTime(selectedStudent.lastTabVisibleAt)}
-                    </div>
-                    <div className="text-[10px] text-slate-500">
-                      Timestamp student returned back to tab
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Paid Quiz Access Status */}
-              <div className="p-4 rounded-2xl bg-navy-900/60 border border-white/5 flex items-center justify-between gap-4">
-                <div className="flex items-center gap-3">
-                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${selectedStudent.paidQuizAccess || selectedStudent.isPaid ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30' : 'bg-slate-800 text-slate-400 border border-white/5'}`}>
-                    <Crown className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <div className="text-sm font-bold text-white flex items-center gap-2">
-                      <span>Paid Quiz Access</span>
-                      <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${selectedStudent.paidQuizAccess || selectedStudent.isPaid ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30' : 'bg-slate-700 text-slate-300'}`}>
-                        {selectedStudent.paidQuizAccess || selectedStudent.isPaid ? 'Authorized (Paid)' : 'Free Only'}
-                      </span>
-                    </div>
-                    <div className="text-xs text-slate-400">
-                      {selectedStudent.paidQuizAccess || selectedStudent.isPaid ? 'Student can attempt all Free and Paid Quizzes' : 'Student has access to Free Quizzes only'}
-                    </div>
-                  </div>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => handleTogglePaidAccess(selectedStudent)}
-                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all shrink-0 ${selectedStudent.paidQuizAccess || selectedStudent.isPaid ? 'bg-rose-500/20 text-rose-300 hover:bg-rose-500 hover:text-white border border-rose-500/30' : 'bg-amber-500/20 text-amber-300 hover:bg-amber-500 hover:text-navy-950 border border-amber-500/30'}`}
-                >
-                  {selectedStudent.paidQuizAccess || selectedStudent.isPaid ? 'Revoke Paid' : 'Grant Paid'}
-                </button>
-              </div>
-
-              {/* 12-Day Trial & Full PRO Access Status */}
-              <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-between gap-4">
-                <div className="flex items-center gap-3">
-                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${selectedStudent.isPro || selectedStudent.proAccess ? 'bg-amber-500/25 text-amber-400 border border-amber-500/40 shadow-glow-amber' : 'bg-slate-800 text-slate-400 border border-white/5'}`}>
-                    <Crown className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <div className="text-sm font-bold text-white flex items-center gap-2">
-                      <span>Pro Platform Access</span>
-                      <span className={`px-2 py-0.5 rounded-full text-[10px] font-black uppercase ${selectedStudent.isPro || selectedStudent.proAccess ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40' : 'bg-slate-700 text-slate-300'}`}>
-                        {selectedStudent.isPro || selectedStudent.proAccess ? 'PRO ACTIVE' : '12-Day Trial'}
-                      </span>
-                    </div>
-                    <div className="text-xs text-slate-300">
-                      {selectedStudent.isPro || selectedStudent.proAccess ? 'Unrestricted access to all dashboard tools, subjects, and sessions' : 'Standard 12-day free trial limits apply'}
-                    </div>
-                  </div>
-                </div>
-                <button
-                  type="button"
-                  onClick={async () => {
-                    const isCurrentlyPro = Boolean(selectedStudent.isPro || selectedStudent.proAccess);
-                    const targetId = selectedStudent.id || selectedStudent.uid;
-                    try {
-                      await updateDoc(doc(db, 'users', targetId), {
-                        isPro: !isCurrentlyPro,
-                        proAccess: !isCurrentlyPro,
-                        [isCurrentlyPro ? 'proRevokedAt' : 'proGrantedAt']: serverTimestamp()
-                      });
-                      setSelectedStudent(prev => ({
-                        ...prev,
-                        isPro: !isCurrentlyPro,
-                        proAccess: !isCurrentlyPro
-                      }));
-                      alert(`PRO Access ${!isCurrentlyPro ? 'granted to' : 'revoked for'} ${selectedStudent.name}!`);
-                    } catch (e) {
-                      alert('Failed to update Pro status: ' + e.message);
-                    }
-                  }}
-                  className={`px-3.5 py-2 rounded-xl text-xs font-black transition-all shrink-0 cursor-pointer ${
-                    selectedStudent.isPro || selectedStudent.proAccess 
-                      ? 'bg-rose-500/20 text-rose-300 hover:bg-rose-500 hover:text-white border border-rose-500/30' 
-                      : 'bg-gradient-to-r from-amber-500 to-yellow-500 text-navy-950 hover:from-amber-400 hover:to-yellow-400 font-extrabold shadow-glow-amber'
-                  }`}
-                >
-                  {selectedStudent.isPro || selectedStudent.proAccess ? 'Revoke Pro' : 'Grant Pro Access'}
-                </button>
-              </div>
-              
-              {/* Targets Summary */}
-              <div className="p-4 rounded-2xl bg-navy-900/40 border border-white/5 space-y-2">
-                <h4 className="text-sm font-bold text-white flex items-center gap-2">
-                  <Target className="w-4 h-4 text-cyan-400" />
-                  <span>Target Milestones</span>
-                </h4>
-                <div className="grid grid-cols-2 gap-3 text-xs">
-                  <div className="p-3 rounded-xl bg-navy-950 text-slate-300">
-                    Completed: <strong className="text-emerald-400">{targets.filter(t => t.uid === (selectedStudent.id || selectedStudent.uid) && t.completed).length}</strong>
-                  </div>
-                  <div className="p-3 rounded-xl bg-navy-950 text-slate-300">
-                    Pending: <strong className="text-amber-400">{targets.filter(t => t.uid === (selectedStudent.id || selectedStudent.uid) && !t.completed).length}</strong>
-                  </div>
-                </div>
-              </div>
-
-              {/* Sessions Summary */}
-              <div className="p-4 rounded-2xl bg-navy-900/40 border border-white/5 space-y-2">
-                <h4 className="text-sm font-bold text-white flex items-center gap-2">
-                  <Clock className="w-4 h-4 text-emerald-400" />
-                  <span>Logged Study Sessions</span>
-                </h4>
-                <div className="text-xs text-slate-300">
-                  Total sessions recorded: <strong className="text-white">{sessions.filter(s => s.uid === (selectedStudent.id || selectedStudent.uid)).length}</strong>
-                </div>
-              </div>
-
-              {/* Day Off Management Card (Admin Override) */}
-              <div className="p-5 rounded-2xl bg-navy-900/60 border border-amber-500/20 space-y-4">
-                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-                  <h4 className="text-sm font-bold text-white flex items-center gap-2">
-                    <ShieldCheck className="w-4 h-4 text-amber-400" />
-                    <span>Day Off Management (Admin Control)</span>
-                  </h4>
-                  <span className="text-xs font-bold px-2.5 py-1 rounded-full bg-amber-500/15 text-amber-300 border border-amber-500/30 w-fit">
-                    {getStudentDayOffs(selectedStudent).length} / 7 Used This Month
-                  </span>
-                </div>
-
-                {dayOffSuccessMsg && (
-                  <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-xs text-emerald-300 flex items-center gap-2">
-                    <CheckCircle className="w-4 h-4 shrink-0" />
-                    <span>{dayOffSuccessMsg}</span>
-                  </div>
-                )}
-
-                {/* Quick Today Toggle */}
-                {(() => {
-                  const sUid = selectedStudent.id || selectedStudent.uid;
-                  const isTodayActive = dayOffs.some(d => (d.uid === sUid || d.id === todayKey) && d.dateKey === todayKey && d.status === 'active');
-                  return (
-                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-3.5 rounded-xl bg-navy-950/80 border border-white/5">
-                      <div>
-                        <div className="text-xs font-bold text-white flex items-center gap-2">
-                          <span>Today ({todayKey}):</span>
-                          {isTodayActive ? (
-                            <span className="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 font-extrabold text-[11px] border border-emerald-500/30">
-                              🟢 Day Off Active
-                            </span>
-                          ) : (
-                            <span className="px-2 py-0.5 rounded bg-slate-800 text-slate-300 font-bold text-[11px] border border-white/10">
-                              ⚪ Working / No Day Off
-                            </span>
-                          )}
-                        </div>
-                        <p className="text-[11px] text-slate-400 mt-0.5">
-                          {isTodayActive ? "Exempt from study penalties today." : "Student is expected to study today."}
-                        </p>
-                      </div>
-
-                      <button
-                        type="button"
-                        disabled={togglingDayOff}
-                        onClick={() => handleAdminToggleDayOff(selectedStudent, todayKey, !isTodayActive)}
-                        className={`shrink-0 px-3.5 py-2 rounded-xl text-xs font-black transition-all flex items-center gap-1.5 disabled:opacity-50 ${
-                          isTodayActive
-                            ? 'bg-rose-500/20 text-rose-300 border border-rose-500/30 hover:bg-rose-500 hover:text-white'
-                            : 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 hover:bg-emerald-500 hover:text-navy-950 shadow-glow-emerald'
-                        }`}
-                      >
-                        {togglingDayOff ? (
-                          <span>Updating...</span>
-                        ) : isTodayActive ? (
-                          <>
-                            <X className="w-3.5 h-3.5" />
-                            <span>Turn Day Off OFF</span>
-                          </>
-                        ) : (
-                          <>
-                            <ShieldCheck className="w-3.5 h-3.5" />
-                            <span>Turn Day Off ON</span>
-                          </>
-                        )}
-                      </button>
-                    </div>
-                  );
-                })()}
-
-                {/* Custom Date Selector */}
-                <div className="p-3.5 rounded-xl bg-navy-950/80 border border-white/5 space-y-3">
-                  <div className="text-xs font-bold text-slate-300">
-                    Set / Remove Day Off for Any Specific Date:
-                  </div>
-                  <div className="grid grid-cols-1 sm:grid-cols-12 gap-2">
-                    <div className="sm:col-span-5">
-                      <input
-                        type="date"
-                        value={adminDayOffDate}
-                        onChange={(e) => setAdminDayOffDate(e.target.value)}
-                        className="w-full px-3 py-2 rounded-xl bg-navy-900 border border-white/10 text-white text-xs font-mono focus:outline-none focus:border-amber-400"
-                      />
-                    </div>
-                    <div className="sm:col-span-4">
-                      <input
-                        type="text"
-                        placeholder="Admin note (optional)"
-                        value={adminDayOffNote}
-                        onChange={(e) => setAdminDayOffNote(e.target.value)}
-                        className="w-full px-3 py-2 rounded-xl bg-navy-900 border border-white/10 text-white text-xs placeholder-slate-500 focus:outline-none focus:border-amber-400"
-                      />
-                    </div>
-                    <div className="sm:col-span-3">
-                      {(() => {
-                        const sUid = selectedStudent.id || selectedStudent.uid;
-                        const isDateActive = dayOffs.some(d => (d.uid === sUid || d.id === adminDayOffDate) && d.dateKey === adminDayOffDate && d.status === 'active');
-                        return (
-                          <button
-                            type="button"
-                            disabled={togglingDayOff || !adminDayOffDate}
-                            onClick={() => handleAdminToggleDayOff(selectedStudent, adminDayOffDate, !isDateActive)}
-                            className={`w-full py-2 px-3 rounded-xl text-xs font-black transition-all flex items-center justify-center gap-1 disabled:opacity-50 ${
-                              isDateActive
-                                ? 'bg-rose-500/20 text-rose-300 border border-rose-500/30 hover:bg-rose-500 hover:text-white'
-                                : 'bg-amber-500 text-navy-950 font-black hover:bg-amber-400 shadow-glow-amber'
-                            }`}
-                          >
-                            {togglingDayOff ? '...' : isDateActive ? 'Turn OFF' : 'Turn ON'}
-                          </button>
-                        );
-                      })()}
-                    </div>
-                  </div>
-                </div>
-
-                {/* Active Day Off Dates this Month with Remove Chips */}
-                <div>
-                  <div className="text-xs font-semibold text-slate-400 mb-2">
-                    Active Day Off Records This Month ({getStudentDayOffs(selectedStudent).length}):
-                  </div>
-                  {getStudentDayOffs(selectedStudent).length > 0 ? (
-                    <div className="flex flex-wrap gap-2">
-                      {getStudentDayOffs(selectedStudent).map(dayOff => (
-                        <div
-                          key={dayOff.dateKey}
-                          className="flex items-center gap-1.5 px-3 py-1 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs font-mono font-bold"
-                        >
-                          <Calendar className="w-3 h-3 text-amber-400" />
-                          <span>{dayOff.dateKey}</span>
-                          {dayOff.activatedByAdmin && (
-                            <span className="text-[10px] text-amber-200 bg-amber-500/20 px-1 rounded">Admin</span>
-                          )}
-                          <button
-                            type="button"
-                            onClick={() => handleAdminToggleDayOff(selectedStudent, dayOff.dateKey, false)}
-                            title={`Remove Day Off for ${dayOff.dateKey}`}
-                            className="ml-1 hover:text-rose-400 text-slate-400 transition-colors"
-                          >
-                            <X className="w-3 h-3" />
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="text-xs text-slate-500 italic">No Day Offs recorded for this student this month.</div>
-                  )}
-                </div>
-              </div>
-
-              {/* Doubts Summary */}
-              <div className="p-4 rounded-2xl bg-navy-900/40 border border-white/5 space-y-2">
-                <h4 className="text-sm font-bold text-white flex items-center gap-2">
-                  <HelpCircle className="w-4 h-4 text-amber-400" />
-                  <span>Submitted Academic Doubts</span>
-                </h4>
-                <div className="text-xs text-slate-300">
-                  Total doubts asked: <strong className="text-white">{doubts.filter(d => d.uid === (selectedStudent.id || selectedStudent.uid)).length}</strong>
-                </div>
-              </div>
-
-            </div>
-
-            <div className="pt-4 border-t border-white/10 text-right">
-              <button
-                onClick={() => setSelectedStudent(null)}
-                className="px-6 py-2.5 rounded-xl bg-navy-900 border border-white/10 text-slate-300 text-sm font-bold hover:bg-white/10"
-              >
-                Close Profile
-              </button>
-            </div>
-
-          </div>
-        </div>
+        <StudentManagementCenter
+          student={selectedStudent}
+          allStudents={students}
+          initialTab={managementTab}
+          onClose={() => setSelectedStudent(null)}
+          onStudentUpdated={(updated) => {
+            setSelectedStudent(updated);
+            setStudents(prev => prev.map(s => (s.id || s.uid) === (updated.id || updated.uid) ? updated : s));
+          }}
+        />
       )}
 
       {/* Controlled Point Adjustment Modal */}

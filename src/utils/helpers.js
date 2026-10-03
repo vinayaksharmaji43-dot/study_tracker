@@ -29,6 +29,20 @@ export function formatDate(timestamp) {
   }).format(date);
 }
 
+export function formatExactTime(val = new Date()) {
+  if (!val) return '';
+  const date = val?.toDate ? val.toDate() : (val instanceof Date ? val : new Date(val));
+  if (isNaN(date.getTime())) return '';
+  return new Intl.DateTimeFormat('en-IN', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: true
+  }).format(date);
+}
+
 export function getDateKey(date = new Date()) {
   const value = date?.toDate ? date.toDate() : new Date(date);
   const year = value.getFullYear();
